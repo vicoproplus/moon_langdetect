@@ -1,0 +1,158 @@
+# Task 1 三目标最小编译探针 — 原始日志（2026-10-21）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD：`a2f7e5478944ac3a28139ce4627c865680775749`（`a2f7e54`）
+  - 说明：Task 0 基线记录时 HEAD 为 `192ce0e`；其后 `0756cb9`（Task 0 基线提交）、`0354bed`、`a2f7e54` 均为 Task 0 自身产物/修订提交，未触碰 `src/`、`tools/`。
+- 执行时间：2026-10-21 18:44:49 +0800（首条探针命令）
+- 范围：仅调用规范入口 `moon`；不新增、不修改任何 `.mbt` / `moon.pkg` / `tools/*`；本任务唯一新增文件为本日志。
+- 结论：**PASS**。`native` / `js` / `wasm-gc` 三次单目标构建均 rc=0，验收链 rc=0；三目标产物已实际落盘并记录路径/字节数；`src`/`tools` 的 sha256 聚合值与 Task 0 §3.2 逐字节一致；未触发 D1 决策门，未进入 Task 2。
+- 保留策略：**90 天**（至 2027-01-19）。scratch 取证目录 `.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task1/` 保留、不提交。
+
+## 1. 工具链与入口检查
+
+| 命令 | rc | 关键输出 |
+|---|---|---|
+| `command -v moon` | 0 | `/c/Users/Administrator/.moon/bin/moon` |
+| `moon --version` | 127 | stdout：`moon 0.1.20261012 (748b63c 2026-10-12) ~\.moon\bin\moon.exe`、`moonc v0.10.15+943464bfa (2026-10-12) ~\.moon\bin\moonc.exe`；stderr：`Error: failed to get "C:\Users\Administrator\.moon\bin\moonrun.exe" version:` |
+| `moonc -v` | 0 | `v0.10.15+943464bfa (2026-10-12)` |
+
+入口判定：`command -v moon` rc=0，规范入口存在。`moon --version` 的 rc=127 是环境已知怪癖（版本字符串已完整打印，失败来自缺失 `moonrun.exe` 的版本探测），**不视为构建失败**；后续目标构建全部 rc=0。
+
+## 2. 逐目标构建（单条执行，显式捕获 rc）
+
+### 2.1 native
+
+- 命令：`moon build --target native`
+- rc：**0**
+- 耗时：1 s
+- stdout：0 字节；stderr：294 字节
+
+```text
+utf.c
+runtime.c
+sync_io.c
+env.c
+backtrace.c
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\build\src\core\cmd\main\main.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\build\src\core\cmd\main\main.exp
+Finished. moon: ran 7 tasks, now up to date
+```
+
+产物：`_build/native/debug/build/src/core/cmd/main/main.exe`，**175104 字节**，mtime `2026-10-21 18:44:56.464030300 +0800`（本轮构建新写入）。
+
+### 2.2 js
+
+- 命令：`moon build --target js`
+- rc：**0**
+- 耗时：0 s
+- stdout：0 字节；stderr：44 字节
+
+```text
+Finished. moon: ran 2 tasks, now up to date
+```
+
+产物：`_build/js/debug/build/src/core/cmd/main/main.js`，**48 字节**，mtime `2026-10-21 18:44:58.840933400 +0800`（本轮构建新写入）。
+
+### 2.3 wasm-gc
+
+- 命令：`moon build --target wasm-gc`
+- rc：**0**
+- 耗时：0 s
+- stdout：0 字节；stderr：44 字节
+
+```text
+Finished. moon: ran 2 tasks, now up to date
+```
+
+产物：`_build/wasm-gc/debug/build/src/core/cmd/main/main.wasm`，**245 字节**，mtime `2026-10-21 18:45:01.436115600 +0800`（本轮构建新写入）。
+
+## 3. 三目标产物路径与字节数（构建面证据）
+
+| 目标 | 主产物路径 | 字节数 | 同目录附属文件（字节数） |
+|---|---|---:|---|
+| native | `_build/native/debug/build/src/core/cmd/main/main.exe` | 175104 | `main.exp` 14081、`main.lib` 22536、`main.core` 122、`main.mi` 1322 |
+| js | `_build/js/debug/build/src/core/cmd/main/main.js` | 48 | `main.js.map` 74、`main.d.ts` 49、`moonbit.d.ts` 1583、`main.core` 122、`main.mi` 1322 |
+| wasm-gc | `_build/wasm-gc/debug/build/src/core/cmd/main/main.wasm` | 245 | `main.wasm.map` 158、`main.core` 122、`main.mi` 1322 |
+
+产物真实性核验：
+
+- `main.js` 为完整合法的空 `fn main` 编译结果（48 字节），内容逐字如下：
+
+  ```js
+  (() => {
+  })();
+  //# sourceMappingURL=main.js.map
+  ```
+
+- `main.wasm.map` 的 `sourcesContent` 为 `"fn main {\r\n}\r\n"`，`sources` 指向 `src/core/cmd/main/main.mbt`，证明 wasm 产物确由当前脚手架编译而来。
+- 48 字节的 js / 245 字节的 wasm 是空 `fn main` 被优化后的正常最小产物，不是错误占位文件；native 可执行文件为 175104 字节（与 Task 0 基线一致）。
+
+## 4. 验收链（brief Output 原文命令）
+
+命令（仓库根执行，分组重定向仅用于捕获输出，未改变 `&&` 链）：
+
+```bash
+{ moon build --target native && moon build --target js && moon build --target wasm-gc; } > acceptance.out 2> acceptance.err
+```
+
+- rc：**0**
+- 耗时：1 s
+- stdout：0 字节；stderr：90 字节（三次均为增量 no-op，预期现象）
+
+```text
+Finished. moon: no work to do
+Finished. moon: no work to do
+Finished. moon: no work to do
+```
+
+因三个单目标构建此前已成功，验收链在增量态下复跑并 rc=0；失败路径（D1 归因：工具链 / 包图 / 目标支持）未被触发，因此不适用；Task 2 未进入。
+
+## 5. Task 0 sha256 清单复核（工作树排他）
+
+命令（仓库根；12 个文件，按路径排序）：
+
+```bash
+find src tools -type f | sort | xargs sha256sum
+```
+
+清单文件 sha256（聚合值）：`63c618c6ee6e3fc1a8c48ee9adc2ffec3ae0a1bb472bc783b22ee207154c4905`
+
+- 与 Task 0 基线 `docs/superpowers/plans/artifacts/baseline-2026-10-21.md` §3.2 记录的聚合值**完全相同**，即 12 个文件的路径集合与逐文件哈希逐字节一致。
+- 逐文件清单（本环境 `sha256sum` 以 `*` 标记二进制模式；聚合值仍与 Task 0 一致，说明两次取证使用同一工具与同一格式）：
+
+```text
+bff294df5a480613005f7b2531bf5004cfe6e9d21cb97abca9ee638a19de0d62 *src/core/cmd/main/main.mbt
+887c7084dcf6bff2601fcb8f1eb416da2e0c34bf966704881a94aa30b6d2c0c8 *src/core/cmd/main/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/core/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/data/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/math_seam/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/unicode/moon.pkg
+f5fcbce0032cd8af7bbb997fe9b8ba3563253ca94d254cae62c2d54a4f7a1ff6 *tools/gen_float_golden.py
+918230cf867d14264d939f253d19e6d52a76af2a894674238780e7a64d43408c *tools/gen_golden.py
+1cd4435796a488e47458412ef6635b897b7b5db86298259db412ec145c86cd23 *tools/gen_rand_golden.py
+81625df99afaf06ae125e1de1830fb8e4ed60529f7c210b6312d9d928b8a9a15 *tools/probe_facts.py
+0782ae982e78e83fbad6659e6c41c20df00f9356a585587e6ac86a5141c40732 *tools/profile_stats.py
+6f7aeb6c71570545d37a52614e34e2c64a6a92071ee85467abe94c802290a825 *tools/summarize_probes.py
+```
+
+`git status --porcelain`（构建前后一致）：仅 `?? src/`、`?? tools/`（本会话开始前即存在的未跟踪输入）；无任何已跟踪文件改动。除本日志外未新增文件。`_build/` 仅为本任务构建输出（已被 ignore 托管）。
+
+## 6. 上限与保留
+
+- 时长上限：20 分钟。实测：首条探针命令 18:44:49 +0800，日志落盘约 18:47，提交紧随其后，**全程 < 10 分钟**。
+- 外部调用轮次上限：6。实测：**1 / 6**（本任务以单次 implementer agent 调用执行；第 1-5 节命令均为本地离线 shell 取证，不产生外部服务/网络调用）。
+- 保留策略：本日志保留 **90 天**；scratch 原始捕获目录保留作证据、不提交。
+
+## 7. 判定
+
+| 检查项 | 结果 | 证据 |
+|---|---|---|
+| `command -v moon` | PASS | rc=0，路径已记录（§1） |
+| native 构建 | PASS | rc=0，main.exe 175104 B（§2.1/§3） |
+| js 构建 | PASS | rc=0，main.js 48 B（§2.2/§3） |
+| wasm-gc 构建 | PASS | rc=0，main.wasm 245 B（§2.3/§3） |
+| 验收链 | PASS | rc=0（§4） |
+| 工作树排他 | PASS | 聚合 `63c618…4905` 与 Task 0 一致（§5） |
+| D1 归因 / 决策门 | N/A | 无 rc≠0，未触发（§4） |
+
+Task 1 通过；Task 2 具备启动条件。
