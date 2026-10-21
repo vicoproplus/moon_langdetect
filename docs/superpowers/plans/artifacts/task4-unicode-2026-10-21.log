@@ -181,16 +181,33 @@ output_chain_rc=0
 
 - 命令 1/2 扫描面 `src/core` 当前仅空包 + `cmd/main`（本 Task 不改 `src/core`）；本 Task 改动面 `src/unicode` 在命令 3/4/5/7/8/10/11/11b/12/13 的扫描范围内，实跑 0 命中。
 
+### 走查门 C1 的 `capitalword` 前置（标注）
+
+- C1（`capitalword` 走查）本 Task **不可用**：`detect` 与 CLI 尚未实现（Task 8 / Task 9），没有端到端输出可供 C1 比对。
+- 等价前置 = 本包 `unicode_test`：全码点计数 1951（跳过 `0xD800..0xDFFF`）、651 区间端点边界（start/end true、start-1/end+1 false）、六组已知字母大小写（A/a、À/à、Α/α、А/а、ẞ/ß、𐐀/𐐨）。这些正是 `capitalword` 特征路径（`is_upper_cp312`）的前置不变量。
+- 记录方式：C1 记为「前置已由 `unicode_test` 等价覆盖，端到端走查待 Task 8/9」，不以 na 抵扣任何失败项。
+
 ## 8. spec 命令 20 / 21
 
 ```text
 $ .venv/Scripts/python.exe -c "exec('import sys,unicodedata ... assert len(iv)==651 ...')"
 ok 1951 cps / 651 intervals
 cmd20_rc=0
+```
 
-$ test -d src || exit 2; test "$(grep -rl -e 'moonbitlang/x' -e unicode-data src | wc -l)" = "0"
+命令 21 按用户既定裁定以**两行、无 `;`** 的失败即中止形式记录（首行 `|| exit 2` 保留缺路径 rc=2 哨兵）：
+
+```text
+test -d src || exit 2
+test "$(grep -rl -e 'moonbitlang/x' -e unicode-data src | wc -l)" = "0"
+```
+
+```text
 cmd21_rc=0
 ```
+
+- 无 `;`（recorded 文本实查 0 个分号）；两行依次执行、任一行非 0 即整体非 0。
+- 哨兵有效性实测：在**不含** `src` 的目录（`/tmp`）执行同两行 → `rc=2`。
 
 ## 9. 约束与保留
 
@@ -208,3 +225,56 @@ cmd21_rc=0
 | `src/unicode/unicode_test.mbt` | `190c77ddccb840b94f6f6423b5cffdd9ae568d0ae5c09fd49889d4fa4cf6eda2` | 58 / 2455 |
 | `src/unicode/block_test.mbt` | `d218f828d7dedd1a8a94fab53dafd3e5d76176fba047942f6979a7c1afcd1926` | 30 / 1506 |
 | `src/unicode/moon.pkg` | `8c0dbca2811f2934b7ad464a04820d1f477a2ffd1b2d397b0db9d32901cf9d40` | 2 / 141 |
+
+上表为 `f5d8c85` 提交时快照；修复轮 1 后的新指纹见 §10。
+
+## 10. 评审修复轮 1（2026-10-21，HEAD `f5d8c85`）
+
+依据：`task-4-review.md`（R5/R6 证据形式 fail + C1 标注缺失 + 4 项 minor）。修复后新建提交（**不 amend**），message `fix: address task 4 review findings`；修复只改 `tools/gen_upper_table.py`、`src/unicode/unicode.mbt` 与本日志（报告另文追加，未提交）。
+
+| # | 评审项 | 处理 | 证据 |
+|---:|---|---|---|
+| 1 | R5/R6：命令 21 含 `;` | **重录为两行、无 `;`**（§8） | `cmd21_rc=0`；recorded 文本 0 个 `;`；缺 `src` 目录实测 `rc=2`（哨兵保留） |
+| 2 | C1 `capitalword` 前置未标注 | 补「走查门 C1」小节（§7） | C1 因 `detect`/CLI 未实现而不可用；`unicode_test`（1951 计数、区间边界、已知字母）记为等价前置 |
+| 3 | 报告代理区块码 145-147 错误 | 报告改为 **142-144**（代码本就正确） | 实测 `0xD800/0xDB7F→142`、`0xDB80/0xDBFF→143`、`0xDC00/0xDFFF→144`（`0xE000→145` 属私用区） |
+| 4 | 生成器重复版本字面量、缺 CPython 守卫 | `render`/`parse_generated` 改用 `EXPECTED_PYTHON`/`EXPECTED_UNIDATA` 插值；`check_interpreter` 增加 `sys.implementation.name == "cpython"` | 生成物字节不变（md5 同）；非 CPython 负向 `rc=1`，`error: CPython required, got implementation 'pypy'` |
+| 5 | `unicode.mbt` 文档措辞 | `compile-time data` → `generated data` | 运行期初始化的生成数组，措辞与实现一致 |
+| 6 | `pub let` 数组可变 | **deferred**（当前无消费方，不重构） | 记录于本表与本 Task 报告保留意见 |
+
+### 10.1 修复后验证
+
+```text
+$ .venv/Scripts/python.exe tools/gen_upper_table.py --verify
+ok 1951 cps / 651 intervals / 0 diff
+ok 220 blocks / 0 diff (full codepoint lookup)
+verify_rc=0
+
+$ .venv/Scripts/python.exe tools/gen_upper_table.py
+wrote F:\moonbit比赛\moon_langdetect\src\unicode\upper_table.mbt : 651 upper intervals / 220 block ranges
+gen_rc=0
+```
+
+确定性（生成器改动后重跑，产物必须字节不变）：
+
+| 时点 | `md5sum src/unicode/upper_table.mbt` |
+|---|---|
+| 修复前（`f5d8c85` 产物） | `236021f91aea1bb65c163498f3b39f5f` |
+| 修复后重跑 | `236021f91aea1bb65c163498f3b39f5f` |
+
+- 生成物 `sha256` 仍为 `2ef2b86682ef98bb9432a7fc2e4891329c89ba258d918015b52bb0c50c4ff298`（883 行 / 19288 B）；`git diff -- src/unicode/upper_table.mbt` 为空。
+- 版本表头仍可被篡改检测：`python_version=3.12.10`→`3.12.9` 的 `/tmp` 副本 → `error: generated header missing 'python_version=3.12.10' on line 1`，`rc=1`（用后删除）。
+- CPython 守卫负向对照（`sys.implementation` 置为 `pypy` 后调用 `check_interpreter()`）→ `error: CPython required, got implementation 'pypy'`，`rc=1`。
+
+```text
+$ moon test -p vicoproplus/langdetect/src/unicode --target native
+Total tests: 5, passed: 5, failed: 0.
+test_rc=0
+```
+
+修复后文件指纹（工作树）：
+
+| 文件 | sha256 | 行 / 字节 |
+|---|---|---:|
+| `tools/gen_upper_table.py` | `d5ee70b175fdcf2314266688fbe7adb7f4ae9f4ab8387ce2f7c11aa8c804663b` | 331 / 11801 |
+| `src/unicode/unicode.mbt` | `b0df6649bbebd80f0559473eded169eb478d8a50d53ba7f919b766a034e8355d` | 55 / 1638 |
+| `src/unicode/upper_table.mbt` | `2ef2b86682ef98bb9432a7fc2e4891329c89ba258d918015b52bb0c50c4ff298`（未变） | 883 / 19288 |

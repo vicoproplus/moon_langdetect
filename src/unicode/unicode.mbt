@@ -1,6 +1,6 @@
 ///| Unicode character-property queries backed by the generated CPython
-///| 3.12.10 / UCD 15.0.0 tables in `upper_table.mbt`. The tables are pure
-///| compile-time data, so every target uses the same decisions.
+///| 3.12.10 / UCD 15.0.0 tables in `upper_table.mbt`. The tables are
+///| generated data, so every target uses the same decisions.
 
 ///| CPython 3.12.10 `str.isupper()` decision for a Unicode scalar value.
 ///| Returns `false` outside the Unicode codespace and for surrogate

@@ -68,6 +68,8 @@ def fail(message: str) -> NoReturn:
 
 
 def check_interpreter() -> None:
+    if sys.implementation.name != "cpython":
+        fail(f"CPython required, got implementation {sys.implementation.name!r}")
     version = sys.version.split()[0]
     if version != EXPECTED_PYTHON:
         fail(f"CPython {EXPECTED_PYTHON} required, got {version}")
@@ -128,7 +130,7 @@ def render(
     lines: list[str] = []
     lines.append(
         "// 勿手改（generated）：tools/gen_upper_table.py 从 .venv CPython 生成；"
-        "python_version=3.12.10; unidata_version=15.0.0"
+        f"python_version={EXPECTED_PYTHON}; unidata_version={EXPECTED_UNIDATA}"
     )
     lines.append(
         "// Truth source: chr(cp).isupper() over 0x000000..0x10FFFF; "
@@ -142,7 +144,9 @@ def render(
         "// Block sentinel: unicode_block returns 0 when a codepoint falls in a table gap."
     )
     lines.append("")
-    lines.append("///| Maximal [start, end] intervals where CPython 3.12.10 str.isupper() is true.")
+    lines.append(
+        f"///| Maximal [start, end] intervals where CPython {EXPECTED_PYTHON} str.isupper() is true."
+    )
     lines.append("pub let upper_intervals : Array[(Int, Int)] = [")
     for start, end in intervals:
         lines.append(f"  (0x{start:04X}, 0x{end:04X}),")
@@ -178,7 +182,11 @@ def parse_generated(path: Path) -> tuple[list[tuple[int, int]], list[tuple[int, 
         fail(f"generated table not found: {path}")
     text = path.read_text(encoding="utf-8")
     first_line = text.splitlines()[0] if text else ""
-    for marker in ("勿手改", "python_version=3.12.10", "unidata_version=15.0.0"):
+    for marker in (
+        "勿手改",
+        f"python_version={EXPECTED_PYTHON}",
+        f"unidata_version={EXPECTED_UNIDATA}",
+    ):
         if marker not in first_line:
             fail(f"generated header missing {marker!r} on line 1")
     for token in ("moonbitlang/x", "unicode-data"):
