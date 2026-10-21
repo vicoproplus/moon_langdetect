@@ -5,46 +5,72 @@
 - HEAD：192ce0e55bf1cbe745dc3c7f193d2d903cb723ba（192ce0e）
 - 执行时间：2026-10-21 16:54 +0800
 - 运行方式：每条命令单独执行 `env -u SHELLOPTS bash --noprofile --norc <单条脚本>`，stdout/stderr/rc 分别捕获；未用 `;` 串联、未用 `|| true` 吞错。命令文本见 `baseline-2026-10-21.md` 附录 A / B。
-- 原始输出目录（scratch，不提交）：`.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task0/`
+- 自包含性：§3 逐条嵌入 scratch 中 `out/<id>.out` / `err/<id>.err` 的原始内容（`----- stdout (N B) -----` / `----- stderr (N B) -----`，N 为 `wc -c` 实测；空标记之间无内容即 0 字节）；§4 嵌入完整 stderr；§6 为本轮修复后的原始记录。scratch 目录（`.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task0/`）保留作证据，**不提交**。
 - 环境：Git Bash（GNU grep 3.0）、GNU bash 5.3.15(2)、GNU Awk 5.4.1、md5sum (GNU coreutils) 8.32、Python 3.12.10、moon 0.1.20261012 (748b63c)、moonc v0.10.15+943464bfa
 
-## 0. Step 0 — spec 修订前置门（逐字）
+## 0. Step 0 — spec 修订前置门（`&&` 形态；用户裁决 2026-10-21）
 
+命令 `gate-and.sh` 逐字（四个赋值各自换行、无 `;`；`set -uo pipefail` 不带 `-e` 以捕获每个赋值 rc；末尾单条 `&&` 链断言四个 rc 为 0 且四个计数 ≥ 1）：
+
+```bash
+set -uo pipefail
+a=$(awk '/^### D2 架构/,/^\*\*依赖方向\*\*/' docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md | grep -c 'unicode_block')
+r1=$?
+b=$(awk '/^## 4A\./,/^## 5\./' docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md | grep -c 'cmd/golden')
+r2=$?
+c=$(awk '/^## 4A\./,/^## 5\./' docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md | grep -c 'gen_core_tables')
+r3=$?
+d=$(awk '/^## 4A\./,/^## 5\./' docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md | grep -c 'c6_zero_network')
+r4=$?
+printf 'unicode_block=%s cmd/golden=%s gen_core_tables=%s c6_zero_network=%s\n' "$a" "$b" "$c" "$d"
+printf 'rc_unicode_block=%s rc_cmd/golden=%s rc_gen_core_tables=%s rc_c6_zero_network=%s\n' "$r1" "$r2" "$r3" "$r4"
+test "$r1" -eq 0 && test "$r2" -eq 0 && test "$r3" -eq 0 && test "$r4" -eq 0 && test "$a" -ge 1 && test "$b" -ge 1 && test "$c" -ge 1 && test "$d" -ge 1
 ```
-$ bash gate.sh
+
+原始 stdout（2 行）：
+
+```text
 unicode_block=1 cmd/golden=2 gen_core_tables=2 c6_zero_network=1
-gate_rc=0
+rc_unicode_block=0 rc_cmd/golden=0 rc_gen_core_tables=0 rc_c6_zero_network=0
 ```
 
-四项均 >= 1，gate 通过。
+原始 stderr：0 字节（空）。
 
-## 1. 工具链版本（逐条 rc）
+脚本 rc：`gate_rc=0`（即末尾 `&&` 链 rc）。四项均 >= 1、四个赋值 rc 均为 0，gate 通过。
+
+> brief 原文以 `;` 串联四个赋值（违反 R5）；按用户裁决改为本 `&&` 形态重跑，计数不变（1/2/2/1）。旧 `;` 形态不再作为证据。
+
+## 1. 工具链版本（逐条 rc 与原始输出）
 
 ```
 $ command -v moon
-/c/Users/Administrator/.moon/bin/moon
+stdout(38 B): /c/Users/Administrator/.moon/bin/moon
+stderr(0 B)
 rc=0
 
 $ moon --version
-stdout: moon 0.1.20261012 (748b63c 2026-10-12) ~\.moon\bin\moon.exe
-        moonc v0.10.15+943464bfa (2026-10-12) ~\.moon\bin\moonc.exe
-stderr: Error: failed to get "C:\\Users\\Administrator\\.moon\\bin\\moonrun.exe" version:
+stdout(120 B): moon 0.1.20261012 (748b63c 2026-10-12) ~\.moon\bin\moon.exe
+moonc v0.10.15+943464bfa (2026-10-12) ~\.moon\bin\moonc.exe
+stderr(83 B): Error: failed to get "C:\\Users\\Administrator\\.moon\\bin\\moonrun.exe" version:
 rc=127   # 来自 moonrun 探测；版本字符串仍完整输出
 
 $ moonc --version
-stderr: C:\Users\Administrator\.moon\bin\moonc.exe: unknown option '--version'.
-        moonc
-          -v  show version
-          -help  Display this list of options
-          --help  Display this list of options
-rc=2
+stdout(0 B)
+stderr(179 B): C:\Users\Administrator\.moon\bin\moonc.exe: unknown option '--version'.
+moonc
+  -v  show version
+  -help  Display this list of options
+  --help  Display this list of options
+rc=2   # 该版本不支持 --version，故不打印版本
 
 $ moonc -v
-v0.10.15+943464bfa (2026-10-12)
+stdout(33 B): v0.10.15+943464bfa (2026-10-12)
+stderr(0 B)
 rc=0
 
 $ .venv/Scripts/python.exe -V
-Python 3.12.10
+stdout(16 B): Python 3.12.10
+stderr(0 B)
 rc=0
 
 $ grep --version | head -1
@@ -63,6 +89,8 @@ $ md5sum --version | head -1
 md5sum (GNU coreutils) 8.32
 rc=0
 ```
+
+共 9 行工具链记录（含 `command -v moon` 路径行与 `moonc -v` 补充行）；两个 rc 异常（127 / 2）均按原样记录。
 
 ## 2. 代码版本标识
 
@@ -88,42 +116,143 @@ f5fcbce0032cd8af7bbb997fe9b8ba3563253ca94d254cae62c2d54a4f7a1ff6 *tools/gen_floa
 files=12
 manifest_sha256=63c618c6ee6e3fc1a8c48ee9adc2ffec3ae0a1bb472bc783b22ee207154c4905
 # 注：sha256sum 默认输出以 " *" 分隔（二进制标记）；基线 md 中为便于阅读写作两个空格，哈希值不变。
+# 注：该清单覆盖工作区未跟踪的 src/、tools/ 输入；HEAD 192ce0e 未跟踪这些文件（当时 HEAD 仅含 LICENSE 与两个 artifact）。
 ```
 
-## 3. §10.6 命令 1-30 + 11b（逐条 rc / stdout / stderr）
+## 3. §10.6 命令 1-30 + 11b（逐条原始 stdout/stderr）
 
-```
-CMD 01  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 02  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 03  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 04  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 05  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 06  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 07  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 08  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 09  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 10  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 11  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 12  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 13  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 14  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 15  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 16  rc=0  stdout(4B)="ok"  stderr(0B)=""
-CMD 17  rc=0  stdout(4B)="ok"  stderr(0B)=""
-CMD 18  rc=0  stdout(4B)="ok"  stderr(0B)=""
-CMD 19  rc=0  stdout(4B)="ok"  stderr(0B)=""
-CMD 20  rc=0  stdout(29B)="ok 1951 cps / 651 intervals"  stderr(0B)=""
-CMD 21  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 22  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 23  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 24  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 25  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 26  rc=0  stdout(3B)="25"  stderr(0B)=""
-CMD 27  rc=1  stdout(0B)=""  stderr(0B)=""
-CMD 28  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 29  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 30  rc=0  stdout(0B)=""  stderr(0B)=""
-CMD 11b rc=1  stdout(0B)=""  stderr(0B)=""
+以下每块取自 scratch `out/<id>.out` / `err/<id>.err` 的原始内容；字节数为 `wc -c` 实测，空标记之间无内容即 0 字节。嵌入时行尾统一渲染为 LF；原始捕获的非空输出多为 Windows CRLF（16-19 为 `ok\r\n` 4 B、20 为 29 B 行、root/probe stderr 各含 15/12 个 CRLF 行，26 为 `25\n` 3 B），除行尾终止符外逐字符一致。
+
+```text
+CMD 01  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 02  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 03  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 04  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 05  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 06  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 07  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 08  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 09  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 10  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 11  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 11b  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 12  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 13  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 14  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 15  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 16  rc=0
+----- stdout (4 B) -----
+ok
+----- stderr (0 B) -----
+
+CMD 17  rc=0
+----- stdout (4 B) -----
+ok
+----- stderr (0 B) -----
+
+CMD 18  rc=0
+----- stdout (4 B) -----
+ok
+----- stderr (0 B) -----
+
+CMD 19  rc=0
+----- stdout (4 B) -----
+ok
+----- stderr (0 B) -----
+
+CMD 20  rc=0
+----- stdout (29 B) -----
+ok 1951 cps / 651 intervals
+----- stderr (0 B) -----
+
+CMD 21  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 22  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 23  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 24  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 25  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 26  rc=0
+----- stdout (3 B) -----
+25
+----- stderr (0 B) -----
+
+CMD 27  rc=1
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 28  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 29  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
+
+CMD 30  rc=0
+----- stdout (0 B) -----
+----- stderr (0 B) -----
 ```
 
 对照计划预期基线：1-14 + 11b → rc=1；15-26、28、30 → rc=0；27 → rc=1；29 → rc=0。**全部一致，无偏差。**
@@ -137,19 +266,54 @@ $ ls -l _build/native/debug/build/src/core/cmd/main/main.exe
 -rwxr-xr-x 1 Administrator 197121 175104 Oct 21 10:30 _build/native/debug/build/src/core/cmd/main/main.exe
 ```
 
-## 4. 附加门禁：moon check / moon test
+## 4. 附加门禁：moon check / moon test（完整原始输出；stderr 行尾原为 CRLF，嵌入统一为 LF，字节数按原始捕获计）
 
 ```
 $ moon check            # 仓库根
-rc=0   stdout=""   stderr: Finished. moon: no work to do
+rc=0   stdout(0 B)
+stderr(30 B): Finished. moon: no work to do
+```
 
+```
 $ moon test --target native   # 仓库根
-rc=0   stdout: Total tests: 0, passed: 0, failed: 0.
-stderr tail: Warning: no test entry found.   # 前 15 行为 MSVC 创建测试库消息
+rc=0   stdout(38 B): Total tests: 0, passed: 0, failed: 0.
+stderr(2269 B):
+utf.c
+runtime.c
+sync_io.c
+env.c
+backtrace.c
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\core.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\core.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\math_seam\math_seam.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\math_seam\math_seam.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\data\data.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\data\data.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\cmd\main\main.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\cmd\main\main.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\core.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\core.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\unicode\unicode.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\unicode\unicode.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\cmd\main\main.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\core\cmd\main\main.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\unicode\unicode.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\unicode\unicode.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\data\data.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\data\data.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\math_seam\math_seam.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\_build\native\debug\test\src\math_seam\math_seam.internal_test.exp
+Warning: no test entry found.
+```
 
+> 根测试的 `Warning: no test entry found.` 是基线预期（此时仓库尚无测试文件）；Task 6+ 测试落地后该警告必须消失。
+
+```
 $ cd probes/embed-probe && moon test --target native
-rc=0   stdout: Total tests: 56, passed: 56, failed: 0.
-stderr: 12 行 MSVC 创建测试库消息（无错误）
+rc=0   stdout(40 B): Total tests: 56, passed: 56, failed: 0.
+stderr(1766 B):
+utf.c
+runtime.c
+env.c
+sync_io.c
+backtrace.c
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.whitebox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.whitebox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.internal_test.exp
 ```
 
 ## 5. W1b — src/tools 清单前后一致性
@@ -162,33 +326,69 @@ moon.mod: cmp 相同
 git status --short（前后一致）:
 ?? src/
 ?? tools/
-# src/ 与 tools/ 为本会话开始前即存在的未跟踪只读输入；本任务未改动。
+# src/ 与 tools/ 为本会话开始前即存在的未跟踪只读输入；本任务未改动。二者不在 .git/info/exclude 中，故以 ?? 可见。
 # probes/embed-probe/_build/ 为测试重建的构建产物（不在 src/tools 清单内，不属源码改动）。
+# 清单覆盖工作区未跟踪输入，不是 HEAD 192ce0e 的提交内容（HEAD 仅含 LICENSE 与两个 artifact）。
 ```
 
-## 6. 验收命令与自证伪
+## 6. 验收命令与自证伪（本轮修复后原始记录）
+
+### 6.1 验收命令（brief 原文）
+
+```bash
+test "$(grep -cE '^\| [0-9]+ \|' docs/superpowers/plans/artifacts/baseline-2026-10-21.md)" -eq 30
+```
 
 ```
-$ test "$(grep -cE '^\| [0-9]+ \|' docs/superpowers/plans/artifacts/baseline-2026-10-21.md)" -eq 30
 count=30
 rc=0
-
-# 自证伪 1：29 行副本（删除 | 30 | 数据行）
-$ test "$(grep -cE '^\| [0-9]+ \|' scratch-task0/neg29.md)" -eq 30
-count=29
-rc=1
-
-# 自证伪 2：文件缺失
-$ test "$(grep -cE '^\| [0-9]+ \|' scratch-task0/no-such-baseline.md)" -eq 30
-stderr: grep: scratch-task0/no-such-baseline.md: No such file or directory
-        test: : integer expected
-count=(no output)
-rc=2   # 非零（必红）。GNU grep 3.0 对缺失文件不输出 0，故为 rc=2 而非 rc=1
-
-# 附：0 行（仅表头）副本
-$ test "$(grep -cE '^\| [0-9]+ \|' scratch-task0/header-only.md)" -eq 30
-count=0
-rc=1
+stdout=0 B   stderr=0 B
 ```
 
-结论：验收命令对 30 行表 rc=0；对 29 行 / 缺失文件 / 0 行均返回非零（不可假绿）。
+### 6.2 自证伪守卫模板（统一形态）
+
+```bash
+set -uo pipefail
+f=$1
+test -f "$f" || exit 1
+test "$(grep -cE '^\| [0-9]+ \|' "$f")" -eq 30
+```
+
+### 6.3 四个用例（同一模板，逐例原始 rc/stdout/stderr）
+
+```
+case=real
+path=docs/superpowers/plans/artifacts/baseline-2026-10-21.md
+rows=30   rc=0   stdout=0 B   stderr=0 B
+
+case=neg29
+path=.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task0/neg29-final.md
+rows=29   rc=1   stdout=0 B   stderr=0 B
+
+case=headeronly
+path=.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task0/header-only-final.md
+rows=0    rc=1   stdout=0 B   stderr=0 B
+
+case=missing
+path=docs/superpowers/plans/artifacts/baseline-2026-10-21-missing.md（不存在）
+rows=n/a  rc=1   stdout=0 B   stderr=0 B
+# test -f 守卫先退出，grep 未执行；不再出现 GNU grep 的 rc=2 与 test: : integer expected
+```
+
+副本与源文件元数据（副本均自本轮最终 md 生成）：
+
+```
+source : docs/superpowers/plans/artifacts/baseline-2026-10-21.md
+         336 lines / 21451 B / sha256=3e19b3107222abf21c41f5a93163575c3a665a7d1aef0a4436f359b3e7a441e2
+neg29-final.md : 335 lines / 21348 B / sha256=c01d4b5d2fbceda7ea687a55e225d1be440581c88f2e375e0abea0a94663ffe6
+header-only-final.md : 2 lines / 66 B / sha256=ae94ac1fe47bdc20f226f86a065b7234f5fa9b8860659d1f93f4a30b8b693bd2
+```
+
+> 旧 `neg29.md`（287 lines / 18050 B，派生自修复前 289 行版本）已废弃，不作为本轮证据；修复前未加守卫的缺失文件实测为 rc=2，本轮由 6.2 守卫模板取代。
+
+结论：30 行 → rc=0；29 行 / 0 行 / 缺失文件 → 均 rc=1（守卫保证缺失文件恰为 rc=1），红灯不可假绿。
+
+## 7. 保留策略与上限
+
+- 保留：`baseline-2026-10-21.md` 永久保留；本日志保留 90 天。
+- 上限：时长上限 60 分钟；外部调用轮次上限 40。
