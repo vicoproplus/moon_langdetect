@@ -1,0 +1,159 @@
+# Task 3 src/math_seam（`ln_for_gauss` + 注入接缝 + A9 冒烟）— 原始日志（2026-10-21）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`ba48f027a1c9f4d6bc8a9925eeb5ea4165505b99`（`ba48f02`）
+- 新增/修改文件（仅四个）：`src/math_seam/math_seam.mbt`（新增）、`src/math_seam/math_seam_test.mbt`（新增）、`src/math_seam/moon.pkg`（0 B → 38 B）、本日志（新增）
+- 工具链：`moon 0.1.20261012 (748b63c 2026-10-12)` / `moonc v0.10.15+943464bfa (2026-10-12)`；平台 native = win32 x64（MSVC/UCRT libm）
+- 执行窗口：2026-10-21 约 19:04–19:11 +0800（本机，约 7 分钟）
+- 结论：**PASS** —— 验收链 rc=0；`moon test --target native` 3/3 通过；512/512 golden 逐位一致；A9 位型 = `0x3FE62E42FEFA39EF`；三目标 build/check 全 0；静态门命令 1-14 + 11b 全部 0 命中
+- 保留策略：**90 天**（至 2027-01-19）
+- 时长上限：**60 分钟**（实测约 7 分钟）；外部调用轮次上限：**12**（本 Task 外部调用 **0** 次，仅本地 moon/grep/git）
+
+## 1. 验收命令（brief Output 逐字）
+
+```bash
+moon test --target native && moon build --target js && moon build --target wasm-gc && test "$(grep -rn '@math\.ln(' --include=*.mbt src | wc -l)" -ge 1 && test "$(grep -rn '@math\.ln(' --include=*.mbt src | grep -vc 'non-native fallback')" = "0" && test "$(grep -rn 'extern "C" fn .*= "log"' --include=*.mbt src | wc -l)" -ge 1 && out=$(moon test --target native -f 'ln_for_gauss_bits*') && test "$(printf '%s' "$out" | grep -oE 'Total tests: [0-9]+' | grep -oE '[0-9]+')" -ge 1 && printf '%s' "$out" | grep -q 'failed: 0' && test "$(grep -cE 'ln_for_gauss_bits' src/math_seam/math_seam_test.mbt)" -ge 1
+```
+
+实测（整链一次执行）：
+
+```text
+Total tests: 3, passed: 3, failed: 0.
+Finished. moon: no work to do
+Finished. moon: no work to do
+ACCEPTANCE_RC=0
+```
+
+四条判据分工与实测值：
+
+| # | 判据 | 命令（摘要） | 期望 | 实测 |
+|---|---|---|---:|---:|
+| ① | 非 native 降级分支真实存在 | `grep -rn '@math\.ln(' --include=*.mbt src \| wc -l` | ≥ 1 | **1** |
+| ② | 每处降级调用都带标记 | 同一检索 \| `grep -vc 'non-native fallback'` | = 0 | **0** |
+| ③ | native 走 libm `log` | `grep -rn 'extern "C" fn .*= "log"' --include=*.mbt src \| wc -l` | ≥ 1 | **1** |
+| ④ | A9 真实执行 + 函数名 | `moon test --target native -f 'ln_for_gauss_bits*'` → `Total tests` ≥ 1、`failed: 0`；`grep -cE 'ln_for_gauss_bits' src/math_seam/math_seam_test.mbt` ≥ 1 | 是 | `Total tests: 1, passed: 1, failed: 0`；名字命中 **1** |
+
+- 判据④的负向对照（证明必须先断用例数）：`moon test --target native -f 'nonexistent_xyz*'` → `Total tests: 0, passed: 0, failed: 0.`，**rc=0**（空过滤仍返回 0，故 `≥1` 断言不可省）。
+
+## 2. 三目标构建 / 类型检查
+
+根目录 build 只链接可执行包（`src/core/cmd/main`），对 `src/math_seam` 不产生编译任务（输出 `no work to do`），因此另以显式包路径复核本包的逐目标编译。
+
+| 命令 | rc | 备注 |
+|---|---:|---|
+| `moon check` | 0 | 默认目标 |
+| `moon build --target native` | 0 | brief 逐字命令 |
+| `moon build --target js` | 0 | brief 逐字命令 |
+| `moon build --target wasm-gc` | 0 | brief 逐字命令 |
+| `moon build --target native src/math_seam` | 0 | 显式编译本包（native 分支） |
+| `moon build --target js src/math_seam` | 0 | 显式编译本包（降级分支） |
+| `moon build --target wasm-gc src/math_seam` | 0 | 显式编译本包（降级分支） |
+| `moon check --target native` | 0 | 整模块 |
+| `moon check --target js` | 0 | 整模块 |
+| `moon check --target wasm-gc` | 0 | 整模块 |
+| `moon check --target native src/math_seam` | 0 | 显式包 |
+| `moon check --target js src/math_seam` | 0 | 显式包 |
+| `moon check --target wasm-gc src/math_seam` | 0 | 显式包 |
+
+「每目标恰好一个 `ln_for_gauss`」的判定：同名定义重复会直接编译失败；三目标全部 rc=0，且编译产物符号核对如下（`grep -ac`，二进制安全）：
+
+| 目标 | 产物 | size (B) | `c_log` 命中 | `ln_for_gauss` 命中 |
+|---|---|---:|---:|---:|
+| native | `_build/native/debug/build/src/math_seam/math_seam.core` | 412 | **1** | 2 |
+| js | `_build/js/debug/build/src/math_seam/math_seam.core` | 387 | **0** | 2 |
+| wasm-gc | `_build/wasm-gc/debug/build/src/math_seam/math_seam.core` | 387 | **0** | 2 |
+
+即：native 编译进 `extern "C"` 包装（`c_log`），js / wasm-gc 编译进纯 MoonBit 降级（无 `c_log`），无重复定义。native 黑盒测试可执行文件：`_build/native/debug/test/src/math_seam/math_seam.blackbox_test.exe`（386560 B）。
+
+## 3. 测试结果（`moon test --target native`）
+
+| 测试 | 断言 | 结果 |
+|---|---|---|
+| `ln_for_gauss_bits`（A9） | `ln_for_gauss(2.0)` bits = `4604418534313441775`，并与 `0x3FE62E42FEFA39EFUL` `assert_eq` | PASS |
+| `ln_for_gauss_golden_512` | `length == 512`；`inspect(matched, content="512")`；`inspect(first_mismatch, content="-1")` | PASS（**512/512**） |
+| `ln_for_gauss_with_forwards` | 注入 `f = x * 2.0, x = 3.0` → 6.0 bits `4618441417868443648`；注入 `f = const 42.0, x = 2.0` → 42.0 bits `4631107791820423168`（只验证转发，不验证数值等价） | PASS |
+| **整包** | `Total tests: 3, passed: 3, failed: 0.` | **rc=0** |
+
+过滤运行（判据④）：`moon test --target native -f 'ln_for_gauss_bits*'` → `Total tests: 1, passed: 1, failed: 0.`，rc=0；`-f 'ln_for_gauss_golden_512*'` → `Total tests: 1, passed: 1, failed: 0.`，rc=0。
+
+### A9 位型
+
+- `ln_for_gauss(2.0)` = `0x3FE62E42FEFA39EF` = 十进制 `4604418534313441775`（CPython 3.12 `ln(2.0)` 同值；win32 x64 libm）。
+
+## 4. 512 点 golden（`docs/port/golden/rand/mathfunc.json`）
+
+- 取 `series["0"]` 与 `series["42"]`，各 256 点，合计 **512**；每点 `ln_arg.hex` 为输入位型、`log.hex` 为期望（CPython 3.12 所用 libm `log` 的实际输出）。
+- 嵌入方式：`src/math_seam/math_seam_test.mbt` 顶层 `let ln_golden_512 : Array[(UInt64, UInt64)]`，一行一对，共 512 行；索引 0-255 = seed "0"，256-511 = seed "42"。产品测试**不读文件**（命令 13 `grep read_file src` 0 命中）。
+- 嵌入前交叉核对：用 `.venv` CPython 3.12 对同一 512 对值重算 `math.log` → **512/512** 位型一致（0 处不一致）。嵌入字面在 scratch `_build/task3_scratch/golden_pairs.txt` 生成（`_build/` 被 `.git/info/exclude` 忽略，**未入库**），其 sha256 = `c421d54c6575e2a62f3f0a978195e00e67a7a34e60c73ff9c4a30910b7ddb5cf`。
+- 运行结果：`matched = 512`、`first_mismatch = -1`（两个 `inspect` 均通过），即 native 上 **512/512** 逐位一致；无 golden 改写（`docs/port/golden/rand/mathfunc.json` sha256 = `90924ccca4ffa9f1df0ed91720f612fb01cec0002328001d45a030cdb0e77745`，`git status docs/port` 为空）。
+
+| 量 | 值 |
+|---|---|
+| golden 来源 | `docs/port/golden/rand/mathfunc.json`，seeds `"0"` + `"42"` |
+| 点数 | 256 + 256 = 512 |
+| native 一致数 | **512/512** |
+| 首个不一致 | 无（`first_mismatch = -1`） |
+
+## 5. 平台分支与标记（spec §5.9 / DR2）
+
+`src/math_seam/math_seam.mbt`（32 行）中的全部平台分支：
+
+```moonbit
+#cfg(any(target="native", target="llvm"))
+extern "C" fn c_log(x : Double) -> Double = "log"
+
+#cfg(any(target="native", target="llvm"))
+pub fn ln_for_gauss(x : Double) -> Double { c_log(x) }
+
+#cfg(not(any(target="native", target="llvm")))
+pub fn ln_for_gauss(x : Double) -> Double { @math.ln(x) // non-native fallback }
+```
+
+标记命中情况：
+
+| 检索 | 命中 |
+|---|---:|
+| `grep -rn '@math\.ln(' --include=*.mbt src` 总行数 | **1** |
+| 其中不含 `non-native fallback` 的行数 | **0** |
+| `grep -rn 'extern "C" fn .*= "log"' --include=*.mbt src` | **1** |
+
+注入接缝：`pub fn ln_for_gauss_with(f~ : (Double) -> Double, x~ : Double) -> Double { f(x) }`（仅转发）。
+
+## 6. 静态门（spec §10.6 命令 1-14 + 计划命令 11b）
+
+全部单条执行、显式捕获 rc；期望 0 行 / rc=1。
+
+| # | 检索对象 | rc | 命中 |
+|---|---|---:|---:|
+| 1 | DR9 `src/core` 条件编译 | 1 | 0 |
+| 2 | DR10 `src/core` 运行期平台 API | 1 | 0 |
+| 3 | DR11 反向模块依赖（data/unicode/math_seam 的 `moon.pkg`） | 1 | 0 |
+| 4 | DR8 跨包调用未加 `@` 前缀 | 1 | 0 |
+| 5 | DR1 `@math.sqrt` | 1 | 0 |
+| 6 | DR3 自行绑定 `c_cos`/`c_sin` | 1 | 0 |
+| 7 | DR4 `is_ascii_uppercase` | 1 | 0 |
+| 8 | DR4 第三方 Unicode 包 | 1 | 0 |
+| 9 | DR6 core `@fs` 包 | 1 | 0 |
+| 10 | DR7 `derive(Show)` | 1 | 0 |
+| 11 | NE1 静态（排除 `cmd/`） | 1 | 0 |
+| 11b | NE1 静态（只排除 `cmd/main/`） | 1 | 0 |
+| 12 | L1-A1 网络/写文件副作用 | 1 | 0 |
+| 13 | NE4-2 `read_file` | 1 | 0 |
+| 14 | NE4-4 第三方运行时依赖 | 1 | 0 |
+
+- 首轮 `cmd4` 曾命中 1 行：测试 doc 注释里的 `math.log(2.0)`（描述性引用但复现了检索形态）。已改写为「CPython 3.12 libm at 2.0」，复跑 0 命中（spec §7 注 2 的注释书写纪律）。
+- `cmd1/cmd2` 的扫描面 `src/core` 目前仍为空包（本 Task 不改 `src/core`），其 rc=1 属空集态；Task 6 首个 `src/core` `.mbt` 落地后须按 B-03 复跑（Task 6 计划已登记）。
+- `cmd3/cmd11/cmd11b` 的扫描面包含 `src/math_seam`，本包实跑态 0 命中。
+
+## 7. 已知告警（非失败）
+
+- native 编译本包时出现 `Warning: [0029] unused_package: 'moonbitlang/core/math'`：该 import 只被 js / wasm-gc 降级分支引用，native 分支被 `#cfg` 排除后成为未用包。`moon build` / `moon check` / `moon test` 均 **rc=0**；本 Task 不启用 `--deny-warn`，也**未**用 `warnings = "-29"` 压制（保留告警可见性）。js / wasm-gc 目标无此告警。
+
+## 8. 约束与保留
+
+- 时长上限 **60 分钟**：本 Task 执行窗口见日志头（约 7 分钟）。
+- 外部调用轮次上限 **12**：本 Task 外部调用 **0** 次（无网络、无外部服务；仅本地 moon / grep / sha256sum / git）。
+- 保留策略 **90 天**：至 2027-01-19。
+- 提交方式：仅 `src/math_seam/{math_seam.mbt,math_seam_test.mbt,moon.pkg}` 与本日志按**显式路径**提交，无目录级 `git add`；`src/core`、`src/data`、`src/unicode`、`docs/port`、`langdetect/`、`probes/` 均未改动。
+- 文件指纹（提交前）：`math_seam.mbt` sha256 `2fceba465dcab495d3e0a3f7a10005c3f2d37021fb88df7f5967d9f90496ce0b`（32 行 / 1448 B）；`math_seam_test.mbt` sha256 `11e781176f0c57c6f1ff558d4b719a50505700650aa7418551fc89285de4645f`（559 行 / 26578 B）；`moon.pkg` sha256 `15f0ce29ac604fb0a533967bded38e5af1a4c5d7e0233f1522ebb16da029e8a4`（3 行 / 38 B）。
