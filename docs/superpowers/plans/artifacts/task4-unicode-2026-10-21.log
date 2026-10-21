@@ -1,0 +1,210 @@
+# Task 4 src/unicode（U3 表 + `is_upper_cp312` + `unicode_block`）— 原始日志（2026-10-21）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`e960e25`（Task 3，`feat: add math seam with libm log and injection hook`）
+- 交付物（7 个路径，仅这些）：`tools/gen_upper_table.py`（新增）、`src/unicode/upper_table.mbt`（生成产物，新增）、`src/unicode/unicode.mbt`（新增）、`src/unicode/unicode_test.mbt`（新增）、`src/unicode/block_test.mbt`（新增）、`src/unicode/moon.pkg`（新增，无 import）、本日志（新增）
+- 工具链：`.venv/Scripts/python.exe` = CPython **3.12.10**（`unicodedata.unidata_version` = **15.0.0**）；`moon 0.1.20261012 (748b63c 2026-10-12)`；`moonc v0.10.15+943464bfa (2026-10-12)`；平台 native = win32 x64
+- 执行窗口：2026-10-21 约 19:18–19:23 +0800（含被网络重置中断的前序写入 19:18–19:19；本次恢复核验约 5 分钟）
+- 结论：**PASS** —— `--verify` 全码点 0 不一致；`ok 1951 cps / 651 intervals / 0 diff`；220 block / 0 diff；`moon test --target native` 8/8（本包 5/5）；三目标 build/check 全 0；静态门命令 1-14 + 11b 全部 0 命中 / rc=1；验收链 rc=0
+- 保留策略：**90 天**（至 2027-01-19）
+- 时长上限：**90 分钟**（实测约 5 分钟）；外部调用轮次上限：**15**（本 Task 外部调用 **0** 次，仅本地 python/moon/grep/git）
+
+## 1. 中断恢复与快照
+
+- 前序 dispatch 在 19:18–19:19 写下 6 个文件后被网络重置中断；本次按「先核验、后补齐」处理：全部文件重跑检查，生成器重跑后产物字节不变（见 §2）。
+- 破坏性操作快照：**N/A** —— Task 4 开始时（前序 dispatch 写入前）`src/unicode/upper_table.mbt` **不存在**；本文件为任务新增产物，无「已存在文件」可备份。当前文件为生成器 19:21 重跑产物，md5 与中断前一致（`236021f91aea1bb65c163498f3b39f5f`）。
+- 原子标记核对：生成器 + 产物 + 两个查询函数 + 两个测试文件同时存在，成对落地。
+
+## 2. 生成器与确定性
+
+命令（默认生成，显式捕获 rc）：
+
+```bash
+.venv/Scripts/python.exe tools/gen_upper_table.py
+```
+
+实测输出与 rc：
+
+```text
+wrote F:\moonbit比赛\moon_langdetect\src\unicode\upper_table.mbt : 651 upper intervals / 220 block ranges
+rc=0
+```
+
+确定性（生成前后 md5 相同；生成器无时间戳、固定排序、LF、原子替换）：
+
+| 时点 | `md5sum src/unicode/upper_table.mbt` |
+|---|---|
+| 重跑前（中断产物） | `236021f91aea1bb65c163498f3b39f5f` |
+| 重跑后 | `236021f91aea1bb65c163498f3b39f5f` |
+
+- 生成器源码指纹：`tools/gen_upper_table.py` sha256 `b90062a2529d1d6b160ce341bdb6c3c094fb054964baf263c36002d4d67c4de8`（323 行 / 11571 B）。
+- 生成物指纹：`src/unicode/upper_table.mbt` sha256 `2ef2b86682ef98bb9432a7fc2e4891329c89ba258d918015b52bb0c50c4ff298`（883 行 / 19288 B）。
+- 数据源：`chr(cp).isupper()`（CPython 3.12.10 / UCD 15.0.0），跳过 `0xD800..0xDFFF`；阻断表来自上游 `langdetect.utils.unicode_block._unicode_blocks`（220 行，代码 1..220）。
+- 生成器只在工具侧 import 上游表；产品 `src/unicode` 无任何 import、无第三方 Unicode 包引用。
+
+### Dry-run（首 5 行 / 末 5 行 / 计数 / 表头）
+
+`head -5 src/unicode/upper_table.mbt`：
+
+```text
+// 勿手改（generated）：tools/gen_upper_table.py 从 .venv CPython 生成；python_version=3.12.10; unidata_version=15.0.0
+// Truth source: chr(cp).isupper() over 0x000000..0x10FFFF; surrogates 0xD800..0xDFFF skipped.
+// Counts: 1951 uppercase codepoints in 651 maximal intervals; 220 block ranges.
+// Block sentinel: unicode_block returns 0 when a codepoint falls in a table gap.
+
+```
+
+`tail -5 src/unicode/upper_table.mbt`：
+
+```text
+  (217, 0xE0000, 0xE007F),
+  (218, 0xE0100, 0xE01EF),
+  (219, 0xF0000, 0xFFFFF),
+  (220, 0x100000, 0x10FFFF),
+]
+```
+
+断言（全部成立）：
+
+| 断言 | 命令（摘要） | 实测 |
+|---|---|---:|
+| 首行含「勿手改」 | `head -1 ... \| grep -q '勿手改'` | 命中 |
+| 首行含 `python_version=3.12.10` | 同上 | 命中 |
+| 首行含 `unidata_version=15.0.0` | 同上 | 命中 |
+| `upper_intervals` 条目 651 | `grep -c '^  (0x' ...` | **651** |
+| `unicode_block_ranges` 条目 220 | `grep -cE '^  \([0-9]+, 0x' ...` | **220** |
+| 无第三方引用 | `grep -cE 'moonbitlang/x\|unicode-data' ...` | **0** |
+
+## 3. 全码点校验（Equivalence-Gate P3 / C-B5）
+
+```bash
+.venv/Scripts/python.exe tools/gen_upper_table.py --verify
+```
+
+```text
+ok 1951 cps / 651 intervals / 0 diff
+ok 220 blocks / 0 diff (full codepoint lookup)
+rc=0
+```
+
+`--verify` 的真实性（全部在 `/tmp` 临时副本上篡改，**未改已提交表**；每个副本用后删除）：
+
+| 篡改 | 结果 | rc |
+|---|---|---:|
+| 首行 `python_version=3.12.10` → `3.12.9` | `error: generated header missing 'python_version=3.12.10' on line 1` | **1** |
+| 区间 `(0x0041, 0x005A)` → `(0x0041, 0x0059)` | `error: table expands to 1950 codepoints, live count is 1951` | **1** |
+| 等计数平移 `(0x00C0, 0x00D6)` → `(0x00BF, 0x00D5)` | `error: 2 codepoint mismatches, first: 0x00BF 0x00D6` | **1** |
+| 阻断边界 `(2, 0x0080, 0x00FF)` → `(2, 0x0081, 0x00FF)` | `error: generated block ranges differ from upstream _unicode_blocks` | **1** |
+
+- 第 3 例专门走到「逐点 diff」路径（计数相同、仅落点不同），证明 diff 计数不是被前面的计数断言替代。
+
+## 4. `unicode_block` 比对
+
+- `--verify` 除逐行比对 220 个 `(code,start,end)` 外，还对 `0x000000..0x10FFFF` **全部 1114112 个码点**调用上游 `unicode_block(chr(cp))`（`None` → 0）与生成表二分查找逐点比对：`ok 220 blocks / 0 diff`。
+- 代码 1..220：生成器断言 `[code for code,_,_ in rows] == list(range(1,221))`；不一致或数量不是 220 直接 `error` + rc=1。
+
+## 5. MoonBit 实现与测试
+
+- `src/unicode/unicode.mbt`：
+  - `pub fn is_upper_cp312(cp : Int) -> Bool` —— 越界/代理码点返回 `false`，651 区间**二分查找**。
+  - `pub fn unicode_block(ch : Int) -> Int` —— 1..220 块码；表空隙/越界返回 **0**（文档化哨兵，对应上游 `None`）；`ch <= 0x7F` 返回 1。
+- `src/unicode/unicode_test.mbt`：全码点计数 1951（跳过代理）；651 区间端点采样（start/end true，start-1/end+1 false）；A/a、À/à、Α/α、А/а、ẞ/ß、𐐀/𐐨 六组；越界与代理。
+- `src/unicode/block_test.mbt`：spec §2A 的 12 个上游用例 + 3 个空隙（0x0860 / 0x2FE0 / 0xE0080 → 0）+ 越界。
+- `src/unicode/moon.pkg`：无 import（仅注释，说明零第三方依赖）。
+- 测试文件为 blackbox（`*_test.mbt`），两表常量均 `pub let` 供测试读取。
+
+实测：
+
+```text
+$ moon test -p vicoproplus/langdetect/src/unicode --target native
+Total tests: 5, passed: 5, failed: 0.
+rc=0
+
+$ moon test --target native
+Total tests: 8, passed: 8, failed: 0.
+rc=0
+```
+
+## 6. 验收命令（brief Output 逐字）与三目标构建
+
+```bash
+.venv/Scripts/python.exe tools/gen_upper_table.py --verify && moon build --target native && moon build --target js && moon build --target wasm-gc
+```
+
+```text
+ok 1951 cps / 651 intervals / 0 diff
+ok 220 blocks / 0 diff (full codepoint lookup)
+Finished. moon: no work to do
+Finished. moon: no work to do
+Finished. moon: no work to do
+output_chain_rc=0
+```
+
+显式逐目标编译本包（根 build 不链接库包，故追加包路径复核）：
+
+| 命令 | rc | 输出 |
+|---|---:|---|
+| `moon check --target native` | 0 | — |
+| `moon check --target js` | 0 | — |
+| `moon check --target wasm-gc` | 0 | — |
+| `moon build --target native src/unicode` | 0 | `Finished. moon: ran 1 task, now up to date` |
+| `moon build --target js src/unicode` | 0 | `Finished. moon: ran 1 task, now up to date` |
+| `moon build --target wasm-gc src/unicode` | 0 | `Finished. moon: ran 1 task, now up to date` |
+| `moon build --target native` | 0 | brief 逐字命令 |
+| `moon build --target js` | 0 | brief 逐字命令 |
+| `moon build --target wasm-gc` | 0 | brief 逐字命令 |
+
+产物存在性：`_build/{native,js,wasm-gc}/debug/check/src/unicode/unicode.typechecked` 与 test 产物均存在。
+
+## 7. 静态门（spec §10.6 命令 1-14 + 计划命令 11b）
+
+全部单条执行、显式捕获 rc；期望 0 行 / rc=1。
+
+| # | 检索对象 | rc | 命中 |
+|---|---|---:|---:|
+| 1 | DR9 `src/core` 条件编译 | 1 | 0 |
+| 2 | DR10 `src/core` 运行期平台 API | 1 | 0 |
+| 3 | DR11 反向模块依赖（data/unicode/math_seam 的 `moon.pkg`） | 1 | 0 |
+| 4 | DR8 跨包调用未加 `@` 前缀 | 1 | 0 |
+| 5 | DR1 `@math.sqrt` | 1 | 0 |
+| 6 | DR3 自行绑定 `c_cos`/`c_sin` | 1 | 0 |
+| 7 | DR4 `is_ascii_uppercase` | 1 | 0 |
+| 8 | DR4 第三方 Unicode 包 | 1 | 0 |
+| 9 | DR6 core `@fs` 包 | 1 | 0 |
+| 10 | DR7 `derive(Show)` | 1 | 0 |
+| 11 | NE1 静态（排除 `cmd/`） | 1 | 0 |
+| 11b | NE1 静态（只排除 `cmd/main/`） | 1 | 0 |
+| 12 | L1-A1 网络/写文件副作用 | 1 | 0 |
+| 13 | NE4-2 `read_file` | 1 | 0 |
+| 14 | NE4-4 第三方运行时依赖 | 1 | 0 |
+
+- 命令 1/2 扫描面 `src/core` 当前仅空包 + `cmd/main`（本 Task 不改 `src/core`）；本 Task 改动面 `src/unicode` 在命令 3/4/5/7/8/10/11/11b/12/13 的扫描范围内，实跑 0 命中。
+
+## 8. spec 命令 20 / 21
+
+```text
+$ .venv/Scripts/python.exe -c "exec('import sys,unicodedata ... assert len(iv)==651 ...')"
+ok 1951 cps / 651 intervals
+cmd20_rc=0
+
+$ test -d src || exit 2; test "$(grep -rl -e 'moonbitlang/x' -e unicode-data src | wc -l)" = "0"
+cmd21_rc=0
+```
+
+## 9. 约束与保留
+
+- 时长上限 **90 分钟**：本 Task 执行窗口约 5 分钟（含中断产物核验；远低于上限）。
+- 外部调用轮次上限 **15**：本 Task 外部调用 **0** 次（无网络、无外部服务；仅本地 python / moon / grep / git）。
+- 保留策略 **90 天**：至 2027-01-19。
+- 提交方式：仅 `tools/gen_upper_table.py`、`src/unicode/{upper_table.mbt,unicode.mbt,unicode_test.mbt,block_test.mbt,moon.pkg}` 与本日志按**显式路径**提交；无目录级 `git add`、无 `git add -A`。`docs/port`、`langdetect`、`src/core`、`src/data`、`src/math_seam`、spec/plan/design、`.venv` 均未改动。
+- 文件指纹（提交前 sha256）：
+
+| 文件 | sha256 | 行 / 字节 |
+|---|---|---|
+| `tools/gen_upper_table.py` | `b90062a2529d1d6b160ce341bdb6c3c094fb054964baf263c36002d4d67c4de8` | 323 / 11571 |
+| `src/unicode/upper_table.mbt` | `2ef2b86682ef98bb9432a7fc2e4891329c89ba258d918015b52bb0c50c4ff298` | 883 / 19288 |
+| `src/unicode/unicode.mbt` | `cff148227bf73e1319c7e13cb253a692f6c25c416aef368ef7c49db85491e274` | 55 / 1646 |
+| `src/unicode/unicode_test.mbt` | `190c77ddccb840b94f6f6423b5cffdd9ae568d0ae5c09fd49889d4fa4cf6eda2` | 58 / 2455 |
+| `src/unicode/block_test.mbt` | `d218f828d7dedd1a8a94fab53dafd3e5d76176fba047942f6979a7c1afcd1926` | 30 / 1506 |
+| `src/unicode/moon.pkg` | `8c0dbca2811f2934b7ad464a04820d1f477a2ffd1b2d397b0db9d32901cf9d40` | 2 / 141 |

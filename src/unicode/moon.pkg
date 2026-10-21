@@ -1,0 +1,2 @@
+// src/unicode imports nothing: the U3 table and both queries are pure
+// MoonBit over the standard library. No third-party Unicode package.
