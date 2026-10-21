@@ -1,0 +1,179 @@
+# Task 5 src/data（flat 生成器 + 解析 + freq→prob）— 原始日志（2026-10-21）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`ec0cbfc`（Task 4，`fix: address task 4 review findings`）
+- 交付物（6 个路径，仅这些）：`tools/gen_profile_data.py`（新增）、`src/data/profiles.mbt`（生成产物，新增）、`src/data/profile.mbt`（新增）、`src/data/profile_test.mbt`（新增）、`src/data/moon.pkg`（原为空文件，改为 import core/string）、本日志（新增）
+- 工具链：`.venv/Scripts/python.exe` = CPython 3.12.10；`moon 0.1.20261012 (748b63c 2026-10-12)`；平台 native = win32 x64
+- 执行窗口：2026-10-21 约 19:40–20:05 +0800（约 25 分钟）
+- 结论：**PASS** —— 产品侧 C-A1 `decls 55` / C-A2 `entries 184129` / C-A3 `2211344 B` / C-A4 0 命中 / C-A6 标记通过；本包 `moon test` 6/6；全模块 `moon test --target native` 14/14；三目标 build 全 0；静态门命令 1-14 + 11b 全部 0 命中 / rc=1；验收链 rc=0
+- 保留策略：**90 天**（至 2027-01-19）
+- 时长上限：**90 分钟**（实测约 25 分钟，< 90）；外部调用轮次上限：**15**（本 Task 外部调用 **0** 次，仅本地 python/moon/grep/git）
+
+## 1. 破坏性操作快照与原子标记
+
+- 快照：**N/A** —— Task 5 开始时 `src/data/profiles.mbt` **不存在**（`test ! -e` 通过），为任务新增产物，无「已存在文件」可备份。
+- 原子标记：生成器 + 产物 + 解析器 + 测试 + 包清单同时落地；中断恢复先核对 55 / 184129（见 §2/§3）。
+
+## 2. 生成器与确定性
+
+命令（默认生成）：
+
+```text
+$ .venv/Scripts/python.exe tools/gen_profile_data.py
+mode=flat
+profiles=55 entries=184129
+wrote F:\moonbit比赛\moon_langdetect\src\data\profiles.mbt : 2211344 bytes
+rc=0
+```
+
+- 生成器只产 flat：源 = `langdetect/langdetect/profiles/` 下 55 个 JSON，按文件名排序（= golden `meta.langlist` 顺序），每条 `freq` 按上游插入序输出 `key\tcount\n`；语言名与文件名逐一校验相等。
+- 原子写：同目录 `tempfile.mkstemp` + `os.fsync` + `os.replace`；LF、UTF-8、无时间戳、无随机量。
+- 确定性：
+  - 产品重跑前后 md5 均为 `4ea6f53085e8a0449e86e6a5523779e3`（sha256 `bfb701f14c4d9af2c137f0854cbe69ba361c55e74952d002e8d84e215ac3ffe1`）。
+  - `--out /tmp/profiles-probe2.mbt` 与产品文件 `cmp` 一致（byte-identical）。
+- 生成器源码指纹：sha256 `f9ca094bff82bbd26efb1247983f34f32e4dc2954d1df6f662c321534ace499d`（182 行 / 6134 B）。
+
+### Dry-run（首 5 行 / 末 5 行 / 计数 / 标记）
+
+`head -5 src/data/profiles.mbt`（截断显示）：
+
+```text
+// 由 tools/gen_profile_data.py 生成，勿手改。编码: flat（key\tcount\n）
+
+///| Language codes in embedded profile order (sorted profile filenames,
+///| identical to the golden `meta.langlist` order).
+pub let languages : Array[String] = ["af", "ar", "bg", "bn", "ca", ... "zh-tw"]
+```
+
+`tail -5 src/data/profiles.mbt`：
+
+```text
+  buf.write_string(zh_cn)
+  buf.write_string("#zh-tw\n")
+  buf.write_string(zh_tw)
+  buf.to_string()
+}
+```
+
+计数（产品路径）：
+
+```text
+decl_lines=55         # grep -cE '^let \w+ : String = "'
+entries=184129        # 约定 A C-A1/C-A2 正则 + 捕获串内 '\n' 计数
+map_from_array=0
+marker=True           # 首行含「勿手改」
+profiles_flat=True
+bytes=2211344
+```
+
+- **产品字节数登记：2211344 B**（作为后续 C-A3 基线）。探针样本 2205308 B 仅是参照值（spec 命令 24），不作为产品断言（约定 A §5 / S-02）。
+
+## 3. 产品侧 C-A1…C-A6
+
+`$F=src/data/profiles.mbt`。
+
+| 项 | 命令/口径 | 实测 | rc |
+|---|---|---|---:|
+| C-A1/C-A2 | 约定 A §3 正则：`^let \w+ : String = "(.*)"$`，捕获串 `\n` 计数 | `decls 55 entries 184129` | 0 |
+| C-A3 | `wc -c < "$F"` = 产品登记值 | `2211344` | 0 |
+| C-A4 | `grep -c 'Map::from_array' "$F"` | `0` | 0 |
+| C-A5 | 生成器 `MODE = "flat"` + 运行输出 `mode=flat`；spec 命令 22 的探针清单 `mode=flat` 亦 rc=0 | flat | 0 |
+| C-A6 | `head -1 "$F" \| grep -q '勿手改'` | 命中 | 0 |
+
+## 4. 解析与概率表测试
+
+- 本包：`moon test -p vicoproplus/langdetect/src/data --target native` → `Total tests: 6, passed: 6, failed: 0`，rc=0。
+- 全模块：`moon test --target native` → `Total tests: 14, passed: 14, failed: 0`，rc=0。
+- 验收链（brief Output 逐字）：
+
+```bash
+.venv/Scripts/python.exe tools/gen_profile_data.py && test "$(grep -c 'Map::from_array' src/data/profiles.mbt)" = "0" && head -1 src/data/profiles.mbt | grep -q '勿手改' && test "$(grep -c 'profiles' src/data/profiles.mbt)" -ge 1 && moon test --target native
+# rc=0（全模块 14/14）
+```
+
+覆盖（`src/data/profile_test.mbt`）：
+
+| 断言 | 实测 |
+|---|---|
+| `parse_profiles(profiles_flat())` 档案数 / 顺序 / 名称 = `languages` | 55 / 一致 |
+| 每档案 `n_words.length()` = 3 且非负 | 55/55 |
+| 条目总数 | 184129 |
+| 键长分布 1/2/3 | 7791 / 52387 / 123951 |
+| 非 BMP 键数 | 0 |
+| 每档案 `n_words` = 按长度累加 freq（解析期派生） | 55/55 一致 |
+| 真实档案零分母（`Profile::zero_n_words_index`） | 全部 `None` |
+| `af` 条目 2143、`"D"` = 9246、`n_words` = [1541130, 1808182, 1328687] | 一致 |
+| `build_prob_table` 向量长度 | 55 |
+| 公式抽查：af `"D"` / de `"er"` / af `"er"` / en `"the"` | `9246/1541130`、`2971302/99298261`、`33393/1808182`、`3415279/224934017`（分母取自解析后的 `n_words`） |
+| 缺失语言 | ar 的 `"D"` 槽 = `0.0` |
+| 合成 4-gram `"abcd"` | 键存在、向量长度 1、槽 = `0.0`（建向量但不写入） |
+| 合成零分母 `[5, 0, 7]` | `zero_n_words_index() == Some(1)`（前置可检测） |
+
+## 5. 零分母 / 码 1 转移（显式）
+
+- `src/data` 不能 import core 的 `LangDetectError`（反向模块依赖禁止，spec DR11）。
+- Task 5 **不**在 `build_prob_table` 内做零分母除法：`Profile::zero_n_words_index()` 暴露前置；测试用合成 `[5, 0, 7]` 证明可检测，真实 55 档案全部 `None`。
+- **转移：码 1 的零除报错由 core 加载路径（Task 8 `add_profile` / `load_profile`）在调用 `build_prob_table` 前检查 `zero_n_words_index()` 并 raise。** 本 Task 不静默返回 `inf`，也未新增任何零分母分支。
+
+## 6. spec 命令 21-25（参照样本）
+
+| 命令 | 内容 | rc |
+|---|---|---:|
+| 21 | C-B6 无第三方 Unicode（含路径守卫） | 0 |
+| 22 | C-A5 探针 `probes/gen-manifest.json` mode=flat | 0 |
+| 23 | C-A6 探针产物首行「勿手改」 | 0 |
+| 24 | C-A3 探针产物字节数 = 2205308（参照） | 0 |
+| 25 | C-A4 探针产物 `Map::from_array` = 0 | 0 |
+
+## 7. 编译门（三目标）
+
+| 命令 | rc | 结果 |
+|---|---:|---|
+| `moon build --target native src/data` | 0 | 5 warnings / 0 errors |
+| `moon build --target js src/data` | 0 | 5 warnings / 0 errors |
+| `moon build --target wasm-gc src/data` | 0 | 5 warnings / 0 errors |
+| `moon build --target native` | 0 | no work to do |
+| `moon build --target js` | 0 | no work to do |
+| `moon build --target wasm-gc` | 0 | no work to do |
+
+告警说明：5 条 `Warning: [0033]` 指向生成产物超长声明行的第 65535 列（ca/et/ko/lt/lv），无附文；`moon check/build/test` 均 rc=0，测试通过。未启用 `--deny-warn`，未压制告警。
+
+## 8. 静态门（spec §10.6 命令 1-14 + 计划命令 11b）
+
+全部单条执行、显式捕获 rc；期望 0 行 / rc=1。
+
+| # | 检索对象 | rc | 命中 |
+|---|---|---:|---:|
+| 1 | DR9 `src/core` 条件编译 | 1 | 0 |
+| 2 | DR10 `src/core` 运行期平台 API | 1 | 0 |
+| 3 | DR11 反向模块依赖 | 1 | 0 |
+| 4 | DR8 跨包调用未加 `@` 前缀 | 1 | 0 |
+| 5 | DR1 `@math.sqrt` | 1 | 0 |
+| 6 | DR3 自行绑定 `c_cos`/`c_sin` | 1 | 0 |
+| 7 | DR4 `is_ascii_uppercase` | 1 | 0 |
+| 8 | DR4 第三方 Unicode 包 | 1 | 0 |
+| 9 | DR6 core `@fs` | 1 | 0 |
+| 10 | DR7 `derive(Show)` | 1 | 0 |
+| 11 | NE1 静态（排除 `cmd/`） | 1 | 0 |
+| 11b | NE1 静态（只排除 `cmd/main/`） | 1 | 0 |
+| 12 | L1-A1 网络/写文件副作用 | 1 | 0 |
+| 13 | NE4-2 `read_file` | 1 | 0 |
+| 14 | NE4-4 第三方运行时依赖 | 1 | 0 |
+
+## 9. 文件指纹
+
+| 路径 | 字节 | sha256 |
+|---|---:|---|
+| `tools/gen_profile_data.py` | 6134 | `f9ca094bff82bbd26efb1247983f34f32e4dc2954d1df6f662c321534ace499d` |
+| `src/data/profiles.mbt` | 2211344 | `bfb701f14c4d9af2c137f0854cbe69ba361c55e74952d002e8d84e215ac3ffe1` |
+| `src/data/profile.mbt` | 4299 | `fd96cf40b8bd59a17487d77971bdc44bdf457ade53832f5cd289eac120d219af` |
+| `src/data/profile_test.mbt` | 3803 | `bf036c8af1ad23a9b4951e883876982a143f6314c4be76353289a8bb03b4d576` |
+| `src/data/moon.pkg` | 40 | `a3990435a1a549e1a81267df49c288fba1127e6f155532b6d636716fcace22bc` |
+
+## 10. 自评关注点
+
+- 产品产物 2211344 B 与探针样本 2205308 B 不同（生成器注释/声明形态不同）；按约定 A §5 以产品路径重新登记，A1/A2/A4 未放松。
+- 解析器对格式错误使用 `abort`（缺失 tab / 非法 count）；正常内嵌数据不触发。未新增静默跳过分支。
+- 概率表按 55 槽稠密向量构建（与上游 `word_lang_prob_map` 的 `[0.0]*langsize` 同形）；最大键集 87598，内存开销属预期。
+- 码 1 转移已写入 `Profile::zero_n_words_index` 文档、单测与 §5；Task 8 需在加载路径落实 raise。
