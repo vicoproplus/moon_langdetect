@@ -1,0 +1,194 @@
+# Task 0 基线原始日志 — 2026-10-21
+
+- 仓库：F:\moonbit比赛\moon_langdetect
+- 分支：sdd/moon-langdetect-2026-10-21
+- HEAD：192ce0e55bf1cbe745dc3c7f193d2d903cb723ba（192ce0e）
+- 执行时间：2026-10-21 16:54 +0800
+- 运行方式：每条命令单独执行 `env -u SHELLOPTS bash --noprofile --norc <单条脚本>`，stdout/stderr/rc 分别捕获；未用 `;` 串联、未用 `|| true` 吞错。命令文本见 `baseline-2026-10-21.md` 附录 A / B。
+- 原始输出目录（scratch，不提交）：`.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task0/`
+- 环境：Git Bash（GNU grep 3.0）、GNU bash 5.3.15(2)、GNU Awk 5.4.1、md5sum (GNU coreutils) 8.32、Python 3.12.10、moon 0.1.20261012 (748b63c)、moonc v0.10.15+943464bfa
+
+## 0. Step 0 — spec 修订前置门（逐字）
+
+```
+$ bash gate.sh
+unicode_block=1 cmd/golden=2 gen_core_tables=2 c6_zero_network=1
+gate_rc=0
+```
+
+四项均 >= 1，gate 通过。
+
+## 1. 工具链版本（逐条 rc）
+
+```
+$ command -v moon
+/c/Users/Administrator/.moon/bin/moon
+rc=0
+
+$ moon --version
+stdout: moon 0.1.20261012 (748b63c 2026-10-12) ~\.moon\bin\moon.exe
+        moonc v0.10.15+943464bfa (2026-10-12) ~\.moon\bin\moonc.exe
+stderr: Error: failed to get "C:\\Users\\Administrator\\.moon\\bin\\moonrun.exe" version:
+rc=127   # 来自 moonrun 探测；版本字符串仍完整输出
+
+$ moonc --version
+stderr: C:\Users\Administrator\.moon\bin\moonc.exe: unknown option '--version'.
+        moonc
+          -v  show version
+          -help  Display this list of options
+          --help  Display this list of options
+rc=2
+
+$ moonc -v
+v0.10.15+943464bfa (2026-10-12)
+rc=0
+
+$ .venv/Scripts/python.exe -V
+Python 3.12.10
+rc=0
+
+$ grep --version | head -1
+grep (GNU grep) 3.0
+rc=0
+
+$ bash --version | head -1
+GNU bash, version 5.3.15(2)-release (x86_64-pc-cygwin)
+rc=0
+
+$ awk --version | head -1
+GNU Awk 5.4.1, API 4.1, PMA Avon 8-g1, (GNU MPFR 4.2.2, GNU MP 6.3.0)
+rc=0
+
+$ md5sum --version | head -1
+md5sum (GNU coreutils) 8.32
+rc=0
+```
+
+## 2. 代码版本标识
+
+```
+$ cat moon.mod
+name = "vicoproplus/langdetect"
+version = "0.1.0"
+
+$ find src tools -type f | sort | xargs sha256sum
+bff294df5a480613005f7b2531bf5004cfe6e9d21cb97abca9ee638a19de0d62 *src/core/cmd/main/main.mbt
+887c7084dcf6bff2601fcb8f1eb416da2e0c34bf966704881a94aa30b6d2c0c8 *src/core/cmd/main/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/core/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/data/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/math_seam/moon.pkg
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 *src/unicode/moon.pkg
+f5fcbce0032cd8af7bbb997fe9b8ba3563253ca94d254cae62c2d54a4f7a1ff6 *tools/gen_float_golden.py
+918230cf867d14264d939f253d19e6d52a76af2a894674238780e7a64d43408c *tools/gen_golden.py
+1cd4435796a488e47458412ef6635b897b7b5db86298259db412ec145c86cd23 *tools/gen_rand_golden.py
+81625df99afaf06ae125e1de1830fb8e4ed60529f7c210b6312d9d928b8a9a15 *tools/probe_facts.py
+0782ae982e78e83fbad6659e6c41c20df00f9356a585587e6ac86a5141c40732 *tools/profile_stats.py
+6f7aeb6c71570545d37a52614e34e2c64a6a92071ee85467abe94c802290a825 *tools/summarize_probes.py
+
+files=12
+manifest_sha256=63c618c6ee6e3fc1a8c48ee9adc2ffec3ae0a1bb472bc783b22ee207154c4905
+# 注：sha256sum 默认输出以 " *" 分隔（二进制标记）；基线 md 中为便于阅读写作两个空格，哈希值不变。
+```
+
+## 3. §10.6 命令 1-30 + 11b（逐条 rc / stdout / stderr）
+
+```
+CMD 01  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 02  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 03  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 04  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 05  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 06  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 07  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 08  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 09  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 10  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 11  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 12  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 13  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 14  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 15  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 16  rc=0  stdout(4B)="ok"  stderr(0B)=""
+CMD 17  rc=0  stdout(4B)="ok"  stderr(0B)=""
+CMD 18  rc=0  stdout(4B)="ok"  stderr(0B)=""
+CMD 19  rc=0  stdout(4B)="ok"  stderr(0B)=""
+CMD 20  rc=0  stdout(29B)="ok 1951 cps / 651 intervals"  stderr(0B)=""
+CMD 21  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 22  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 23  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 24  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 25  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 26  rc=0  stdout(3B)="25"  stderr(0B)=""
+CMD 27  rc=1  stdout(0B)=""  stderr(0B)=""
+CMD 28  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 29  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 30  rc=0  stdout(0B)=""  stderr(0B)=""
+CMD 11b rc=1  stdout(0B)=""  stderr(0B)=""
+```
+
+对照计划预期基线：1-14 + 11b → rc=1；15-26、28、30 → rc=0；27 → rc=1；29 → rc=0。**全部一致，无偏差。**
+
+命令 29 复跑（moon test 之后，确认 main.exe 未变）：
+
+```
+$ bash cmds/29.sh
+rc=0   stdout=0B   stderr=0B
+$ ls -l _build/native/debug/build/src/core/cmd/main/main.exe
+-rwxr-xr-x 1 Administrator 197121 175104 Oct 21 10:30 _build/native/debug/build/src/core/cmd/main/main.exe
+```
+
+## 4. 附加门禁：moon check / moon test
+
+```
+$ moon check            # 仓库根
+rc=0   stdout=""   stderr: Finished. moon: no work to do
+
+$ moon test --target native   # 仓库根
+rc=0   stdout: Total tests: 0, passed: 0, failed: 0.
+stderr tail: Warning: no test entry found.   # 前 15 行为 MSVC 创建测试库消息
+
+$ cd probes/embed-probe && moon test --target native
+rc=0   stdout: Total tests: 56, passed: 56, failed: 0.
+stderr: 12 行 MSVC 创建测试库消息（无错误）
+```
+
+## 5. W1b — src/tools 清单前后一致性
+
+```
+before: 12 files, manifest_sha256=63c618c6ee6e3fc1a8c48ee9adc2ffec3ae0a1bb472bc783b22ee207154c4905
+after : 12 files, manifest_sha256=63c618c6ee6e3fc1a8c48ee9adc2ffec3ae0a1bb472bc783b22ee207154c4905
+diff: 无差异（逐字节相同）
+moon.mod: cmp 相同
+git status --short（前后一致）:
+?? src/
+?? tools/
+# src/ 与 tools/ 为本会话开始前即存在的未跟踪只读输入；本任务未改动。
+# probes/embed-probe/_build/ 为测试重建的构建产物（不在 src/tools 清单内，不属源码改动）。
+```
+
+## 6. 验收命令与自证伪
+
+```
+$ test "$(grep -cE '^\| [0-9]+ \|' docs/superpowers/plans/artifacts/baseline-2026-10-21.md)" -eq 30
+count=30
+rc=0
+
+# 自证伪 1：29 行副本（删除 | 30 | 数据行）
+$ test "$(grep -cE '^\| [0-9]+ \|' scratch-task0/neg29.md)" -eq 30
+count=29
+rc=1
+
+# 自证伪 2：文件缺失
+$ test "$(grep -cE '^\| [0-9]+ \|' scratch-task0/no-such-baseline.md)" -eq 30
+stderr: grep: scratch-task0/no-such-baseline.md: No such file or directory
+        test: : integer expected
+count=(no output)
+rc=2   # 非零（必红）。GNU grep 3.0 对缺失文件不输出 0，故为 rc=2 而非 rc=1
+
+# 附：0 行（仅表头）副本
+$ test "$(grep -cE '^\| [0-9]+ \|' scratch-task0/header-only.md)" -eq 30
+count=0
+rc=1
+```
+
+结论：验收命令对 30 行表 rc=0；对 29 行 / 缺失文件 / 0 行均返回非零（不可假绿）。
