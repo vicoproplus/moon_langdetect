@@ -116,7 +116,7 @@ f5fcbce0032cd8af7bbb997fe9b8ba3563253ca94d254cae62c2d54a4f7a1ff6 *tools/gen_floa
 files=12
 manifest_sha256=63c618c6ee6e3fc1a8c48ee9adc2ffec3ae0a1bb472bc783b22ee207154c4905
 # 注：sha256sum 默认输出以 " *" 分隔（二进制标记）；基线 md 中为便于阅读写作两个空格，哈希值不变。
-# 注：该清单覆盖工作区未跟踪的 src/、tools/ 输入；HEAD 192ce0e 未跟踪这些文件（当时 HEAD 仅含 LICENSE 与两个 artifact）。
+# 注：该清单覆盖工作区未跟踪的 src/、tools/ 输入；HEAD 192ce0e 仅跟踪 LICENSE（两个 artifact 于 0756cb9 才提交）。
 ```
 
 ## 3. §10.6 命令 1-30 + 11b（逐条原始 stdout/stderr）
@@ -328,7 +328,7 @@ git status --short（前后一致）:
 ?? tools/
 # src/ 与 tools/ 为本会话开始前即存在的未跟踪只读输入；本任务未改动。二者不在 .git/info/exclude 中，故以 ?? 可见。
 # probes/embed-probe/_build/ 为测试重建的构建产物（不在 src/tools 清单内，不属源码改动）。
-# 清单覆盖工作区未跟踪输入，不是 HEAD 192ce0e 的提交内容（HEAD 仅含 LICENSE 与两个 artifact）。
+# 清单覆盖工作区未跟踪输入，不是 HEAD 192ce0e 的提交内容（192ce0e 仅跟踪 LICENSE；两个 artifact 于 0756cb9 才提交）。
 ```
 
 ## 6. 验收命令与自证伪（本轮修复后原始记录）
@@ -379,8 +379,8 @@ rows=n/a  rc=1   stdout=0 B   stderr=0 B
 
 ```
 source : docs/superpowers/plans/artifacts/baseline-2026-10-21.md
-         336 lines / 21451 B / sha256=3e19b3107222abf21c41f5a93163575c3a665a7d1aef0a4436f359b3e7a441e2
-neg29-final.md : 335 lines / 21348 B / sha256=c01d4b5d2fbceda7ea687a55e225d1be440581c88f2e375e0abea0a94663ffe6
+         336 lines / 21499 B / sha256=ee9a8d1a6109996ffb0cf0350c06d15fe6cc8528a956b9bf5161c938d8a5e734
+neg29-final.md : 335 lines / 21396 B / sha256=9ec93ddbd0eff2c9901d98d362b81486a7b248e36c7726e326ec494d7e05dfca
 header-only-final.md : 2 lines / 66 B / sha256=ae94ac1fe47bdc20f226f86a065b7234f5fa9b8860659d1f93f4a30b8b693bd2
 ```
 
