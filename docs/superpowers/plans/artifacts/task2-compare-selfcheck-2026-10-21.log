@@ -1,0 +1,169 @@
+本 Task 交付面 = --self-check；十二个产品模式留待 Task 10
+
+# Task 2 compare_golden 骨架 + self-check — 原始日志（2026-10-21）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`dbdba0174545fd6bb84ce459ca25594a471bc049`（`dbdba01`）
+- 新增文件（仅两个）：`tools/compare_golden.py`、本日志
+- 运行时：`.venv/Scripts/python.exe -V` → `Python 3.12.10`；脚本仅用标准库（`argparse` / `hashlib` / `json` / `os` / `re` / `sys` / `dataclasses` / `pathlib` / `typing`）
+- 基准：`docs/port/golden/expected.json`，md5 执行前/后均为 `219519ee19d7cc10d404ddbdab3acd87`（size 246822 B，mtime `2026-10-21 03:44:29 +0800`，未变）
+- 执行窗口：2026-10-21 约 18:47–18:57 +0800（本机，约 10 分钟）
+- 结论：**PASS** —— `--self-check` rc=0 并输出 `ok 268=250+18`；十二个产品模式全部 rc=3 且打印 `mode not implemented`
+- 保留策略：**90 天**（至 2027-01-19）
+- 时长上限：**45 分钟**（实测远低于）；外部调用轮次上限：**10**（本 Task 外部调用 0 次，只跑本地命令）
+
+## 1. 验收命令（brief Output 逐字）
+
+```bash
+.venv/Scripts/python.exe tools/compare_golden.py --self-check && test "$(md5sum docs/port/golden/expected.json | awk '{print $1}')" = "219519ee19d7cc10d404ddbdab3acd87"
+```
+
+实测输出：
+
+```text
+ok 268=250+18
+```
+
+| 环节 | rc |
+|---|---:|
+| `compare_golden.py --self-check` | 0 |
+| `test "$(md5sum …)" = "219519ee…"` | 0 |
+| **整链** | **0** |
+
+等价入口（同样 rc=0、同一行输出）：
+
+| 命令 | rc | stdout |
+|---|---:|---|
+| `compare_golden.py --mode self-check` | 0 | `ok 268=250+18` |
+| `compare_golden.py`（无参数 → 安全默认 self-check） | 0 | `ok 268=250+18` |
+| `compare_golden.py --self-check --mode self-check` | 0 | `ok 268=250+18` |
+| `compare_golden.py --self-check --target wasm-gc --seed 42` | 0 | `ok 268=250+18`（self-check 忽略 target/seed） |
+
+`--self-check` 与其它 `--mode` 冲突时显式报错（不静默忽略 `--self-check`）：
+
+```text
+usage: compare_golden.py [-h] [--target {native,js,wasm-gc,native-other}]
+                         [--seed {0,42}]
+                         [--mode {self-check,prob_bits,seed_semantics,failures,forensics,cleaning,features_cache,profile_counts,repeatability,top1,lang_list_len,entry_total,prob_tolerance}]
+                         [--self-check] [--golden-dir PATH]
+compare_golden.py: error: --self-check conflicts with --mode 'prob_bits'; run them separately
+# rc=2
+```
+
+CLI 形态（`--help`，rc=0）：`--mode` 13 个选项（`self-check` + 12 个产品模式）、`--target {native,js,wasm-gc,native-other}`、`--seed {0,42}`、`--golden-dir PATH`；帮助尾部登记了路径解析顺序与退出码 0/1/2/3。
+
+## 2. `--self-check` 判据与实现位置（约定 C）
+
+| 判据 | 实现 | 期望 | 实测 |
+|---|---|---|---|
+| 五个顶层结构齐备 + 容器类型 | `check_top_level` | `cases` list、`meta` dict、`repeatability` list、`seed_diff` list、`unseeded_runs` list | 通过（真实基准） |
+| C2 计数三元组 | `check_case_counts` | `(268, 250, 18)` | 通过，输出 `ok 268=250+18` |
+| C3 seed 双套 | `check_seeds` | `{0, 42}` | 通过 |
+| C1/C5 `prob_bits` | `check_prob_bits` | 每条匹配 `^[0-9a-f]{16}$`（`re.fullmatch`） | 通过（274 条 entry 全过） |
+| C4 异常码 | `check_error_codes` | `{5}` | 通过 |
+| C6 基准 md5 | `run_self_check` | `219519ee19d7cc10d404ddbdab3acd87` | 通过 |
+
+- md5 先于结构校验执行：摘要不符即判「基准被改，应回滚而非改期望」（C6）；结构/计数/seed/位型/异常码判据独立保留，登记新基准摘要后仍生效。当前只登记一个基准摘要（`docs/port/golden`）；`--golden-dir`/环境变量指向**内容相同**的副本同样通过，指向内容不同的基准则以 rc=1 拒绝。
+- 退出码契约：0 成功；1 基准内容违约；2 参数/路径问题（含 `expected.json` 缺失）；3 产品模式占位。
+
+## 3. 十二个产品模式：打印 `mode not implemented` 且 rc=3
+
+命令形态：`.venv/Scripts/python.exe tools/compare_golden.py --mode <mode>`（`2>&1` 合并捕获）。
+
+| # | mode | rc | 输出 |
+|---|---|---:|---|
+| 1 | `prob_bits` | 3 | `mode not implemented: prob_bits (Task 10; this task delivers --self-check only)` |
+| 2 | `seed_semantics` | 3 | `mode not implemented: seed_semantics (…)` |
+| 3 | `failures` | 3 | `mode not implemented: failures (…)` |
+| 4 | `forensics` | 3 | `mode not implemented: forensics (…)` |
+| 5 | `cleaning` | 3 | `mode not implemented: cleaning (…)` |
+| 6 | `features_cache` | 3 | `mode not implemented: features_cache (…)` |
+| 7 | `profile_counts` | 3 | `mode not implemented: profile_counts (…)` |
+| 8 | `repeatability` | 3 | `mode not implemented: repeatability (…)` |
+| 9 | `top1` | 3 | `mode not implemented: top1 (…)` |
+| 10 | `lang_list_len` | 3 | `mode not implemented: lang_list_len (…)` |
+| 11 | `entry_total` | 3 | `mode not implemented: entry_total (…)` |
+| 12 | `prob_tolerance` | 3 | `mode not implemented: prob_tolerance (…)` |
+
+复跑计数：`modes_checked=12 failures=0`（12/12 rc=3，12/12 含 marker）。无任何「静默 0」。
+
+## 4. 参数与路径守卫（exit 2）
+
+| 命令 | rc | stderr 关键行 |
+|---|---:|---|
+| `--self-check --golden-dir <不存在>` | 2 | `error: golden dir does not exist or is not a directory: … (source: --golden-dir)` |
+| `--mode prob_bits --golden-dir <不存在>` | 2 | 同上（路径守卫先于模式派发） |
+| `--self-check --golden-dir docs/port/golden/expected.json`（指向文件） | 2 | `… is not a directory` |
+| `--self-check --target bogus` | 2 | `argument --target: invalid choice: 'bogus'` |
+| `--self-check --seed 7` | 2 | `argument --seed: invalid choice: '7'` |
+| `--self-check --seed`（缺值） | 2 | `argument --seed: expected one argument` |
+| `--mode bogus` | 2 | 报错并列出 13 个合法选项 |
+| `--bogus-flag` | 2 | `unrecognized arguments: --bogus-flag` |
+
+## 5. 判据证伪（每条判据都实际会红，非死代码）
+
+方法：把 `expected.json` 复制到临时目录后构造违规样本；C6 的 md5 门禁按设计先执行，故对「语义判据」样本把脚本的 `BASELINE_MD5` 运行时替换为被改文件的真实 md5，使 md5 门禁放行、语义判据单独触发。临时样本与探针脚本位于系统临时目录，**运行后已删除，未入库**。
+
+| 样本 | 触发判据 | rc | 关键输出 |
+|---|---|---:|---|
+| 内容相同的副本（`--golden-dir` 指向） | 全部通过 | 0 | `ok 268=250+18` |
+| 环境变量 `LANGDETECT_GOLDEN_DIR` 指向同一副本 | 全部通过 | 0 | `ok 268=250+18` |
+| `expected.json` 追加 1 字节（不替换摘要） | C6 md5 | 1 | `expected.json md5 af7e13aa… != registered baseline 219519ee… (convention C C6; …)` |
+| 目录存在但无 `expected.json` | 文件存在性 | 2 | `error: self-check: expected.json not found in golden dir: …` |
+| 非法 JSON 文本 | C6 md5（先命中） | 1 | md5 不符（与上同形态） |
+| 1 条 `prob_bits` 改为大写 `3FEFFFF9529BA1E3` | C1/C5 位型 | 1 | `case 'long-af' entry 0: prob_bits '3FEFFFF9529BA1E3' is not 16 lowercase hex (convention C C1/C5)` |
+| 1 条 `prob_bits` 改为 `abc` | C1/C5 位型 | 1 | `case 'long-af' entry 0: prob_bits 'abc' is not 16 lowercase hex …` |
+| 1 个有概率案例的 `detect_langs` 置空 | C2 计数 | 1 | `case counts 268=249+18 != 268=250+18 (convention C C2)` |
+| 全部案例 seed 改为 0 | C3 seed | 1 | `seed set [0] != [0, 42] (convention C C3)` |
+| 首个异常案例 `error.code` 改为 4 | C4 异常码 | 1 | `error codes [4, 5] != [5] (convention C C4)` |
+| 删除顶层 `meta` | 结构 | 1 | `missing top-level key: meta` |
+| `cases` 改为对象 | 结构类型 | 1 | `top-level 'cases' must be list, got dict` |
+
+基准文件本身在证伪前后 md5 一致（`219519ee…`），证伪只作用于临时副本。
+
+## 6. spec §10.6 命令 15-19（逐条实跑）
+
+| # | 命令（摘要） | 期望 rc | 实测 rc | 输出 |
+|---|---|---:|---:|---|
+| 15 | `test "$(md5sum docs/port/golden/expected.json \| awk '{print $1}')" = "219519ee19d7cc10d404ddbdab3acd87"` | 0 | **0** | （无输出，`test` 通过） |
+| 16 | `python -c "… assert (len(c),非空 detect_langs,含 error)==(268,250,18); print('ok')"` | 0 | **0** | `ok` |
+| 17 | `python -c "… assert sorted({x['seed'] for x in c})==[0,42]; print('ok')"` | 0 | **0** | `ok` |
+| 18 | `python -c "… assert {x['error']['code'] …}=={5}; print('ok')"` | 0 | **0** | `ok` |
+| 19 | `python -c "… assert not bad; print('ok')"`（`prob_bits` 全 `re.fullmatch(r'[0-9a-f]{16}')`） | 0 | **0** | `ok` |
+
+命令 15-19 均以 `set -euo pipefail` 的同一 shell 分条执行、rc 显式捕获；全部 0。
+
+## 7. 基准只读证明（C6）
+
+| 时点 | md5 | size | mtime |
+|---|---|---|---|
+| 执行前 | `219519ee19d7cc10d404ddbdab3acd87` | 246822 | 2026-10-21 03:44:29 +0800 |
+| 执行后（含全部自检/证伪/命令 15-19） | `219519ee19d7cc10d404ddbdab3acd87` | 246822 | 2026-10-21 03:44:29 +0800 |
+
+- 脚本只以 `open("rb")`（算 md5）与 `open("r", encoding="utf-8")`（解析 JSON）打开基准，无写路径。
+- `docs/port/golden/` 目录文件清单在运行前后一致，未新增/删除文件。
+
+## 8. 可移植性
+
+- 脚本内**无机器绝对路径**：`grep -nE 'C:[/\\]|F:[/\\]|/f/|Users|moonbit' tools/compare_golden.py` → 0 命中。
+- 默认基准目录由脚本位置推导：`Path(__file__).resolve().parent.parent / "docs/port/golden"`（脚本在 `tools/`）。
+- CLI 相对路径按当前工作目录解析；从仓库外工作目录（`F:\Temp`）以绝对脚本路径调用 `--self-check` → rc=0、`ok 268=250+18`，证明默认目录不依赖 cwd。
+- 环境变量覆盖：`LANGDETECT_GOLDEN_DIR`（文档化于 `--help` 尾注与模块 docstring）。实测指向副本 → rc=0；指向不存在目录 → rc=2。
+- 优先级实测：`--golden-dir`（真实基准）> 环境变量（被追加 1 字节的副本）→ rc=0，证明 flag 覆盖 env。
+- 运行时消息全部 ASCII（避免非 UTF-8 控制台 `UnicodeEncodeError`）；中文仅出现在源码 docstring/注释。
+
+## 9. 与 Task 10 的接续面（交付分期）
+
+- 模式派发表：`MODE_HANDLERS = {mode: run_self_check | run_not_implemented for mode in MODE_NAMES}`；Task 10 只需为 12 个模式注册真实实现并删除占位分支。
+- 占位标识：当前 `grep -c 'exit 3' tools/compare_golden.py` = **7** 行（常量注释、占位函数注释/文档串、模块 docstring、CLI description/help）。Task 10 Step 0 的判据是改完后该值为 **0**，故本 Task 特意保留字面 `exit 3` 以便该门禁可判真伪。
+- 退出码常量为 `EXIT_OK / EXIT_CHECK_FAILED / EXIT_USAGE / EXIT_NOT_IMPLEMENTED`；Task 10 移除 `EXIT_NOT_IMPLEMENTED` 时需同步清理上述字面。
+- 基准摘要登记：`BASELINE_MD5` 单一登记项；登记第二个基准（其它平台）属 Task 10 扩展面，扩展前被拒绝是预期行为。
+- `Context` 已携带 `target` / `seed` / `golden_dir`，产品模式可直接消费；`--seed` 默认 `None`（不臆造 seed），需要显式 seed 的模式由 Task 10 自行要求。
+
+## 10. 约束与保留
+
+- 时长上限 **45 分钟**：本 Task 从首条验证命令到提交远低于上限（执行窗口见日志头）。
+- 外部调用轮次上限 **10**：本 Task 外部调用 **0** 次（无网络、无外部服务；仅本地 shell / Python / git）。
+- 保留策略 **90 天**：至 2027-01-19。本日志与 `tools/compare_golden.py` 一并通过显式路径提交，无目录级 `git add`。
+- 工作树清洁：提交后仅剩会话前既有的 `?? src/`、`?? tools/`（`tools/` 含本任务新增文件，按路径单独提交）；无 `__pycache__` / 临时样本残留。
