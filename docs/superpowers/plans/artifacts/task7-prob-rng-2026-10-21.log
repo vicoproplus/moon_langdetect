@@ -1,0 +1,150 @@
+# Task 7 src/core 概率与随机（MT19937 / gauss / detect_block / Neumaier）— 原始日志（2026-10-22）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`33c8e0a`（`feat: add core errors constants ngram cleaning features`）
+- 交付物（仅这 8 个路径）：`src/core/rng.mbt`、`gauss.mbt`、`detect_block.mbt`、`normalize_prob.mbt`、`rng_test.mbt`、`detect_block_test.mbt`、`src/core/moon.pkg`、本日志
+- 工具链：`.venv/Scripts/python.exe` = CPython 3.12.10；`moon 0.1.20261012 (748b63c 2026-10-12)`；`moonc v0.10.15+943464bfa`；native = win32 x64
+- 执行窗口：2026-10-22 单会话（未触及 120 分钟上限）
+- 结论：**PASS** —— 本包 `moon test` **59/59**（Task 7 新增 40 + Task 6 既有 19）；全模块 **73/73**（核心 59 + 生产方 math_seam 3 / unicode 5 / data 6）；`moon check` rc=0（0 errors，5 个既有 `src/data/profiles.mbt` `[0033]` warning）；三目标 build rc=0；spec 命令 5-11 全部 rc=1 / 0 命中；brief 验收链 rc=0。
+
+## 1. 交付状态与完整性
+
+| 路径 | 状态 | 内容 |
+|---|---|---|
+| `src/core/rng.mbt` | 新增 | MT19937（`init_genrand` / `init_by_array` / `genrand_uint32`）、`random`、`getrandbits`（`Int`）、`getrandbits_u64`（0..64）、`bit_length_u64`、`randbelow`、`Mt19937::new(Int64?)` |
+| `src/core/gauss.mbt` | 新增 | `gauss`（生产路径走 `@math_seam.ln_for_gauss`）、`gauss_with`（测试注入接缝）、`TWOPI` 精确位型 |
+| `src/core/detect_block.mbt` | 新增 | 原始 ngram → 词表过滤 → 空集码 5 → 每轮 gauss/alpha → 每 5 次归一化收敛 → 朴素平均；`input_prefix` |
+| `src/core/normalize_prob.mbt` | 新增 | CPython 3.12 Neumaier `neumaier_sum`；`normalize_prob` 原地归一化并返回 maxp；NaN 不拒绝 |
+| `src/core/rng_test.mbt` | 新增 | 28 个 test：gauss 2,048、MT/random/getrandbits/randbelow RNG goldens、混合 7/7 + 357/357、流式、接缝 |
+| `src/core/detect_block_test.mbt` | 新增 | 12 个 test：307 Neumaier、385 朴素 langprob、385 归一化、NaN、码 5、检测 golden、先验、同 seed 5×、无 seed 10×、阈值 |
+| `src/core/moon.pkg` | 修改 | 追加 `moonbitlang/core/env`、`moonbitlang/core/math`、`vicoproplus/langdetect/src/math_seam`（原有 `src/unicode` 不变） |
+| 本日志 | 新增 | 本文件 |
+
+- `git status --short`：仅 `M src/core/moon.pkg` + 6 个 Task 7 新文件（其余未跟踪的 `src/core/cmd/` 与 `tools/*.py` 为先前任务遗留，未纳入本 Task 提交）；**无删除**。
+- Task 6 文件 `git diff` 为空；未修改 `src/core/cmd/**`、其他 `src` 包、`docs/port`、`langdetect`、spec、plan、`.venv`。
+- 本轮核对补强：`detect_block_filters_raw_ngrams` 原先重复调用 `extract_ngrams`（未断言过滤结果）；现改为显式断言 **23 个原始 n-gram → 9 个词表命中**及精确顺序 `["a","a","b","ab","a","b","ab","abc","b"]`。仅测试文件改动，**实现与 golden 未改**。该 9 项序列另由 scratch 脚本 `gen_detect_block_golden.py` 复算确认。
+
+## 2. Golden 计数与逐位核对
+
+嵌入的十六进制串与 `docs/port/golden/**` 逐值比较（Python 读取测试文件字符串字面量，大端 IEEE-754 16 hex/值）：
+
+| Golden | 嵌入值数 | 断言方式 | 与 golden JSON 逐值相等 |
+|---|---:|---|---|
+| `gauss_stress.json` seed 0 / 1 / 42 / 12345 | 512 × 4 = **2,048** | 4 个 test，每个 test 断言 `expected.length() == 512` 且 `mismatch == 0` | **True × 4** |
+| `mixed_sequence.json` gauss / alpha | **7 / 7** | 7 轮逐值 `assert_eq`，并断言长度 7 | **True / True** |
+| `mixed_sequence.json` choice 下标 | **357 / 357** | 7 轮按 `[51,51,51,76,36,51,41]` 逐值断言，末尾 `choice_index == 357` | **True**（667 元素 ngram 列表） |
+| `float_add_python.json` A+B+C+E `sums_neumaier` | **307** | 307 组逐值断言 `neumaier_sum(xs)`；`assert_eq(group, 307)` | **True**（嵌入串 = 4 场景顺序拼接） |
+| 同文件 `sums_naive` | **307** | 显式左到右 `naive_sum` 逐值断言 | **True** |
+| `float_add_python.json` `D-langprob7.rounds` | 7 × 55 = **385** | 每轮后 55 个 `langprob` 状态逐值断言 | **True** |
+| `float_add_python.json` `E-stochastic.normalized_builtin` | 7 × 55 = **385** | `normalize_prob` 的 385 个商逐值断言 + 每组 maxp | **True** |
+| `mt19937.json` seed 0 / 42 | 64 × 2 | 64 个 32 位字逐值 | **True × 2** |
+| `random_double.json` seed 0 / 42 | 64 × 2 | 64 个 `random()` 位型逐值 | **True × 2** |
+| `getrandbits.json` k = 1/2/3/12/16/32/33 | 32 × 7 | 每 k 32 值；k=32/33 经 `getrandbits_u64` | **True × 7** |
+| `randbelow.json` n = 1/2/3/5/7/55/1000 | 32 × 7 | 每 n 32 值；均经 `getrandbits_u64` | **True × 7** |
+
+补充断言：
+
+- V-33：307 组中内建 `sum()`（Neumaier）与朴素循环**仅 69 组相同**，测试断言 **238 组不同**（`assert_eq(differing, 238)`）；`gauss_stress` 嵌入值与 JSON 全等，长度 512 在 helper 内硬校验（长度不符返回 -1 → test 失败）。
+- V-34：`d_langprob` 的 385 个状态由 `random.Random(0)` 重放：`langprob=[1/55]*55`；每轮 55 次 `h[j]=1/55+1e-3*random()`，再 `langprob[j]=langprob[j]+h[j]/7.0`（**朴素 `+`，非 Neumaier**），记录每轮后状态；嵌入串 = `docs/port/golden/float_add_python.json::scenarios["D-langprob7"].rounds` 的 7×55 顺序拼接，逐值相等。
+- 混合序列的 7/7 与 357/357 同时证明 `randbelow`/`choice` 的调用顺序与上游 `long-af`（seed 0，667 ngram）一致。
+
+## 3. 阈值 / 流式 / getrandbits 限制
+
+- 阈值三组（恰等于 / 略大于 / 略小于 0.1）为**合成样本**，标签逐字：
+  `synthetic:基准 250 例中最小条目 0.1428…，无 ≤ 0.1（V-49）`
+  构造：按 spec §8.4 浮点比较档的选项 ②「接缝注入概率数组」直接注入三个位型
+  `0x3FB999999999999A`（= 0.1）、`0x3FB999999999999B`（略大）、`0x3FB9999999999999`（略小）；
+  断言 `exact → 过滤`、`above → 保留`、`below → 过滤`（严格 `p > 0.1`），并记录 `_sort_probability` 的 `> 0.1` 过滤**移交 Task 8**（`detector.py:234-237`）。`gauss_with` 注入接缝另有独立测试 `gauss_with_injection_seam`。
+- 流式：`seeded_stream_repeatability_5x`（同 seed 42 连续 5 个生成器，32 值流一致）；`unseeded_stream_10x_no_exception`（10 次 `None` 构造均可用、零异常、至少 2 个首值不同）。`detect_block_same_seed_5x` / `detect_block_unseeded_10x_no_exception` 覆盖检测层。
+- `Mt19937::new(None)`：`@env.now()` xor 进程内自增计数器（乘以 64 位奇常数），无文件/网络/日志；`Some(s)` 按 CPython `random.Random(int)` 的绝对值 + 小端 32 位字拆分，确定可复现。
+- `getrandbits` 限制：公开 `getrandbits(k : Int)` 因 MoonBit `Int` 为 32 位有符号，仅接受 `0 <= k <= 32`（k=32 返回原始位型重解释，可能为负；越界 `abort` 并提示使用 64 位 helper）。`getrandbits_u64(k)` 支持 `0 <= k <= 64`（k<=32 走 `genrand>>(32-k)`；k>32 取低字 + 高字右移）；`randbelow` 恒走该 helper，`n : Int` 的 `bit_length` ≤ 31。k=32/33 golden 因此经 `getrandbits_u64` 核对，`Int` 形式的 k=32 另测原始位型。
+
+## 4. 测试
+
+| 命令 | 结果 | rc |
+|---|---|---:|
+| `moon test -p vicoproplus/langdetect/src/core --target native` | `Total tests: 59, passed: 59, failed: 0.`（Task 7 = 28 + 12 = 40） | 0 |
+| `moon test --target native` | `Total tests: 73, passed: 73, failed: 0.`（= 59 core + 3 math_seam + 5 unicode + 6 data） | 0 |
+| `moon test -p vicoproplus/langdetect/src/math_seam --target native` | 3/3 | 0 |
+| `moon test -p vicoproplus/langdetect/src/unicode --target native` | 5/5 | 0 |
+| `moon test -p vicoproplus/langdetect/src/data --target native` | 6/6 | 0 |
+
+生产方覆盖（R18）：
+
+- math seam：`ln_for_gauss_bits`（A9 首次真实调用，位型 `0x3FE62E42FEFA39EF`）、`ln_for_gauss_golden_512`、`ln_for_gauss_with_forwards`。
+- unicode：`unicode_block_upstream_cases`、`unicode_block_gap_sentinel`、`is_upper_cp312_full_count`、`is_upper_cp312_interval_boundaries`、`is_upper_cp312_known_letters`。
+- data：`profiles_flat_parses_55_profiles_in_language_order`、`profile_totals_and_key_length_distribution`、`af_profile_matches_upstream_counts`、`build_prob_table_uses_freq_over_n_words`、`build_prob_table_creates_zero_vector_for_over_three_gram`、`zero_n_words_precondition_is_observable_for_core_load_path`。
+
+## 5. 编译门
+
+| 命令 | rc | 结果 |
+|---|---:|---|
+| `moon check` | 0 | 0 errors；5 warnings 均为 `src/data/profiles.mbt` 既有 `[0033]` 超长声明行 |
+| `moon build --target native` | 0 | 0 warning |
+| `moon build --target js` | 0 | 0 warning |
+| `moon build --target wasm-gc` | 0 | 0 warning |
+
+## 6. 静态门（spec §10.6 命令 5-11，补充 1-4 / 11b / 12-14）
+
+全部单条执行、显式捕获 rc；期望 0 行 / rc=1。扫描面 `find src -name '*.mbt' | wc -l` = **24**（`src/core` 15，含 `cmd/main/main.mbt`）。
+
+| # | 检索对象 | rc | 命中 |
+|---|---|---:|---:|
+| 1（补充） | DR9 `src/core` 条件编译 | 1 | 0 |
+| 2（补充） | DR10 `src/core` 运行期平台 API | 1 | 0 |
+| 3（补充） | DR11 反向模块依赖 | 1 | 0 |
+| 4（补充） | DR8 跨包调用未加 `@` 前缀 | 1 | 0 |
+| **5** | **DR1 `@math.sqrt`** | **1** | **0** |
+| **6** | **DR3 自行绑定 `c_cos`/`c_sin`** | **1** | **0** |
+| **7** | **DR4 `is_ascii_uppercase`** | **1** | **0** |
+| **8** | **DR4 第三方 Unicode 包** | **1** | **0** |
+| **9** | **DR6 core `@fs`** | **1** | **0** |
+| **10** | **DR7 `derive(Show)`** | **1** | **0** |
+| **11** | **NE1 静态（排除 `cmd/`）** | **1** | **0** |
+| 11b（补充） | NE1 静态（只排除 `cmd/main/`） | 1 | 0 |
+| 12（补充） | L1-A1 网络/写文件副作用 | 1 | 0 |
+| 13（补充） | NE4-2 `read_file` | 1 | 0 |
+| 14（补充） | NE4-4 第三方运行时依赖 | 1 | 0 |
+
+补充机检：`Map::from_array` 全 `src` 0 命中；Task 7 六个 `.mbt` 中 `println` / `eprintln` / `@stdio` / `@fs` / `prob_repr` 0 命中；`src/core/cmd/main/main.mbt` 为空 `fn main {}`（静默）。
+
+## 7. 验收链（brief Output 逐字）
+
+```bash
+moon test --target native && moon build --target native && moon build --target js && moon build --target wasm-gc
+# rc=0；Total tests: 73, passed: 73, failed: 0；三次 build 均 0 warning
+```
+
+`moon check` 亦 rc=0（0 errors）。（静态命令 5-11 的期望 rc 为 1，单条捕获；验收链本身全为 rc=0，故用 `&&` 串联。）
+
+## 8. 上限与保留
+
+- 时长上限：**120 分钟**；单会话完成，未超。
+- 外部调用轮次上限：**20**；本 Task **0** 次外部调用（仅本地 `moon` / `grep` / `git` / `.venv` Python）。
+- 保留策略：**90 天**（至 **2027-01-20**）。
+
+## 9. 文件指纹
+
+| 路径 | 字节 | sha256 |
+|---|---:|---|
+| `src/core/rng.mbt` | 8410 | `83651c2263719e524c259f3d54da21ecdb7ce86036f860f5c5bdac2b94352c60` |
+| `src/core/gauss.mbt` | 2048 | `72d7ca93a22d0f0a22c505d9b155f70c253a4b060b00be939d44b43256c2cc20` |
+| `src/core/detect_block.mbt` | 4159 | `c682c1cce4ea3533d8a20afbdeeac402d2f00d95fb8dc2fec1dd7fac95675842` |
+| `src/core/normalize_prob.mbt` | 2060 | `25307e00eb723d551d31a96b7f5422e3101e09d01837717a2a7c6aa7941c23a2` |
+| `src/core/rng_test.mbt` | 55386 | `1b15eb4684c50a5a9fa6d0c88fa1b9fbcef2dbc29a66afe019802359df9246ac` |
+| `src/core/detect_block_test.mbt` | 38770 | `a52d3023132c9c85ba9cef513f17e8c31ab13e97d878ed0e44f216300c71cc4b` |
+| `src/core/moon.pkg` | 146 | `af8785c8408111295d4908e9dd26ddd91086112048a6bfd6d264c46680761e84` |
+
+## 10. 提交
+
+- 显式路径提交（不 `-A`）：上述 6 个 `.mbt` + `src/core/moon.pkg` + 本日志，共 8 个文件。
+- 提交信息：`feat: add MT19937 gauss detect_block and Neumaier`
+- 不 amend；提交后核对 `git show --stat` 无删除、无 `src/core/cmd/**`、无 `tools/**`、无 `docs/port/**`。SHA 见 `task-7-report.md` 与 `git log -1`。
+
+## 11. 备注 / 保留意见
+
+- 阈值样本采用 spec §8.4 选项 ②「接缝注入概率数组」，未直接用 `ln_for_gauss_with` 驱动 gauss；`gauss_with` 接缝由 `gauss_with_injection_seam` 单独覆盖。若审查要求「经 `ln_for_gauss_with` 构造」的字面路径，可作为 Task 8 的补强项。
+- `getrandbits_u64` 文档化范围为 0..64，但未对 `k > 64` 做 `abort` 守卫（公开 `getrandbits` 已守卫 k>32；`randbelow` 实际 k≤31）。当前所有调用点均在范围内；Task 8/12 若扩展调用面应补守卫。
+- `detect_block_synthetic_seed42` / `prior` 的 golden 由 scratch 脚本 `.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task7/gen_detect_block_golden.py` 复算：输出 `3feffff204d03d5a / 3edbf65f854db7aa`（seed 42）与 `3feffff37e1db0ad / 3ed903c49ea660ad`（seed 7），与测试一致；该脚本不在提交清单内。
+- js / wasm-gc 仅验证 build（本机无 node 运行器）；`@math.ln` 降级路径的运行时等价性属 Task 11（spec 已登记非等价降级）。
