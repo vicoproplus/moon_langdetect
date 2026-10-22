@@ -96,7 +96,7 @@ rc=0
 
 **差异声明（显式记录，未静默替换）**：brief Step 1 与 rubric R9 把 `51/55` 表述为 `compare_lowconf.py --short 55 --long 55` 的 **long** 分组结果；runner 实测输出为 `long=55/55`。
 
-- `compare_lowconf.py:266-277` 的 long 判据是「`>=50` 且 `Detected` 且 top ∈ golden 候选集合」，**不是** top-1 严格准确率，因此结构上不可能输出 51/55。
+- `tools/compare_lowconf.py:227-265` 的 long 判据是「`>=50` 且 `Detected` 且 top ∈ golden 候选集合」（候选集测试 `:254-265`，`ok` 行格式 `:269-274`），**不是** top-1 严格准确率，因此结构上不可能输出 51/55。
 - `51/55` 的真实来源是 `docs/port/golden/summary.json` 的 `detect_accuracy_short_seed0`（上游短文本 top-1 基线，seed=0），与 `docs/port/architecture-decisions.md:83,93`、spec V-23 一致。
 
 结论：三个数各自成立但**语义不同**。本报告按实测记录 `long=55/55`，并把 `51/55` 归位为「上游短文本准确率基线」；**brief/rubric 的 51/55 归属有误，属文档口径缺陷，不是产品失败**。
@@ -150,7 +150,7 @@ js_build_rc=0
 | 观测项 | 观测命令 | 观测结果 |
 |---|---|---|
 | `probes/bin` 内容 | `ls probes/bin/` | 仅 `node.cmd`（59 B），**无 `node.exe`** |
-| `probes/bin/node.cmd` 指向 | `cat probes/bin/node.cmd` | `"C:\Users\Administrator\.bun\bin\bun.EXE" %*` |
+| `probes/bin/node.cmd` 指向 | `cat probes/bin/node.cmd` | 两行全文：`@echo off` ↵ `"C:\Users\Administrator\.bun\bin\bun.EXE" %*`（`od -c` 核对：`@ e c h o   o f f \r \r \n " C : \ U s e r s … b u n . E X E "   % * \r \r \n`） |
 | 替代运行时版本 | `"/c/Users/Administrator/.bun/bin/bun.exe" --version` | **bun 1.4.3**（bun，非 Node） |
 | `node.exe` 是否存在 | `where.exe node.exe` | `INFO: Could not find files for the given pattern(s).` → **rc=1，不存在** |
 | `node` 解析结果 | `where.exe node` | `C:\Users\Administrator\.bunpm\bin\node.cmd`（仍是 `.cmd`） |
@@ -208,7 +208,7 @@ rc=0
 ## 8. U-06 回填：首次加载 / 解析 184129 条耗时（Task 10 实测值）
 
 > **本节是 destined-for-spec 的回填值，口径对位 spec §8.1「首次调用完成档案加载」行的验收记录。**
-> **spec §8.1 本身未在本 Task 修改** —— 按全局约束 R1，`docs/superpowers/specs/` 只读；spec 编辑**顺延至拥有该授权的任务**（Task 12 / Task 13 或独立授权项）。本报告仅保存待落档的权威数值，不构成 spec 变更。
+> **spec 本身未在本 Task 修改** —— 按全局约束 R1，`docs/superpowers/specs/` 只读；本会话不存在针对该行的 spec 编辑授权。因此该行**未回填**，按**开放验收行 / 阻塞项**处置（见下方「落档目标与责任」小节）。
 
 来源：Task 10 对 `golden.exe '{"mode":"meta"}'` 的 3 次**冷进程**采样（N=3，取中位数），每次运行为独立 OS 进程。
 
@@ -220,6 +220,32 @@ rc=0
 | **中位数** | **209** | **347** | **567** | **184129** |
 
 **回填结论（拟写入 spec §8.1 的验收记录列）**：原生目标首次解析 **184129** 条档案条目耗时中位 **209 ms**；首次工厂加载（解析 + 概率表构建）中位 **347 ms**；两者合计中位 **567 ms**；`entry_total=184129`。
+
+### 8.1 落档目标与责任（OPEN ACCEPTANCE ROW）
+
+**落档目标（精确到行）**：`docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md:614` —— §8.1「维度一：运行时链路」表内 `首次调用完成档案加载 / native (win32 x64)` 行。
+
+该行**当前**内容（原文，逐字引用；已用 `sed -n "612,616p"` 核对）：
+
+| 项目 | 目标环境 | 操作证据（命令 / 入口） | 期望值来源 | 观测输出 | 状态 |
+|---|---|---|---|---|---|
+| 首次调用完成档案加载 | native (win32 x64) | `C:/Users/Administrator/.moon/bin/moon.exe test --target native`（cwd = 仓库根） | `analysis/toolchain-probes.md` §C.1 | — | 未验证（产品实现未落地） |
+
+即：`观测输出 = —`、`状态 = 未验证（产品实现未落地）`。
+
+**待写入的权威值（两格，逐字）**：
+
+- `观测输出` = 「首次解析 184129 条档案条目 209 ms；首次工厂加载 347 ms；合计 567 ms（N=3 冷进程中位数，见 `docs/superpowers/plans/artifacts/target-report-2026-10-21.md` §8）」
+- `状态` = 「已验证（U-06 回填，证据见 target-report §8）」
+
+**责任与状态（四项，逐条陈述）**：
+
+1. plan Task 11 Step 8 **要求**写入该行（`docs/superpowers/plans/2026-10-21-moon-langdetect-语种检测.md:937`：「U-06 回填：把 Task 10 的首次加载耗时写入报告与 spec §8.1 对应行的验收记录」）；承接表 `…:67` 把 U-06 指派给 **Task 10**（「CLI 首次加载计时落档并回填 spec §8.1 该行」）。
+2. **全局约束 R1 禁止**在无授权情况下修改 `docs/superpowers/specs/`；本会话对该行**无** spec 编辑授权（此前的 NE1 修订系用户单独授权，不构成普遍许可）。
+3. 因此该行**未执行回填**（`观测输出` 仍为 `—`，`状态` 仍为 `未验证`）。
+4. **OWNER: unassigned —— 需要用户对「spec 编辑」的显式授权。** 该行按 **OPEN ACCEPTANCE ROW / BLOCKER** 带入 Task 13 的阻塞项清单。**Task 12 不拥有该项**：`grep -c '§8.1' task-12-brief.md` = **0**，`grep -c '§8.1' task-13-brief.md` = **0**（两者均无任何 §8.1 承担表述）；plan 第 67 行把回填指派给 Task 10，而 Task 10 亦未执行。
+
+> **OPEN ACCEPTANCE ROW: spec.md:614 U-06 backfill — awaiting spec-edit authorization**
 
 交叉核对：本轮 `--mode profile_counts` 给出 `u06_parse_ms=204 u06_load_ms=323`，与上表同量级（单次采样，不替代中位数口径）。
 
@@ -253,4 +279,5 @@ rc=0        # start=2026-10-23T03:55:22+0800, end=2026-10-23T03:56:08+0800
 - js / wasm-gc 的运行面在本机**不可达**，本批只判构建；三目标一致性（主语言 / 语言数 / 条目合计）**只有 native 行有实测**，其余两行为 `[LOCAL_DEAD_LINK]`。
 - 容差档（js / wasm-gc / native-other）数值**未校准**，本批只登记不判定；校准依据必须来自 js 目标实测，不得凭空写数。
 - U-06 为 N=3 冷进程采样的中位数；如需更稳定口径应增大 N（Task 10 已记录该限制）。
+- **OPEN ACCEPTANCE ROW: spec.md:614 U-06 backfill — awaiting spec-edit authorization**（详见 §8.1：目标行、待写入值、责任归属；按 OPEN ACCEPTANCE ROW / BLOCKER 带入 Task 13 阻塞项清单）。
 - `51/55` 归属偏差见 §2.1：brief/rubric 将其置于 `compare_lowconf` 的 long 分组，实测 runner 输出 `long=55/55`；`51/55` 实为上游短文本准确率基线。

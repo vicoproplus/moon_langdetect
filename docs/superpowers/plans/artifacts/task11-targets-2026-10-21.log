@@ -42,7 +42,7 @@ test_rc=0
 | # | 命令 | rc | 结果行 |
 |---|---|---|---|
 | 1 | `.venv/Scripts/python.exe tools/compare_golden.py --self-check` | 0 | `ok 268=250+18 (prob_entries=274, seeds=0/42)` |
-| 2 | `compare_golden.py --dry-run` | 0 | `ok dry-run lines=268 expected=268 (250 probability + 18 error cases)`（stdout 行数 268） |
+| 2 | `compare_golden.py --dry-run > /dev/null`（stdout 被重定向至 `/dev/null`，故 268 行逐案例清单不在此显示；脚本内部的 `lines == 268` 断言仍生效，rc=0 即断言成立） | 0 | `ok dry-run lines=268 expected=268 (250 probability + 18 error cases)`（该 `lines=268` 由脚本自断言，另与 Task 10 实跑 `--dry-run \| wc -l` = 268 的独立计数一致） |
 | 3 | `compare_golden.py --target native --seed 0 --mode prob_bits` | 0 | `ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical` |
 | 4 | `compare_golden.py --target native --seed 42 --mode prob_bits` | 0 | `ok prob_bits target=native seed=42 cases=125/125 entries=136 bitwise=identical` |
 | 5 | `compare_golden.py --target native --seed 0 --mode seed_semantics` | 0 | `ok seed_semantics target=native repeatability=14/14 groups x5 runs (70 runs), seed_diff=125/125 (0 vs 42 differ as recorded), unseeded=7/7 texts (70 runs; top in baseline distinct_langs, RNG variation required where baseline distinct_count > 1)` |
@@ -87,7 +87,7 @@ forensics: expected.json carries code/message/type only; input_len/input_prefix 
 
 **差异声明（显式记录，不静默替换）**：brief 与 rubric R9 把 `51/55` 归到 `compare_lowconf.py --short 55 --long 55` 的 **long** 分组，但 runner 实测输出为 `long=55/55`。核对后确认：
 
-- `compare_lowconf.py` 的 long 判据是「`>=50 Detected` 且 top ∈ golden 候选集合」（见 `tools/compare_lowconf.py:266-277`），**不是** top-1 严格准确率，故不可能输出 51/55；
+- `tools/compare_lowconf.py:227-265` 的 long 判据是「`>=50 Detected` 且 top ∈ golden 候选集合」（候选集测试 `:254-265`，`ok` 行格式 `:269-274`），**不是** top-1 严格准确率，故不可能输出 51/55；
 - `51/55` 的真实来源是 `docs/port/golden/summary.json` 的 `detect_accuracy_short_seed0`（短文本 top-1 基线，seed=0），与 `docs/port/architecture-decisions.md:83,93` 及 spec V-23 的表述一致。
 
 结论：`55/55`（short）、`55/55`（long）、`51/55`（上游短文本准确率基线）三个数值**各自成立但语义不同**，本日志按实测分别记录，不以 51/55 替换 long 的实测 55/55。**R9 的字面措辞（"55/55 short and 51/55 long from compare_lowconf.py"）与 runner 行为不符，属 rubric 口径缺陷，已在 `task-11-report.md` §5 记为偏差项。**
@@ -134,7 +134,7 @@ run_js_rc=1
 | 观测项 | 观测命令 | 观测结果 |
 |---|---|---|
 | `probes/bin` 内容 | `ls probes/bin/` | 仅 `node.cmd`（59 B），**无 `node.exe`** |
-| `probes/bin/node.cmd` 指向 | `cat probes/bin/node.cmd` | `"C:\Users\Administrator\.bun\bin\bun.EXE" %*` |
+| `probes/bin/node.cmd` 指向 | `cat probes/bin/node.cmd` | 两行全文：`@echo off` ↵ `"C:\Users\Administrator\.bun\bin\bun.EXE" %*`（`od -c` 核对含 `\r\r\n`） |
 | 该替代运行时版本 | `"/c/Users/Administrator/.bun/bin/bun.exe" --version` | `1.4.3`（**bun 1.4.3，非 Node**） |
 | `node.exe` 是否存在 | `where.exe node.exe` | `INFO: Could not find files for the given pattern(s).` → **rc=1，不存在** |
 | `node`（无扩展名）解析结果 | `where.exe node` | `C:\Users\Administrator\.bunpm\bin\node.cmd`（仍是 `.cmd`，非 `.exe`） |
@@ -238,6 +238,10 @@ Task 10 对 `golden.exe '{"mode":"meta"}'` 做 3 次冷进程采样（N=3，取�
 - `parse_ms` = `@data.parse_profiles(@data.profiles_flat())` 单独耗时（解析 184129 条 freq 条目）。
 - `load_ms` = `@core.DetectorFactory::new()` + `factory.load_profile()` 耗时（解析 + 概率表构建）。
 - 本轮 Task 11 的 `profile_counts` 模式同时给出同量级单次采样：`u06_parse_ms=204 u06_load_ms=323`（与上表一致，作为交叉核对，不替代中位数口径）。
+
+**落档状态（详见 `target-report-2026-10-21.md` §8.1）**：待写入 `docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md:614` 的 `首次调用完成档案加载 / native (win32 x64)` 行（该行当前 `观测输出 = —`、`状态 = 未验证（产品实现未落地）`）。plan Task 11 Step 8（`…语种检测.md:937`）要求写入，全局约束 R1 禁止无授权修改 spec，本会话无该行授权 → **未执行**。`grep -c '§8.1'` 对 `task-12-brief.md` 与 `task-13-brief.md` 均为 **0**；plan `:67` 把 U-06 指派给 Task 10（未执行）。
+
+> **OPEN ACCEPTANCE ROW: spec.md:614 U-06 backfill — awaiting spec-edit authorization**
 
 ## 9. 验收链（brief Output 命令，整条执行一次）
 
