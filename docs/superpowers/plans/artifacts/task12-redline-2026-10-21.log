@@ -52,7 +52,7 @@ moon check && moon build --target native && moon build --target js && moon build
 - 基线对照：`docs/superpowers/plans/artifacts/baseline-2026-10-21.md` §4 + `task0-baseline-2026-10-21.log`。
 - 「空集态 vs 实跑态」：Task 0 基线为 B-03 空集态（0 个产品 `.mbt`，命令 1-14 的 rc=1 是空集假绿）；本轮 `src/` 树含 30+ 个产品 `.mbt`、`moon check` / 三目标 build / 116 测试实跑通过，故本轮 rc=1 是**实跑态**零命中，不是空集假绿（计划 v5.1「执行期易错点」）。
 
-| N | 命令（逐字，`<NL>` 已拆行） | rc | 基线 rc | rc 比对 | 关键输出（命中/摘要） | 新失败 | 基线漂移 |
+| N | 命令（逐字，与 `spec-10.6-commands.md` 第 N 行字段逐字节一致；`<NL>` 表示命令内部换行，执行时已拆为真实换行） | rc | 基线 rc | rc 比对 | 关键输出（命中/摘要） | 新失败 | 基线漂移 |
 |---|---|---|---|---|---|---|---|
 | 1 | `grep -rnE '^[[:space:]]*#(cfg\|if)[[:space:]]*[(]' --include=*.mbt src/core` | 1 | 1 | 匹配 | 0 行 / 0 字节（无 `#cfg` / `#if`） | 无 | 无（基线为空集态 0 行，本轮实跑态 0 行） |
 | 2 | `grep -rnE '(^\|[^[:alnum:]_])(is_wasm\|target_name)[[:space:]]*[(]' --include=*.mbt src/core` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
@@ -69,20 +69,20 @@ moon check && moon build --target native && moon build --target js && moon build
 | 13 | `grep -rn 'read_file' src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
 | 14 | `grep -rn -e moonbit-community -e 'moonbitlang/x' --include=moon.pkg src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
 | 15 | `test "$(md5sum docs/port/golden/expected.json \| awk '{print $1}')" = "219519ee19d7cc10d404ddbdab3acd87"` | 0 | 0 | 匹配 | 断言成立，stdout 0 字节 / rc=0（md5 一致，基准未被覆写） | 无 | 无 |
-| 16 | `.venv/Scripts/python.exe -c "…assert (len(c),…)==(268,250,18);print('ok')"` | 0 | 0 | 匹配 | `ok`（268 cases = 250 detect_langs + 18 error） | 无 | 无 |
-| 17 | `.venv/Scripts/python.exe -c "…assert sorted({x['seed'] for x in c})==[0,42];print('ok')"` | 0 | 0 | 匹配 | `ok` | 无 | 无 |
-| 18 | `.venv/Scripts/python.exe -c "…assert {x['error']['code'] …}=={5};print('ok')"` | 0 | 0 | 匹配 | `ok` | 无 | 无 |
-| 19 | `.venv/Scripts/python.exe -c "…assert not bad;print('ok')"` | 0 | 0 | 匹配 | `ok`（全部 `prob_bits` 为 16 位 hex） | 无 | 无 |
-| 20 | `.venv/Scripts/python.exe -c "exec('import sys,unicodedata<NL>…assert len(iv)==651<NL>print(\'ok 1951 cps / 651 intervals\')')"` | 0 | 0 | 匹配 | `ok 1951 cps / 651 intervals` | 无 | 无 |
-| 21 | `test -d src \|\| exit 2` <NL> `test "$(grep -rl -e 'moonbitlang/x' -e unicode-data src \| wc -l)" = "0"` | 0 | 0 | 匹配 | `src` 存在（未走 rc=2 分支），第三方 Unicode 文件数 = 0，stdout 0 字节 / rc=0 | 无 | 无 |
-| 22 | `.venv/Scripts/python.exe -c "…sys.exit(0 if …['mode']=='flat' else 1)"` | 0 | 0 | 匹配 | `mode=flat`（stdout 0 字节，rc=0） | 无 | 无 |
+| 16 | `.venv/Scripts/python.exe -c "import json;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];assert (len(c),sum(1 for x in c if x.get('detect_langs')),sum(1 for x in c if 'error' in x))==(268,250,18);print('ok')"` | 0 | 0 | 匹配 | `ok`（268 cases = 250 detect_langs + 18 error） | 无 | 无 |
+| 17 | `.venv/Scripts/python.exe -c "import json;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];assert sorted({x['seed'] for x in c})==[0,42];print('ok')"` | 0 | 0 | 匹配 | `ok` | 无 | 无 |
+| 18 | `.venv/Scripts/python.exe -c "import json;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];assert {x['error']['code'] for x in c if 'error' in x}=={5};print('ok')"` | 0 | 0 | 匹配 | `ok` | 无 | 无 |
+| 19 | `.venv/Scripts/python.exe -c "import json,re;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];bad=[e for x in c for e in (x.get('detect_langs') or []) if not re.fullmatch(r'[0-9a-f]{16}',e['prob_bits'])];assert not bad;print('ok')"` | 0 | 0 | 匹配 | `ok`（全部 `prob_bits` 为 16 位 hex） | 无 | 无 |
+| 20 | `.venv/Scripts/python.exe -c "exec('import sys,unicodedata\nassert sys.version.split()[0]==\'3.12.10\'\nassert unicodedata.unidata_version==\'15.0.0\'\ncps=[cp for cp in range(0x110000) if not (0xD800<=cp<=0xDFFF) and chr(cp).isupper()]\nassert len(cps)==1951\niv=[]\nfor cp in cps:\n    if iv and cp==iv[-1][1]+1:\n        iv[-1][1]=cp\n    else:\n        iv.append([cp,cp])\nassert len(iv)==651\nprint(\'ok 1951 cps / 651 intervals\')')"` | 0 | 0 | 匹配 | `ok 1951 cps / 651 intervals` | 无 | 无 |
+| 21 | ``test -d src \|\| exit 2<NL>test "$(grep -rl -e 'moonbitlang/x' -e unicode-data src \| wc -l)" = "0"`` | 0 | 0 | 匹配 | `src` 存在（未走 rc=2 分支），第三方 Unicode 文件数 = 0，stdout 0 字节 / rc=0 | 无 | 无 |
+| 22 | `.venv/Scripts/python.exe -c "import json,sys;sys.exit(0 if json.load(open('probes/gen-manifest.json',encoding='utf-8'))['mode']=='flat' else 1)"` | 0 | 0 | 匹配 | `mode=flat`（stdout 0 字节，rc=0） | 无 | 无 |
 | 23 | `head -1 probes/embed-probe/lib/data/data.mbt \| grep -q '勿手改'` | 0 | 0 | 匹配 | 首行含「勿手改」（stdout 0 字节） | 无 | 无 |
 | 24 | `test "$(wc -c < probes/embed-probe/lib/data/data.mbt \| awk '{print $1}')" = "2205308"` | 0 | 0 | 匹配 | 2205308 字节（stdout 0 字节） | 无 | 无 |
 | 25 | `test "$(grep -c 'Map::from_array' probes/embed-probe/lib/data/data.mbt)" = "0"` | 0 | 0 | 匹配 | 0 命中（stdout 0 字节） | 无 | 无 |
-| 26 | `awk '/^### 10\.[1-4]/,/^### 10\.5/' docs/superpowers/specs/…-spec.md \| grep -cE '^\| \*{0,2}(C-\|DR)'` | 0 | 0 | 匹配 | `25`（门禁表行数派生，与基线一致） | 无 | 无 |
+| 26 | ``awk '/^### 10\.[1-4]/,/^### 10\.5/' docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md \| grep -cE '^\\| \*{0,2}(C-\|DR)'`` | 0 | 0 | 匹配 | `25`（门禁表行数派生，与基线一致） | 无 | 无 |
 | 27 | `grep -rn '^pub fn' --include=*.mbt src` | **0** | **1** | **符合预期（B-02 关闭）** | **51 行 / 3994 字节**，产品公开符号已存在（`src/core/api.mbt:63 detect`、`:88 detect_langs`、`:109 get_lang_list`、`:128 debug_vector_len`；`src/core/cleaning.mbt`、`confidence.mbt`、`detector.mbt`、`detect_block.mbt`、`factory.mbt`；`src/math_seam/math_seam.mbt`；`src/unicode/unicode.mbt` 等） | 无 | 基线 rc=1（B-02，0 个 `pub fn`）→ 本轮 rc=0 / 51 行。**这是计划的预期推进**（Brief：「命令 27 现应为 rc=0」），不是回归 |
 | 28 | `tr -d '\r' < moon.mod \| grep -q '^name = "vicoproplus/langdetect"$'` | 0 | 0 | 匹配 | name 字面一致（stdout 0 字节） | 无 | 无 |
-| 29 | `test -x ./_build/native/debug/build/src/core/cmd/main/main.exe \|\| exit 2` <NL> `./_build/…/main.exe >/tmp/o.txt 2>/tmp/e.txt \|\| exit 1` <NL> `test ! -s /tmp/o.txt && test ! -s /tmp/e.txt` | 0 | 0 | 匹配 | 二进制存在（未走 rc=2），运行未走 rc=1，stdout 与 stderr 均 **0 字节** | 无 | 无 |
+| 29 | ``test -x ./_build/native/debug/build/src/core/cmd/main/main.exe \|\| exit 2<NL>./_build/native/debug/build/src/core/cmd/main/main.exe >/tmp/o.txt 2>/tmp/e.txt \|\| exit 1<NL>test ! -s /tmp/o.txt && test ! -s /tmp/e.txt`` | 0 | 0 | 匹配 | 二进制存在（未走 rc=2），运行未走 rc=1，stdout 与 stderr 均 **0 字节** | 无 | 无 |
 | 30 | `grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg` | 0 | 0 | 匹配 | 匹配（stdout 0 字节） | 无 | 无 |
 
 **期望分割核验**：命令 1-14 rc=1、15-26 rc=0、27 rc=0、28-30 rc=0 —— **全部符合预期**，无 rc 偏离。
@@ -101,9 +101,16 @@ Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/cor
 
 1. **判据层**：`src/core/cmd/golden/main.mbt:330` 的 `println(output.stringify())` 是 golden 诊断 CLI 的**契约输出行**（每调用输出一行 JSON，供 `tools/compare_golden.py --mode prob_bits` 消费），不是库侧的 stdout 副作用。
 2. **归属层**：责任文件 = `src/core/cmd/golden/main.mbt`，责任 Task = **Task 10**（`src/core/cmd/golden/**` 的唯一授权变更范围）。这不是新引入的缺陷：Task 10 日志 §6.1-6.2 已登记同一命中行并判定为「诊断输出例外，不判红」。
-3. **规范层**：现行 spec（`docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md:423,424,756`）已按 2026-10-22 用户裁决把 NE1 的 cmd 例外表述为「排除 `cmd/main/` 与 `cmd/golden/` 路径段」并把静态门命令改为 `grep -vE '[\\/]cmd[\\/](main\|golden)[\\/]'`；计划 v5.1 的 11b 文本（只豁免 `cmd/main`）尚未跟上该修订，故 11b 的 rc=0 是**规范文本滞后**，不是产品代码违反当前 spec。
+3. **规范层**：**operative 条文 = spec 行 756**（§9.4 NE1 行），其静态门口径为 `grep … | grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`（rc=1 / 期望 0 行），并把 NE1 例外明确表述为「排除 `cmd/main/` 与 `cmd/golden/` 路径段」。计划 v5.1 的 11b 文本（只豁免 `cmd/main`）尚未跟上该修订，故 11b 的 rc=0 是**规范文本滞后**，不是产品代码违反当前 spec。
+   **spec 内部矛盾（需一并裁决）**：spec 行 423 与 424（§4A GP1 表两行）仍写「NE1 静态门**仅豁免 `cmd/main/`**」，与行 756 的双路径豁免直接冲突；行 423/424 只是把 `cmd/golden` 例外作为附注另列，并不构成「双路径豁免」的 operative 授权。该矛盾已列入下方上报项。
 4. **处置**：本任务按 brief 第 5 条执行——**不修改产品代码、不放宽、不豁免**，只记录。用**当前 spec 口径**的 NE1 静态门判定：rc=1 / 0 命中，通过。计划 11b 文本的滞后归属为 plan 侧文档问题（Task 12 无 plan/spec 修改授权），报 controller 决策。
 5. 库侧与 `cmd/main` 侧零命中：`src/core`（非 `cmd/` 部分）、`src/data`、`src/unicode`、`src/math_seam` 中无任何 `println` / `print(` / `eprintln` / `@stdio`（spec 形态 11b rc=1 / 0 行为证）。R4 的静默要求未被违反。
+
+**上报 controller 的 open 项（本任务无修改授权，不自行裁决）：**
+
+- **O-1**：计划 v5.1 的命令 11b 文本（只豁免 `cmd/main`，期望 rc=1）与 spec 行 756（豁免 `cmd/main` + `cmd/golden`）不一致。按计划文本执行得 **rc=0 / 1 命中**；按 spec 行 756 执行得 **rc=1 / 0 命中**。需裁决以哪一文本为准，并同步修订另一侧文本。
+- **O-2**：spec 行 423 / 424（§4A GP1 表）仍写「NE1 静态门**仅豁免 `cmd/main/`**」，与行 756 的双路径豁免**内部矛盾**；需一并修订。
+- **O-3**：本轮按 operative 条文（行 756）判绿，但 O-1 / O-2 未裁决前，本项不能视为已关闭。
 
 ## §4 `moon package`（U-03：不执行真实发布）
 
@@ -120,24 +127,57 @@ Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/cor
   ```
 - 未要求 token、未提示认证、无交互（未触发任何登录路径）。
 - 产物路径：`_build/publish/vicoproplus-langdetect-0.1.0.zip`
-- 字节数：**7212092** 字节（`stat -c %s` = 7212092）
-- 文件数：**360**（`unzip -l` 汇总行 `360 files`）
-- 包内容顶层分布（`unzip -Z1 … | awk -F/ '{print $1}' | sort | uniq -c`）：
+- 压缩包字节数：**7212092** 字节（`stat -c %s` = 7212092）
+- 解压后总字节数：**25744994** 字节（`unzip -l` 汇总行 `25744994  360 files`）
+- 文件数：**360**
 
-  ```text
-  175 probes
-  79  langdetect
-  49  docs
-  37  src
-  12  tools
-   4  analysis
-   1  申报书-moon_langdetect-语种检测.md
-   1  moon.mod
-   1  LICENSE
-   1  2026-10-22-183213-empty-conversation.txt
-  ```
+### §4.1 顶层条目字节表（`unzip -l` 逐条累加，按字节降序）
 
-  > 说明：`moon package` 打入了仓库内**未**被 `.gitignore` / `.git/info/exclude` 隐藏的全部内容（`probes/`、`langdetect/`、`docs/`、`tools/`、`analysis/` 等），因为本仓库的 exclude 只影响 git 可见性、不影响打包。这是 moonc 打包语义的观察事实，按原样记录，未作处置（U-03 只管「不真实发布」，不管收窄包内容）。360 个文件中含 `src/**` 的 37 个产品源文件。
+```bash
+unzip -l _build/publish/vicoproplus-langdetect-0.1.0.zip \
+  | awk 'NR>3 && NF>=4 {n=$1; f=$4; sub(/^\//,"",f); split(f,a,"/"); b[a[1]]+=n; c[a[1]]++}
+         END {for (k in b) printf "%s\t%d\t%d\n", k, b[k], c[k]}' \
+  | sort -k2,2nr
+```
+
+| 顶层条目 | 解压字节 | 占 25744994 B | 文件数 | 性质 |
+|---|---:|---:|---:|---|
+| `probes/` | 16291909 | **63.28 %** | 175 | 探针工程（**非产品**）；其中 `probes/logs/` = 11534609 B / 92 文件（占 `probes/` 的 70.80 %），属执行期日志 |
+| `docs/` | 2690422 | **10.45 %** | 49 | 文档（**非产品**）；其中 `docs/port/golden/` = 1728082 B / 20 文件，是 R1 明定的**只读证据区** |
+| `src/` | 2645814 | **10.28 %** | 37 | **唯一产品源**（`src/core`、`src/data`、`src/unicode`、`src/math_seam`） |
+| `langdetect/` | 2325270 | **9.03 %** | 79 | 上游 Python 参考实现（**非产品**，只读对照物） |
+| `2026-10-22-183213-empty-conversation.txt` | 1547761 | **6.01 %** | 1 | **本地 agent 会话记录（含用户自己的 prompt 历史）** —— 私密内容 |
+| `tools/` | 189909 | 0.74 % | 12 | 生成 / 校验脚本（**非产品**） |
+| `analysis/` | 47847 | 0.19 % | 4 | 分析草稿（**非产品**） |
+| `申报书-moon_langdetect-语种检测.md` | 4922 | 0.02 % | 1 | 申报材料（**非产品**） |
+| `LICENSE` | 1089 | 0.00 % | 1 | 许可证 |
+| `moon.mod` | 51 | 0.00 % | 1 | 模块清单 |
+| **合计** | **25744994** | 100 % | **360** | 产品 `src/` 仅占 10.28 %（2645814 B / 37 文件）；非产品 = 23099180 B（**89.72 %**） |
+
+### §4.2 判定：**RELEASE BLOCKER**（不是「观察事实」）
+
+以下三类内容的打包是**发布阻断项**，`moon publish` 之前必须先消除：
+
+1. **`2026-10-22-183213-empty-conversation.txt`（1547761 B，6.01 %）** —— 本地 agent 会话记录，含用户本人 prompt 历史，属私密材料。**RELEASE BLOCKER（最高优先级）**。
+2. **`docs/port/golden/`（1728082 B / 20 文件，位于 `docs/` 内）** —— R1 明定 `docs/port/golden/` 是**只读证据区**，产品代码与生成器不得写入；把只读证据随发布物分发会破坏该边界。**RELEASE BLOCKER**。
+3. **`langdetect/`（2325270 B / 79 文件，9.03 %）** —— 上游 Python 参考实现，非本模块产品，随包分发属越界。**RELEASE BLOCKER**。
+
+其余非产品内容（`probes/` 含 11.5 MB `probes/logs/`、`tools/`、`analysis/`、`申报书…md`）同样不应进入发布物，按同一批处理。
+
+### §4.3 根因（逐字）
+
+**根因：仓库根目录没有 `.moonignore`；本仓库用 `.git/info/exclude` 隐藏这些路径，而 moonc 忽略 `.git/info/exclude`。** 因此 `moon package` 把工作区中除 `.gitignore` 生效项外的全部内容打进压缩包，`.git/info/exclude` 里列的 `_build/`、`analysis/`、`langdetect/`、`probes/`、`moon.mod` 等隐藏项**不影响打包**。
+
+实测佐证：`ls -a | grep -i moonignore` → 无匹配（rc=1，仓库根确无 `.moonignore`）。
+
+### §4.4 上报与处置边界
+
+- **收窄包内容需要新增仓库根 `.moonignore`**，该动作**超出 Task 12 的允许写入面**（本任务只允许写 `docs/superpowers/plans/artifacts/task12-redline-2026-10-21.log` 与 SDD 报告），也超出计划 v5.1 的触达文件清单 —— **需要用户授权**。
+- 本任务因此**不修**，只按上述字节表与分类完整记录；`moon publish` 未执行（U-03），本轮未产生任何实际泄露。
+- **controller 需把该 RELEASE BLOCKER 带入 Task 13**（发布前必须落地 `.moonignore` 并复跑 `moon package` + 字节表复核），在本 blocker 关闭前不得执行 `moon publish`。
+
+### §4.5 其余打包事实
+
 - `moon publish` **未执行**（U-03），本任务不产生任何上传动作。
 
 ## §5 快照清理
@@ -157,7 +197,7 @@ Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/cor
 | 外部调用轮次上限 | 15 | **0**：未执行 `moon publish`（U-03），无 HTTP / 认证 / 下载 / 任何对外网络请求；`moon` 子命令、30 条 §10.6 命令与本地 Python 断言全部为本地进程。§3.1 的三条 NE1 变体同样是本地 grep，不占外部轮次 |
 
 - 保留策略：本证据日志保留 **90 天**（自 2026-10-23 起）。
-- 本轮无红灯命中（§3 全部 rc 符合预期；§3.1 的 11b rc=0 已归因为规范文本滞后且当前 spec 口径判定通过），因此未触发 Fix Loop 修复轮、未回退到步骤 2 重跑。
+- **产品代码红线**（spec §10.6 命令 1-14、15-30）无命中：命令 1-14 rc=1、15-26 rc=0、27 rc=0、28-30 rc=0，与预期分割完全一致；因此未触发针对产品代码的 Fix Loop 修复轮、未回退到步骤 2 重跑。**但 §4.2 的 RELEASE BLOCKER（打包内容越界）与 §3.1 的计划 11b rc=0 仍为 open 项**，二者均已上报 controller，见下方 RESULT 行的限定语。
 
 ## 交付清单
 
@@ -168,6 +208,6 @@ Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/cor
 
 未修改：产品代码、spec、plan、`docs/port/`、`langdetect/`、`probes/`、`tools/`、`moon.mod`。`_build/` 为本机构建产物（既存隐藏项），非源码改动。
 
-## RESULT: PASS
+RESULT: PASS under current spec §9.4 NE1 form (grep -vE '[\/]cmd[\/](main|golden)[\/]' → rc=0 lines / 0 hits for library+cmd/main); plan v5.1 command 11b (exempting only cmd/main) returned rc=0 with 1 sanctioned hit at src/core/cmd/golden/main.mbt:330 — PENDING CONTROLLER RULING
 
-（命令 1-14 rc=1、15-26 rc=0、27 rc=0、28-30 rc=0，与预期分割完全一致；`moon check` + 三目标 build + `moon test --target native` + `moon package` 在干净 `_build` 上 rc=0；116/116 测试通过；无红线命中。）
+补充（同一限定口径）：命令 1-14 rc=1、15-26 rc=0、27 rc=0、28-30 rc=0 与预期分割完全一致；`moon check` + 三目标 build + `moon test --target native` + `moon package` 在干净 `_build` 上 rc=0；116/116 测试通过 —— 上述为**产品代码**层面的绿。另有 **§4.2 RELEASE BLOCKER**（`moon package` 打入会话记录 / `docs/port/golden/` / `langdetect/` 等非产品内容，占解压体积 89.72 %）为 open 项，需 controller 带入 Task 13 处理。
