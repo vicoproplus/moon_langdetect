@@ -1,0 +1,6 @@
+import {
+  "moonbit-community/unicode-data" @ucd,
+  "moonbitlang/core/char",
+}
+
+pkgtype(kind: "executable")

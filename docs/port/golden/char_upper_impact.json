@@ -1,0 +1,135 @@
+{
+ "generator": "probes/char_upper_impact.py",
+ "note": "用 monkeypatch NGram.add_char 的 isupper 判定模拟 Unicode18 口径，对同文本跑真实上游 _detect_block，比较 detect_langs 概率位型。75 个不一致码点全部来自 point_mismatches_all。",
+ "extra_uppercase_count": 75,
+ "cases_identical": 5,
+ "cases_total": 7,
+ "cases_changed": [
+  "rep_A_tje",
+  "rep_THE_tje"
+ ],
+ "results": {
+  "plain_af": {
+   "text": "Die woordeboek is 'n versameling van woorde wat in 'n taal gebruik word.",
+   "python_semantics": [
+    {
+     "lang": "af",
+     "prob": "3feffff8e634a260"
+    }
+   ],
+   "moonbit_semantics": [
+    {
+     "lang": "af",
+     "prob": "3feffff8e634a260"
+    }
+   ],
+   "identical": true
+  },
+  "with_tje": {
+   "text": "Die ᲉᲉᲉ woordeboek is 'n versameling van woede wat gebruik word.",
+   "python_semantics": [
+    {
+     "lang": "af",
+     "prob": "3feffff6a40e9976"
+    }
+   ],
+   "moonbit_semantics": [
+    {
+     "lang": "af",
+     "prob": "3feffff6a40e9976"
+    }
+   ],
+   "identical": true
+  },
+  "only_tje": {
+   "text": "ᲉᲉ",
+   "python_semantics": {
+    "error": "LangDetectException"
+   },
+   "moonbit_semantics": {
+    "error": "LangDetectException"
+   },
+   "identical": true
+  },
+  "with_garay": {
+   "text": "Garay 𐵐𐵐 text sample",
+   "python_semantics": [
+    {
+     "lang": "ca",
+     "prob": "3fd814e8fceaebd1"
+    },
+    {
+     "lang": "en",
+     "prob": "3fd5a1f7b9fd322f"
+    },
+    {
+     "lang": "tl",
+     "prob": "3fd2491ec6a3751e"
+    }
+   ],
+   "moonbit_semantics": [
+    {
+     "lang": "ca",
+     "prob": "3fd814e8fceaebd1"
+    },
+    {
+     "lang": "en",
+     "prob": "3fd5a1f7b9fd322f"
+    },
+    {
+     "lang": "tl",
+     "prob": "3fd2491ec6a3751e"
+    }
+   ],
+   "identical": true
+  },
+  "rep_A_tje": {
+   "text": "AᲉA A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A A ",
+   "python_semantics": [
+    {
+     "lang": "hu",
+     "prob": "3feffffccff6acab"
+    }
+   ],
+   "moonbit_semantics": [
+    {
+     "lang": "hu",
+     "prob": "3feffffc2f48e5fe"
+    }
+   ],
+   "identical": false
+  },
+  "rep_THE_tje": {
+   "text": "THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX THE ᲉQUICK BROWN FOX ",
+   "python_semantics": [
+    {
+     "lang": "vi",
+     "prob": "3feffff5ed0d6ac5"
+    }
+   ],
+   "moonbit_semantics": [
+    {
+     "lang": "en",
+     "prob": "3feffff6ee299850"
+    }
+   ],
+   "identical": false
+  },
+  "rep_plain_repeat": {
+   "text": "Hello world this is a test Hello world this is a test Hello world this is a test Hello world this is a test Hello world this is a test  Ᲊ  Ᲊ  Ᲊ  Ᲊ  Ᲊ  Ᲊ  Ᲊ  Ᲊ  Ᲊ  Ᲊ ",
+   "python_semantics": [
+    {
+     "lang": "en",
+     "prob": "3feffff976191dae"
+    }
+   ],
+   "moonbit_semantics": [
+    {
+     "lang": "en",
+     "prob": "3feffff976191dae"
+    }
+   ],
+   "identical": true
+  }
+ }
+}

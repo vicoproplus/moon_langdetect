@@ -1,0 +1,5 @@
+import {
+  "vicoproplus/embed-probe/lib/data",
+}
+
+pkgtype(kind: "executable")

@@ -1,0 +1,23 @@
+{
+  "native": {
+    "exit": 0,
+    "tail": [
+      "Total tests: 1, passed: 1, failed: 0."
+    ]
+  },
+  "wasm-gc": {
+    "exit": 4294967295,
+    "tail": [
+      "Error: failed to run test for target WasmGC",
+      "Caused by:",
+      "    Failed to run the test: F:\\moonbit比赛\\moon_langdetect\\probes\\tiny-probe\\_build\\wasm-gc\\debug\\test\\p\\p.internal_test.wasm",
+      "    The test executable exited with exit code: 0xc0000139"
+    ]
+  },
+  "js": {
+    "exit": 0,
+    "tail": [
+      "Total tests: 1, passed: 1, failed: 0."
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+$ C:\Users\Administrator\.moon\bin\moon.exe build --target native
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=0 wall_seconds=0.924 timeout=900
+--- stdout ---
+
+--- stderr ---
+utf.c
+runtime.c
+sync_io.c
+env.c
+backtrace.c
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\build\cmd\main\main.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\build\cmd\main\main.exp
+Warning: [0024]
+      ╭─[ F:\moonbit比赛\moon_langdetect\probes\embed-probe\lib\data\data.mbt:9992:52 ]
+      │
+ 9992 │ pub fn profile(lang : String) -> Map[String, Int]? raise {
+      │                                                    ──┬──  
+      │                                                      ╰──── Warning (unused_error_type): The error type of this function is never used.
+──────╯
+Warning: [0024]
+      ╭─[ F:\moonbit比赛\moon_langdetect\probes\embed-probe\lib\data\data.mbt:9996:42 ]
+      │
+ 9996 │ pub fn entry_count(lang : String) -> Int raise {
+      │                                          ──┬──  
+      │                                            ╰──── Warning (unused_error_type): The error type of this function is never used.
+──────╯
+Finished. moon: ran 10 tasks, now up to date (2 warnings, 0 errors)
+

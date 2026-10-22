@@ -1,0 +1,1266 @@
+{
+ "generator": "probes/char_probe_compare.py",
+ "moonbit_stdout_lines": 139296,
+ "moonbit_skips": [
+  "0xd800",
+  "0xdfff"
+ ],
+ "moonbit_unconstructible_codepoints": 2048,
+ "python": "3.12.10",
+ "total_codepoints": 1114112,
+ "surrogate_codepoints": 2048,
+ "comparable_codepoints": 1112064,
+ "python_isupper_count": 1951,
+ "moonbit_is_uppercase_count": 2026,
+ "groups_compared": 34816,
+ "groups_matched": 34807,
+ "point_mismatch_list_len": 75,
+ "point_mismatches_all": [
+  {
+   "cp": "0x1c89",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7cb",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7cc",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7ce",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7d2",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7d4",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7da",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7dc",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7dd",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7e2",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xab6c",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xab6d",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d50",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d51",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d52",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d53",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d54",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d55",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d56",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d57",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d58",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d59",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5a",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5b",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5c",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5d",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5e",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5f",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d60",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d61",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d62",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d63",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d64",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d65",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea0",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea1",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea2",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea3",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea4",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea5",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea6",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea7",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea8",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea9",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eaa",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eab",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eac",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ead",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eae",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eaf",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb0",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb1",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb2",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb3",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb4",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb5",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb6",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb7",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eb8",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df40",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df48",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df4a",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df4d",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df51",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df68",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df6a",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df6c",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df6e",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df72",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df74",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df76",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df78",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df7a",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df7c",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x1df7e",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  }
+ ],
+ "point_mismatches_first_50": [
+  {
+   "cp": "0x1c89",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7cb",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7cc",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7ce",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7d2",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7d4",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7da",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7dc",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7dd",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xa7e2",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xab6c",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0xab6d",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d50",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d51",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d52",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d53",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d54",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d55",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d56",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d57",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d58",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d59",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5a",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5b",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5c",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5d",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5e",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d5f",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d60",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d61",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d62",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d63",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d64",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x10d65",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea0",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea1",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea2",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea3",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea4",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea5",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea6",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea7",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea8",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ea9",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eaa",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eab",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eac",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16ead",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eae",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  },
+  {
+   "cp": "0x16eaf",
+   "python_isupper": 0,
+   "moonbit_is_uppercase": 1
+  }
+ ],
+ "alt_path_mismatch_count": 651,
+ "lu_only_path_mismatch_count": 195,
+ "v15_masked_path_mismatch_count": 0,
+ "v15_masked_path_mismatches_first_50": [],
+ "lu_only_path_mismatches_first_50": [
+  {
+   "cp": "0x1c89",
+   "python_isupper": 0,
+   "lu_only": 1
+  },
+  {
+   "cp": "0x2160",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2161",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2162",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2163",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2164",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2165",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2166",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2167",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2168",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x2169",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x216a",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x216b",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x216c",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x216d",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x216e",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x216f",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24b6",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24b7",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24b8",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24b9",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24ba",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24bb",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24bc",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24bd",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24be",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24bf",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c0",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c1",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c2",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c3",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c4",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c5",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c6",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c7",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c8",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24c9",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24ca",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24cb",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24cc",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24cd",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24ce",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0x24cf",
+   "python_isupper": 1,
+   "lu_only": 0
+  },
+  {
+   "cp": "0xa7cb",
+   "python_isupper": 0,
+   "lu_only": 1
+  },
+  {
+   "cp": "0xa7cc",
+   "python_isupper": 0,
+   "lu_only": 1
+  },
+  {
+   "cp": "0xa7ce",
+   "python_isupper": 0,
+   "lu_only": 1
+  },
+  {
+   "cp": "0xa7d2",
+   "python_isupper": 0,
+   "lu_only": 1
+  },
+  {
+   "cp": "0xa7d4",
+   "python_isupper": 0,
+   "lu_only": 1
+  },
+  {
+   "cp": "0xa7da",
+   "python_isupper": 0,
+   "lu_only": 1
+  },
+  {
+   "cp": "0xa7dc",
+   "python_isupper": 0,
+   "lu_only": 1
+  }
+ ],
+ "alt_path_mismatches_first_50": [
+  {
+   "cp": "0x3d2",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x3d3",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x3d4",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x1c89",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f88",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f89",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f8a",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f8b",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f8c",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f8d",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f8e",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f8f",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f98",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f99",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f9a",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f9b",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f9c",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f9d",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f9e",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1f9f",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fa8",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fa9",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1faa",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fab",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fac",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fad",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fae",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1faf",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fbc",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1fcc",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x1ffc",
+   "python_isupper": 0,
+   "alt_path": 1
+  },
+  {
+   "cp": "0x2102",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2107",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x210b",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x210c",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x210d",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2110",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2111",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2112",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2115",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2119",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x211a",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x211b",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x211c",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x211d",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2124",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2128",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x212c",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x212d",
+   "python_isupper": 1,
+   "alt_path": 0
+  },
+  {
+   "cp": "0x2130",
+   "python_isupper": 1,
+   "alt_path": 0
+  }
+ ],
+ "mismatch_categories_python": {
+  "Cn": 75
+ },
+ "profile_distinct_codepoints": 3160,
+ "profile_mismatches": [],
+ "profile_mismatch_count": 0,
+ "sample_rows": [
+  {
+   "cp": "0xc4",
+   "moonbit_category": "Lu",
+   "moonbit_is_uppercase": 1,
+   "python_isupper": 1
+  },
+  {
+   "cp": "0x130",
+   "moonbit_category": "Lu",
+   "moonbit_is_uppercase": 1,
+   "python_isupper": 1
+  },
+  {
+   "cp": "0x3a9",
+   "moonbit_category": "Lu",
+   "moonbit_is_uppercase": 1,
+   "python_isupper": 1
+  },
+  {
+   "cp": "0x416",
+   "moonbit_category": "Lu",
+   "moonbit_is_uppercase": 1,
+   "python_isupper": 1
+  },
+  {
+   "cp": "0x1c5",
+   "moonbit_category": "Lt",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x1c8",
+   "moonbit_category": "Lt",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x4e00",
+   "moonbit_category": "Lo",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x3042",
+   "moonbit_category": "Lo",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0xac00",
+   "moonbit_category": "Lo",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x628",
+   "moonbit_category": "Lo",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x967",
+   "moonbit_category": "Nd",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x1f600",
+   "moonbit_category": "So",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x301",
+   "moonbit_category": "Mn",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x2000",
+   "moonbit_category": "Zs",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  },
+  {
+   "cp": "0x2160",
+   "moonbit_category": "Nl",
+   "moonbit_is_uppercase": 1,
+   "python_isupper": 1
+  },
+  {
+   "cp": "0x24b6",
+   "moonbit_category": "So",
+   "moonbit_is_uppercase": 1,
+   "python_isupper": 1
+  },
+  {
+   "cp": "0xb2",
+   "moonbit_category": "No",
+   "moonbit_is_uppercase": 0,
+   "python_isupper": 0
+  }
+ ],
+ "sample_mismatch_count": 0
+}

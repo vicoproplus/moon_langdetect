@@ -1,0 +1,12 @@
+$ moon test --target wasm-gc
+(cwd: F:\moonbit比赛\moon_langdetect\probes\tiny-probe)
+exit=4294967295 (hex=0xffffffff)
+--- stdout ---
+
+--- stderr ---
+Error: failed to run test for target WasmGC
+
+Caused by:
+    Failed to run the test: F:\moonbit比赛\moon_langdetect\probes\tiny-probe\_build\wasm-gc\debug\test\p\p.internal_test.wasm
+    The test executable exited with exit code: 0xc0000139
+

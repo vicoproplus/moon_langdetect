@@ -1,0 +1,12 @@
+$ C:\Users\Administrator\.moon\bin\moon.exe ide doc read_file
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=0 wall_seconds=2.956
+--- stdout ---
+package "moonbitlang/async/fs" // moonbitlang/async@0.21.3
+pub async fn read_file(StringView, sync_timestamp? : Bool) -> &@io.Data
+  Read the contents of the file located at `path`.
+   If `sync_timestamp` is `true` (`false` by default),
+   `read_file` will block until timestamp change is written to the file system.
+
+--- stderr ---
+

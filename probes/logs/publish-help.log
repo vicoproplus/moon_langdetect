@@ -1,0 +1,38 @@
+$ C:\Users\Administrator\.moon\bin\moon.exe publish --help
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=0 wall_seconds=0.049
+--- stdout ---
+Publish the current module
+
+The optional `private` field in moon.mod (or moon.mod.json) requests restricted access to the module after publication when true. Omission or false requests public visibility.
+
+Publishing with private visibility is not supported yet, so private modules are currently rejected, including with --dry-run. Local building, testing, and packaging remain available.
+
+Usage: moon.exe publish [OPTIONS]
+
+Options:
+  -h, --help
+          Print help (see a summary with '-h')
+
+Manifest Options:
+      --frozen
+          Do not sync dependencies, assuming local dependencies are up-to-date
+
+Common Options:
+      --target-dir <TARGET_DIR>
+          The target directory. Defaults to `<project-root>/_build`, or `<source-dir>/_build/<file-name>` for a standalone file
+
+  -q, --quiet
+          Suppress output
+
+  -v, --verbose
+          Increase verbosity
+
+      --trace
+          Trace the execution of the program
+
+      --dry-run
+          Do not actually run the command
+
+--- stderr ---
+

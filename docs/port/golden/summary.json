@@ -1,0 +1,72 @@
+{
+ "case_count": 268,
+ "case_count_seed0": 134,
+ "case_count_seed42": 134,
+ "detect_accuracy_long_seed0": {
+  "hit": 55,
+  "miss": 0,
+  "miss_ids": [],
+  "n": 55
+ },
+ "detect_accuracy_short_seed0": {
+  "hit": 51,
+  "miss": 4,
+  "miss_ids": [
+   "short-bg",
+   "short-no",
+   "short-zh-cn",
+   "short-zh-tw"
+  ],
+  "n": 55
+ },
+ "detect_langs_nonempty": 250,
+ "error_cases": [
+  "extra-digits-and-space",
+  "extra-digits-only",
+  "extra-emoji-only",
+  "extra-emoji-only-zwj",
+  "extra-empty",
+  "extra-punctuation-only",
+  "extra-url-only",
+  "extra-whitespace-only-mixed",
+  "extra-whitespace-only-spaces",
+  "extra-digits-and-space@seed42",
+  "extra-digits-only@seed42",
+  "extra-emoji-only@seed42",
+  "extra-emoji-only-zwj@seed42",
+  "extra-empty@seed42",
+  "extra-punctuation-only@seed42",
+  "extra-url-only@seed42",
+  "extra-whitespace-only-mixed@seed42",
+  "extra-whitespace-only-spaces@seed42"
+ ],
+ "langlist_size": 55,
+ "languages_covered": 55,
+ "profile_file_count": 55,
+ "repeatability_all_identical": true,
+ "repeatability_cases": 14,
+ "seed_diff_count": 125,
+ "seed_diff_same_detect_count": 122,
+ "timing_median_ms": {
+  "cold_start_import_and_load_profile_ms_median": 303.7040999624878,
+  "cold_start_samples_ms": [
+   303.7040999624878,
+   294.1315999487415,
+   310.5550999753177,
+   309.24440000671893,
+   296.9833000097424
+  ],
+  "detect_median_ms": {
+   "long_en": 1.6923999646678567,
+   "long_ja": 0.39440003456547856,
+   "long_zh_cn": 1.0645500151440501,
+   "short_en": 0.8000499801710248
+  },
+  "load_profile_inprocess_ms": 209.99639993533492
+ },
+ "unseeded_distinct_gt1": [
+  "Otec matka syn."
+ ],
+ "unseeded_runs_per_text": 10,
+ "unseeded_text_count": 7
+}

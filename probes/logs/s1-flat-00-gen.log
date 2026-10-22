@@ -1,0 +1,8 @@
+$ python F:\moonbit比赛\moon_langdetect\probes\gen_mbt.py --mode flat --langs 1
+(cwd: F:\moonbit比赛\moon_langdetect)
+exit=0 wall_seconds=0.112 timeout=900
+--- stdout ---
+{"mode": "flat", "langs": ["so"], "languages": 1, "entries": 1874, "data_mbt_bytes": 17498, "test_mbt_bytes": 358, "gen_seconds": 0.002}
+
+--- stderr ---
+

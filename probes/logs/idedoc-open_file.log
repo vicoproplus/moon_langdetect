@@ -1,0 +1,8 @@
+$ C:\Users\Administrator\.moon\bin\moon.exe ide doc open_file
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=1 wall_seconds=2.976
+--- stdout ---
+No results found for query: 'open_file'
+
+--- stderr ---
+

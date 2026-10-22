@@ -1,0 +1,8 @@
+$ moon test --target js
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=0 (hex=0x00000000)
+--- stdout ---
+Total tests: 56, passed: 56, failed: 0.
+
+--- stderr ---
+

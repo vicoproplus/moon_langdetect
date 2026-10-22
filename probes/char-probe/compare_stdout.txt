@@ -1,0 +1,112 @@
+总码点                 : 1114112
+surrogate 区（跳过）    : 2048
+可比码点               : 1112064
+Python isupper=True    : 1951
+MoonBit is_uppercase=T : 2026
+32 位组比对            : 34807/34816 组一致
+逐点不一致             : 75 个码点
+   cp=0x1c89 python=0 moonbit=1
+   cp=0xa7cb python=0 moonbit=1
+   cp=0xa7cc python=0 moonbit=1
+   cp=0xa7ce python=0 moonbit=1
+   cp=0xa7d2 python=0 moonbit=1
+   cp=0xa7d4 python=0 moonbit=1
+   cp=0xa7da python=0 moonbit=1
+   cp=0xa7dc python=0 moonbit=1
+   cp=0xa7dd python=0 moonbit=1
+   cp=0xa7e2 python=0 moonbit=1
+   cp=0xab6c python=0 moonbit=1
+   cp=0xab6d python=0 moonbit=1
+   cp=0x10d50 python=0 moonbit=1
+   cp=0x10d51 python=0 moonbit=1
+   cp=0x10d52 python=0 moonbit=1
+   cp=0x10d53 python=0 moonbit=1
+   cp=0x10d54 python=0 moonbit=1
+   cp=0x10d55 python=0 moonbit=1
+   cp=0x10d56 python=0 moonbit=1
+   cp=0x10d57 python=0 moonbit=1
+   cp=0x10d58 python=0 moonbit=1
+   cp=0x10d59 python=0 moonbit=1
+   cp=0x10d5a python=0 moonbit=1
+   cp=0x10d5b python=0 moonbit=1
+   cp=0x10d5c python=0 moonbit=1
+   cp=0x10d5d python=0 moonbit=1
+   cp=0x10d5e python=0 moonbit=1
+   cp=0x10d5f python=0 moonbit=1
+   cp=0x10d60 python=0 moonbit=1
+   cp=0x10d61 python=0 moonbit=1
+   cp=0x10d62 python=0 moonbit=1
+   cp=0x10d63 python=0 moonbit=1
+   cp=0x10d64 python=0 moonbit=1
+   cp=0x10d65 python=0 moonbit=1
+   cp=0x16ea0 python=0 moonbit=1
+   cp=0x16ea1 python=0 moonbit=1
+   cp=0x16ea2 python=0 moonbit=1
+   cp=0x16ea3 python=0 moonbit=1
+   cp=0x16ea4 python=0 moonbit=1
+   cp=0x16ea5 python=0 moonbit=1
+   cp=0x16ea6 python=0 moonbit=1
+   cp=0x16ea7 python=0 moonbit=1
+   cp=0x16ea8 python=0 moonbit=1
+   cp=0x16ea9 python=0 moonbit=1
+   cp=0x16eaa python=0 moonbit=1
+   cp=0x16eab python=0 moonbit=1
+   cp=0x16eac python=0 moonbit=1
+   cp=0x16ead python=0 moonbit=1
+   cp=0x16eae python=0 moonbit=1
+   cp=0x16eaf python=0 moonbit=1
+替代路径(to_upper==c && to_lower!=c) 不一致: 651
+   {'cp': '0x3d2', 'python_isupper': 1, 'alt_path': 0}
+   {'cp': '0x3d3', 'python_isupper': 1, 'alt_path': 0}
+   {'cp': '0x3d4', 'python_isupper': 1, 'alt_path': 0}
+   {'cp': '0x1c89', 'python_isupper': 0, 'alt_path': 1}
+   {'cp': '0x1f88', 'python_isupper': 0, 'alt_path': 1}
+   {'cp': '0x1f89', 'python_isupper': 0, 'alt_path': 1}
+   {'cp': '0x1f8a', 'python_isupper': 0, 'alt_path': 1}
+   {'cp': '0x1f8b', 'python_isupper': 0, 'alt_path': 1}
+   {'cp': '0x1f8c', 'python_isupper': 0, 'alt_path': 1}
+   {'cp': '0x1f8d', 'python_isupper': 0, 'alt_path': 1}
+   替代路径前 10 个的 Python 视角：
+     0x3d2 cat=Lu upper='ϒ' lower='ϒ'
+     0x3d3 cat=Lu upper='ϓ' lower='ϓ'
+     0x3d4 cat=Lu upper='ϔ' lower='ϔ'
+     0x1c89 cat=Cn upper='\u1c89' lower='\u1c89'
+     0x1f88 cat=Lt upper='ἈΙ' lower='ᾀ'
+     0x1f89 cat=Lt upper='ἉΙ' lower='ᾁ'
+     0x1f8a cat=Lt upper='ἊΙ' lower='ᾂ'
+     0x1f8b cat=Lt upper='ἋΙ' lower='ᾃ'
+     0x1f8c cat=Lt upper='ἌΙ' lower='ᾄ'
+     0x1f8d cat=Lt upper='ἍΙ' lower='ᾅ'
+不一致码点的 Python 类别分布: {'Cn': 75}
+替代路径2(仅 general_category==Lu) 不一致: 195
+   {'cp': '0x1c89', 'python_isupper': 0, 'lu_only': 1}
+   {'cp': '0x2160', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2161', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2162', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2163', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2164', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2165', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2166', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2167', 'python_isupper': 1, 'lu_only': 0}
+   {'cp': '0x2168', 'python_isupper': 1, 'lu_only': 0}
+替代路径3(is_uppercase + Unicode15 补丁表) 不一致: 0
+profile 用到码点       : 3160，不一致 0
+三类抽样字符           : 不一致 0/17
+   cp=0xc4 cat=Lu mb=1 py=1
+   cp=0x130 cat=Lu mb=1 py=1
+   cp=0x3a9 cat=Lu mb=1 py=1
+   cp=0x416 cat=Lu mb=1 py=1
+   cp=0x1c5 cat=Lt mb=0 py=0
+   cp=0x1c8 cat=Lt mb=0 py=0
+   cp=0x4e00 cat=Lo mb=0 py=0
+   cp=0x3042 cat=Lo mb=0 py=0
+   cp=0xac00 cat=Lo mb=0 py=0
+   cp=0x628 cat=Lo mb=0 py=0
+   cp=0x967 cat=Nd mb=0 py=0
+   cp=0x1f600 cat=So mb=0 py=0
+   cp=0x301 cat=Mn mb=0 py=0
+   cp=0x2000 cat=Zs mb=0 py=0
+   cp=0x2160 cat=Nl mb=1 py=1
+   cp=0x24b6 cat=So mb=1 py=1
+   cp=0xb2 cat=No mb=0 py=0
+report -> F:\moonbit比赛\moon_langdetect\docs\port\golden\char_isupper_compare.json

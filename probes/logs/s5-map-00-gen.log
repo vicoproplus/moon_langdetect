@@ -1,0 +1,8 @@
+$ python F:\moonbit比赛\moon_langdetect\probes\gen_mbt.py --mode map --langs 5
+(cwd: F:\moonbit比赛\moon_langdetect)
+exit=0 wall_seconds=0.088 timeout=900
+--- stdout ---
+{"mode": "map", "langs": ["so", "sw", "tl", "af", "en"], "languages": 5, "entries": 9961, "data_mbt_bytes": 173424, "test_mbt_bytes": 1313, "gen_seconds": 0.006}
+
+--- stderr ---
+

@@ -1,0 +1,73 @@
+stage                                         pairs   same  first mismatch
+--------------------------------------------------------------------------------------------------------------
+MT19937 raw32 seed=0                             64     64  
+MT19937 raw32 seed=42                            64     64  
+random() double seed=0                           64     64  
+random() double seed=42                          64     64  
+getrandbits(1)                                   32     32  
+getrandbits(2)                                   32     32  
+getrandbits(3)                                   32     32  
+getrandbits(12)                                  32     32  
+getrandbits(16)                                  32     32  
+getrandbits(32)                                  32     32  
+getrandbits(33)                                  32     32  
+_randbelow(1)                                    32     32  
+_randbelow(2)                                    32     32  
+_randbelow(3)                                    32     32  
+_randbelow(5)                                    32     32  
+_randbelow(7)                                    32     32  
+_randbelow(55)                                   32     32  
+_randbelow(1000)                                 32     32  
+gauss(0,1) x64                                   64     64  
+gauss internal x2pi x8                            8      8  
+gauss internal y x8                               8      8  
+gauss internal ln_arg x8                          8      8  
+gauss internal ln_result x8                       8      8  
+gauss internal g2rad x8                           8      8  
+gauss internal cos_x2pi x8                        8      8  
+gauss internal sin_x2pi x8                        8      8  
+gauss internal z x8                               8      8  
+gauss internal gauss_next x8                      8      8  
+mixed: gauss per round x7                         7      7  
+mixed: alpha=0.5+g*0.05 x7                        7      7  
+mixed: choice index x357                        357    357  
+gauss(0,1) x512 seed=0                          512    512  
+gauss(0,1) x512 seed=1                          512    512  
+gauss(0,1) x512 seed=42                         512    512  
+gauss(0,1) x512 seed=12345                      512    512  
+[对照] gauss(@math.ln) x512 seed=0                512    485  #82 py=bfeeda7e81a86b92 mb=bfeeda7e81a86b91
+[对照] gauss(@math.ln) x512 seed=1                512    492  #24 py=3fcbed0dd1a577c4 mb=3fcbed0dd1a577c6
+[对照] gauss(@math.ln) x512 seed=42               512    494  #106 py=3fea1fbd6887f585 mb=3fea1fbd6887f583
+[对照] gauss(@math.ln) x512 seed=12345            512    484  #12 py=bfec4d7f07f37bf0 mb=bfec4d7f07f37bf1
+mathfunc x2pi x256 seed=0                       256    256  
+mathfunc ln_arg x256 seed=0                     256    256  
+mathfunc log x256 seed=0                        256    256  
+mathfunc cos x256 seed=0                        256    256  
+mathfunc sin x256 seed=0                        256    256  
+[对照] @math.ln (256) seed=0                      256    232  #26 py=bfd8b0028196825b mb=bfd8b0028196825a
+mathfunc x2pi x256 seed=1                       256    256  
+mathfunc ln_arg x256 seed=1                     256    256  
+mathfunc log x256 seed=1                        256    256  
+mathfunc cos x256 seed=1                        256    256  
+mathfunc sin x256 seed=1                        256    256  
+[对照] @math.ln (256) seed=1                      256    238  #5 py=bfe224be3d607e09 mb=bfe224be3d607e0a
+mathfunc x2pi x256 seed=42                      256    256  
+mathfunc ln_arg x256 seed=42                    256    256  
+mathfunc log x256 seed=42                       256    256  
+mathfunc cos x256 seed=42                       256    256  
+mathfunc sin x256 seed=42                       256    256  
+[对照] @math.ln (256) seed=42                     256    234  #1 py=bfd02a5f3fb7f829 mb=bfd02a5f3fb7f82a
+mathfunc x2pi x256 seed=12345                   256    256  
+mathfunc ln_arg x256 seed=12345                 256    256  
+mathfunc log x256 seed=12345                    256    256  
+mathfunc cos x256 seed=12345                    256    256  
+mathfunc sin x256 seed=12345                    256    256  
+[对照] @math.ln (256) seed=12345                  256    234  #6 py=bfdc0df5e6bc3d7a mb=bfdc0df5e6bc3d7b
+sweep libm log vs CPython                      2000   2000  
+sweep @math.ln vs CPython                      2000   1934  #196 py=3f987bb422dcde86 mb=3f987bb422dcde87
+sweep cos vs CPython                           2000   2000  
+sweep sin vs CPython                           2000   2000  
+sweep sqrt vs CPython                          2000   2000  
+--------------------------------------------------------------------------------------------------------------
+阶段全一致: 59/68
+report -> F:\moonbit比赛\moon_langdetect\docs\port\golden\rand\compare_report.json

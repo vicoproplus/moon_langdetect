@@ -1,0 +1,32 @@
+{
+  "which_node": {
+    "shutil.which('node')": "C:\\Users\\Administrator\\.bunpm\\bin\\node.CMD",
+    "shutil.which('node.cmd')": "C:\\Users\\Administrator\\.bunpm\\bin\\node.cmd",
+    "shutil.which('bun')": "C:\\Users\\Administrator\\.bun\\bin\\bun.EXE"
+  },
+  "shim": {
+    "bun_path": "C:\\Users\\Administrator\\.bun\\bin\\bun.EXE",
+    "shim_self_test": {
+      "cmd": [
+        "node.cmd",
+        "--version"
+      ],
+      "log": "probes/logs/jsrunner-shim-node-version.log",
+      "exit_code": 0,
+      "stdout_tail": "1.4.3",
+      "stderr_tail": ""
+    },
+    "moon_test_js_with_shim": {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "test",
+        "--target",
+        "js"
+      ],
+      "log": "probes/logs/jsrunner-moon-test-js.log",
+      "exit_code": 0,
+      "stdout_tail": "Total tests: 2, passed: 2, failed: 0.",
+      "stderr_tail": ""
+    }
+  }
+}

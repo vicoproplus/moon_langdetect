@@ -1,0 +1,5 @@
+import {
+  "vicoproplus/rand-probe" @rp,
+}
+
+pkgtype(kind: "executable")

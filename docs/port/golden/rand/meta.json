@@ -1,0 +1,10 @@
+{
+ "generator": "tools/gen_rand_golden.py",
+ "python": "3.12.10",
+ "python_exe": "F:\\moonbit比赛\\moon_langdetect\\.venv\\Scripts\\python.exe",
+ "random_module": "D:\\Programs\\Python\\Python312\\Lib\\random.py",
+ "math_tau_hex": "401921fb54442d18",
+ "math_pi_hex": "400921fb54442d18",
+ "random_random_impl": "Modules/_randommodule.c: (a*67108864.0+b)*(1.0/9007199254740992.0)",
+ "gauss_impl": "Lib/random.py: x2pi=random()*tau; g2rad=sqrt(-2*log(1-random())); cos/sin"
+}

@@ -1,0 +1,45 @@
+$ C:\Users\Administrator\.moon\bin\moon.exe test --target native
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=4294967295 wall_seconds=19.563 timeout=900
+--- stdout ---
+
+--- stderr ---
+utf.c
+runtime.c
+sync_io.c
+env.c
+backtrace.c
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.whitebox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.whitebox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.internal_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\lib\data\data.internal_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\cmd\main\main.blackbox_test.exp
+  正在创建库 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.blackbox_test.lib 和对象 F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.blackbox_test.exp
+Warning: [0033]
+       ╭─[ F:\moonbit比赛\moon_langdetect\probes\embed-probe\lib\data\data.mbt:16384:1 ]
+       │
+ 16384 │   ("àto", 823),
+       │ ┬  
+       │ ╰── Warning (text_segment_excceed): Text segment is about to exceed the line limit. Consider mark `///|` above the the top-level structures to splitting it into multiple segments.
+───────╯
+Warning: [0024]
+       ╭─[ F:\moonbit比赛\moon_langdetect\probes\embed-probe\lib\data\data.mbt:20050:13 ]
+       │
+ 20050 │   ("ov", 8960),
+       │             │ 
+       │             ╰─ Warning (unused_error_type): The error type of this function is never used.
+───────╯
+Warning: [0029]
+   ╭─[ F:\moonbit比赛\moon_langdetect\probes\embed-probe\moon.pkg:2:3 ]
+   │
+ 2 │   "vicoproplus/embed-probe/lib/data"
+   │   ─────────────────┬────────────────  
+   │                    ╰────────────────── Warning (unused_package): Unused package 'vicoproplus/embed-probe/lib/data'
+───╯
+Error: failed to run test for target Native
+
+Caused by:
+    Failed to run the test: F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\test\embed-probe.blackbox_test.exe
+    The test executable exited with exit code: 0xc00000fd
+

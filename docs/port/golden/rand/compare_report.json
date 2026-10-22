@@ -1,0 +1,804 @@
+{
+ "generator": "probes/rand_probe_compare.py",
+ "moonbit_stdout_lines": 19452,
+ "moonbit_meta": {
+  "ngram_count": 667
+ },
+ "python_meta": {
+  "generator": "tools/gen_rand_golden.py",
+  "python": "3.12.10",
+  "python_exe": "F:\\moonbit比赛\\moon_langdetect\\.venv\\Scripts\\python.exe",
+  "random_module": "D:\\Programs\\Python\\Python312\\Lib\\random.py",
+  "math_tau_hex": "401921fb54442d18",
+  "math_pi_hex": "400921fb54442d18",
+  "random_random_impl": "Modules/_randommodule.c: (a*67108864.0+b)*(1.0/9007199254740992.0)",
+  "gauss_impl": "Lib/random.py: x2pi=random()*tau; g2rad=sqrt(-2*log(1-random())); cos/sin"
+ },
+ "stages": [
+  {
+   "stage": "MT19937 raw32 seed=0",
+   "pairs": 64,
+   "expected_pairs": 64,
+   "identical": 64,
+   "mismatched": 0,
+   "length_python": 64,
+   "length_moonbit": 64,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "MT19937 raw32 seed=42",
+   "pairs": 64,
+   "expected_pairs": 64,
+   "identical": 64,
+   "mismatched": 0,
+   "length_python": 64,
+   "length_moonbit": 64,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "random() double seed=0",
+   "pairs": 64,
+   "expected_pairs": 64,
+   "identical": 64,
+   "mismatched": 0,
+   "length_python": 64,
+   "length_moonbit": 64,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "random() double seed=42",
+   "pairs": 64,
+   "expected_pairs": 64,
+   "identical": 64,
+   "mismatched": 0,
+   "length_python": 64,
+   "length_moonbit": 64,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "getrandbits(1)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "getrandbits(2)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "getrandbits(3)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "getrandbits(12)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "getrandbits(16)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "getrandbits(32)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "getrandbits(33)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "_randbelow(1)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "_randbelow(2)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "_randbelow(3)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "_randbelow(5)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "_randbelow(7)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "_randbelow(55)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "_randbelow(1000)",
+   "pairs": 32,
+   "expected_pairs": 32,
+   "identical": 32,
+   "mismatched": 0,
+   "length_python": 32,
+   "length_moonbit": 32,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss(0,1) x64",
+   "pairs": 64,
+   "expected_pairs": 64,
+   "identical": 64,
+   "mismatched": 0,
+   "length_python": 64,
+   "length_moonbit": 64,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal x2pi x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal y x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal ln_arg x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal ln_result x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal g2rad x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal cos_x2pi x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal sin_x2pi x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal z x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss internal gauss_next x8",
+   "pairs": 8,
+   "expected_pairs": 8,
+   "identical": 8,
+   "mismatched": 0,
+   "length_python": 8,
+   "length_moonbit": 8,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mixed: gauss per round x7",
+   "pairs": 7,
+   "expected_pairs": 7,
+   "identical": 7,
+   "mismatched": 0,
+   "length_python": 7,
+   "length_moonbit": 7,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mixed: alpha=0.5+g*0.05 x7",
+   "pairs": 7,
+   "expected_pairs": 7,
+   "identical": 7,
+   "mismatched": 0,
+   "length_python": 7,
+   "length_moonbit": 7,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mixed: choice index x357",
+   "pairs": 357,
+   "expected_pairs": 357,
+   "identical": 357,
+   "mismatched": 0,
+   "length_python": 357,
+   "length_moonbit": 357,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss(0,1) x512 seed=0",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 512,
+   "mismatched": 0,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss(0,1) x512 seed=1",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 512,
+   "mismatched": 0,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss(0,1) x512 seed=42",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 512,
+   "mismatched": 0,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "gauss(0,1) x512 seed=12345",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 512,
+   "mismatched": 0,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "[对照] gauss(@math.ln) x512 seed=0",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 485,
+   "mismatched": 27,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": {
+    "index": 82,
+    "python": "bfeeda7e81a86b92",
+    "moonbit": "bfeeda7e81a86b91"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "[对照] gauss(@math.ln) x512 seed=1",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 492,
+   "mismatched": 20,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": {
+    "index": 24,
+    "python": "3fcbed0dd1a577c4",
+    "moonbit": "3fcbed0dd1a577c6"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "[对照] gauss(@math.ln) x512 seed=42",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 494,
+   "mismatched": 18,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": {
+    "index": 106,
+    "python": "3fea1fbd6887f585",
+    "moonbit": "3fea1fbd6887f583"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "[对照] gauss(@math.ln) x512 seed=12345",
+   "pairs": 512,
+   "expected_pairs": 512,
+   "identical": 484,
+   "mismatched": 28,
+   "length_python": 512,
+   "length_moonbit": 512,
+   "first_mismatch": {
+    "index": 12,
+    "python": "bfec4d7f07f37bf0",
+    "moonbit": "bfec4d7f07f37bf1"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "mathfunc x2pi x256 seed=0",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc ln_arg x256 seed=0",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc log x256 seed=0",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc cos x256 seed=0",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc sin x256 seed=0",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "[对照] @math.ln (256) seed=0",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 232,
+   "mismatched": 24,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": {
+    "index": 26,
+    "python": "bfd8b0028196825b",
+    "moonbit": "bfd8b0028196825a"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "mathfunc x2pi x256 seed=1",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc ln_arg x256 seed=1",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc log x256 seed=1",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc cos x256 seed=1",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc sin x256 seed=1",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "[对照] @math.ln (256) seed=1",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 238,
+   "mismatched": 18,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": {
+    "index": 5,
+    "python": "bfe224be3d607e09",
+    "moonbit": "bfe224be3d607e0a"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "mathfunc x2pi x256 seed=42",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc ln_arg x256 seed=42",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc log x256 seed=42",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc cos x256 seed=42",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc sin x256 seed=42",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "[对照] @math.ln (256) seed=42",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 234,
+   "mismatched": 22,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": {
+    "index": 1,
+    "python": "bfd02a5f3fb7f829",
+    "moonbit": "bfd02a5f3fb7f82a"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "mathfunc x2pi x256 seed=12345",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc ln_arg x256 seed=12345",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc log x256 seed=12345",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc cos x256 seed=12345",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "mathfunc sin x256 seed=12345",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 256,
+   "mismatched": 0,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "[对照] @math.ln (256) seed=12345",
+   "pairs": 256,
+   "expected_pairs": 256,
+   "identical": 234,
+   "mismatched": 22,
+   "length_python": 256,
+   "length_moonbit": 256,
+   "first_mismatch": {
+    "index": 6,
+    "python": "bfdc0df5e6bc3d7a",
+    "moonbit": "bfdc0df5e6bc3d7b"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "sweep libm log vs CPython",
+   "pairs": 2000,
+   "expected_pairs": 2000,
+   "identical": 2000,
+   "mismatched": 0,
+   "length_python": 2000,
+   "length_moonbit": 2000,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "sweep @math.ln vs CPython",
+   "pairs": 2000,
+   "expected_pairs": 2000,
+   "identical": 1934,
+   "mismatched": 66,
+   "length_python": 2000,
+   "length_moonbit": 2000,
+   "first_mismatch": {
+    "index": 196,
+    "python": "3f987bb422dcde86",
+    "moonbit": "3f987bb422dcde87"
+   },
+   "all_identical": false
+  },
+  {
+   "stage": "sweep cos vs CPython",
+   "pairs": 2000,
+   "expected_pairs": 2000,
+   "identical": 2000,
+   "mismatched": 0,
+   "length_python": 2000,
+   "length_moonbit": 2000,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "sweep sin vs CPython",
+   "pairs": 2000,
+   "expected_pairs": 2000,
+   "identical": 2000,
+   "mismatched": 0,
+   "length_python": 2000,
+   "length_moonbit": 2000,
+   "first_mismatch": null,
+   "all_identical": true
+  },
+  {
+   "stage": "sweep sqrt vs CPython",
+   "pairs": 2000,
+   "expected_pairs": 2000,
+   "identical": 2000,
+   "mismatched": 0,
+   "length_python": 2000,
+   "length_moonbit": 2000,
+   "first_mismatch": null,
+   "all_identical": true
+  }
+ ],
+ "all_identical": false
+}

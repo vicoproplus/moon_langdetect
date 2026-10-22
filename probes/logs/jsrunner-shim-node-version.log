@@ -1,0 +1,9 @@
+$ node.cmd --version
+(cwd: F:\moonbit比赛\moon_langdetect\probes\bin)
+env[PATH] head=['F:\\moonbit比赛\\moon_langdetect\\probes\\bin', '/f/moonbit比赛/moon_langdetect/probes/bin:C:\\Program Files\\Zulu\\zulu-11-jre\\bin\\']
+exit=0
+--- stdout ---
+1.4.3
+
+--- stderr ---
+

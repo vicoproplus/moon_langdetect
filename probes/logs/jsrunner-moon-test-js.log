@@ -1,0 +1,9 @@
+$ C:\Users\Administrator\.moon\bin\moon.exe test --target js
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+env[PATH] head=['F:\\moonbit比赛\\moon_langdetect\\probes\\bin', '/f/moonbit比赛/moon_langdetect/probes/bin:C:\\Program Files\\Zulu\\zulu-11-jre\\bin\\']
+exit=0
+--- stdout ---
+Total tests: 2, passed: 2, failed: 0.
+
+--- stderr ---
+

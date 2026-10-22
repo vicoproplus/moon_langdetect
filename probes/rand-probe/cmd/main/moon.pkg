@@ -1,0 +1,6 @@
+import {
+  "vicoproplus/rand-probe" @rp,
+  "moonbitlang/core/math",
+}
+
+pkgtype(kind: "executable")

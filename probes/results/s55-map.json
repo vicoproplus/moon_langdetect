@@ -1,0 +1,109 @@
+{
+  "label": "s55-map",
+  "mode": "map",
+  "langs_arg": "all",
+  "languages": 55,
+  "entries": 184129,
+  "data_mbt_bytes": 3495481,
+  "test_mbt_bytes": 13322,
+  "gen_seconds": 0.128,
+  "gen_log": "probes/logs/s55-map-00-gen.log",
+  "build_runs": [
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s55-map-02-build1.log",
+      "exit_code": 0,
+      "wall_seconds": 15.019,
+      "timed_out": false,
+      "output_tail": [
+        "       │",
+        " 20050 │   (\"ov\", 8960),",
+        "       │             │ ",
+        "       │             ╰─ Warning (unused_error_type): The error type of this function is never used.",
+        "───────╯",
+        "Finished. moon: ran 10 tasks, now up to date (2 warnings, 0 errors)"
+      ]
+    },
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s55-map-02-build2.log",
+      "exit_code": 0,
+      "wall_seconds": 15.357,
+      "timed_out": false,
+      "output_tail": [
+        "       │",
+        " 20050 │   (\"ov\", 8960),",
+        "       │             │ ",
+        "       │             ╰─ Warning (unused_error_type): The error type of this function is never used.",
+        "───────╯",
+        "Finished. moon: ran 10 tasks, now up to date (2 warnings, 0 errors)"
+      ]
+    }
+  ],
+  "test_runs": [
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "test",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s55-map-03-test.log",
+      "exit_code": 4294967295,
+      "wall_seconds": 19.563,
+      "timed_out": false,
+      "output_tail": [
+        "   │                    ╰────────────────── Warning (unused_package): Unused package 'vicoproplus/embed-probe/lib/data'",
+        "───╯",
+        "Error: failed to run test for target Native",
+        "Caused by:",
+        "    Failed to run the test: F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\_build\\native\\debug\\test\\embed-probe.blackbox_test.exe",
+        "    The test executable exited with exit code: 0xc00000fd"
+      ]
+    }
+  ],
+  "timed_out": false,
+  "build_seconds": [
+    15.019,
+    15.357
+  ],
+  "build_exit_codes": [
+    0,
+    0
+  ],
+  "exe_bytes": 19826688,
+  "build_dir_bytes": 60782304,
+  "build_dir_native_bytes": 60780953,
+  "largest_artifacts": [
+    {
+      "path": "native/debug/build/cmd/main/__moonbit_link_core__/main.obj",
+      "bytes": 26186500
+    },
+    {
+      "path": "native/debug/build/cmd/main/main.exe",
+      "bytes": 19826688
+    },
+    {
+      "path": "native/debug/build/lib/data/data.core",
+      "bytes": 13692802
+    },
+    {
+      "path": "native/debug/build/libruntime.lib",
+      "bytes": 513718
+    },
+    {
+      "path": "native/debug/build/runtime-backtrace.obj",
+      "bytes": 152609
+    }
+  ]
+}

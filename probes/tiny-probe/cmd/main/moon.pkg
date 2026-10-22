@@ -1,0 +1,5 @@
+// import {
+//   "vicoproplus/tiny-probe" @lib,
+// }
+
+pkgtype(kind: "executable")

@@ -1,0 +1,8 @@
+$ moon build --target native
+(cwd: F:\moonbit比赛\moon_langdetect\probes\fs-probe)
+exit=0
+--- stdout ---
+
+--- stderr ---
+Finished. moon: no work to do
+

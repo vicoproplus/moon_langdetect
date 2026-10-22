@@ -1,0 +1,27 @@
+$ moon build --target wasm-gc
+(cwd: F:\moonbit比赛\moon_langdetect\probes\fs-probe)
+exit=4294967295
+--- stdout ---
+
+--- stderr ---
+Error: [4021] Value run_async_main not found in package `moonbitlang/async`.
+Warning: [0067]
+   ╭─[ F:\moonbit比赛\moon_langdetect\probes\fs-probe\cmd\main\main.mbt:3:1 ]
+   │
+ 3 │ async fn main raise {
+   │ ──┬──  
+   │   ╰──── Warning (unused_async): This `async` annotation is useless.
+───╯
+Error: [4021]
+   ╭─[ F:\moonbit比赛\moon_langdetect\probes\fs-probe\cmd\main\main.mbt:4:26 ]
+   │
+ 4 │   let data : &@io.Data = @fs.read_file("../../langdetect/langdetect/profiles/en")
+   │                          ──────┬──────  
+   │                                ╰──────── Value read_file not found in package `fs`.
+───╯
+Failed with 1 warnings, 2 errors.
+Error: failed to run build for target WasmGC
+
+Caused by:
+    failed when building project
+

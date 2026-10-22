@@ -1,0 +1,60 @@
+{
+ "cold_start": [
+  303.7040999624878,
+  294.1315999487415,
+  310.5550999753177,
+  309.24440000671893,
+  296.9833000097424
+ ],
+ "load_profile_ms": 209.99639993533492,
+ "method": "冷启动=新 Python 进程执行 `import langdetect.detector_factory` + `DetectorFactory().load_profile(PROFILES_DIRECTORY)`，采样 5 次取中位数；单次检测=同一进程内对已加载 factory 新建 Detector，append 后只计时 get_probabilities()，每个文本 30 次取中位数；seed 固定 0。",
+ "per_text": {
+  "long_en": {
+   "max_ms": 4.038400016725063,
+   "median_ms": 1.6923999646678567,
+   "min_ms": 1.4983000000938773,
+   "samples": 30,
+   "text_len": 261
+  },
+  "long_ja": {
+   "max_ms": 0.7090000435709953,
+   "median_ms": 0.39440003456547856,
+   "min_ms": 0.3850000211969018,
+   "samples": 30,
+   "text_len": 91
+  },
+  "long_zh_cn": {
+   "max_ms": 1.8847000319510698,
+   "median_ms": 1.0645500151440501,
+   "min_ms": 1.029699924401939,
+   "samples": 30,
+   "text_len": 85
+  },
+  "short_en": {
+   "max_ms": 1.1869000736624002,
+   "median_ms": 0.8000499801710248,
+   "min_ms": 0.7856000447645783,
+   "samples": 30,
+   "text_len": 26
+  }
+ },
+ "platform": "win32",
+ "python": "3.12.10",
+ "summary": {
+  "cold_start_import_and_load_profile_ms_median": 303.7040999624878,
+  "cold_start_samples_ms": [
+   303.7040999624878,
+   294.1315999487415,
+   310.5550999753177,
+   309.24440000671893,
+   296.9833000097424
+  ],
+  "detect_median_ms": {
+   "long_en": 1.6923999646678567,
+   "long_ja": 0.39440003456547856,
+   "long_zh_cn": 1.0645500151440501,
+   "short_en": 0.8000499801710248
+  },
+  "load_profile_inprocess_ms": 209.99639993533492
+ }
+}

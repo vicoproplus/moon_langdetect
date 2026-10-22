@@ -1,0 +1,8 @@
+$ moon test --target native
+(cwd: F:\moonbit比赛\moon_langdetect\probes\tiny-probe)
+exit=0 (hex=0x00000000)
+--- stdout ---
+Total tests: 1, passed: 1, failed: 0.
+
+--- stderr ---
+

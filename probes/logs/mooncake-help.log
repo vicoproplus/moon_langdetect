@@ -1,0 +1,8 @@
+$ mooncake --help
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=1 wall_seconds=0.027
+--- stdout ---
+
+--- stderr ---
+`mooncake` should not be called directly. Please use `moon` instead.
+

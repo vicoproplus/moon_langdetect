@@ -1,0 +1,63 @@
+$ F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\build\cmd\main\main.exe
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=0 wall_seconds=0.323 timeout=900
+--- stdout ---
+af: 2143
+ar: 2626
+bg: 2597
+bn: 2846
+ca: 6331
+cs: 2957
+cy: 4795
+da: 2320
+de: 2316
+el: 2747
+en: 2301
+es: 2137
+et: 7046
+fa: 2185
+fi: 2287
+fr: 2232
+gu: 1474
+he: 2785
+hi: 2400
+hr: 2431
+hu: 2808
+id: 1960
+it: 1955
+ja: 1831
+kn: 2860
+ko: 23031
+lt: 6593
+lv: 7563
+mk: 2412
+ml: 2786
+mr: 2578
+ne: 2382
+nl: 2163
+no: 2287
+pa: 2318
+pl: 2629
+pt: 2162
+ro: 6071
+ru: 2770
+sk: 2868
+sl: 6415
+so: 1874
+sq: 2304
+sv: 2404
+sw: 1770
+ta: 2249
+te: 2797
+th: 3426
+tl: 1873
+tr: 2584
+uk: 2531
+ur: 2310
+vi: 6354
+zh-cn: 2151
+zh-tw: 2104
+total: 184129
+
+--- stderr ---
+

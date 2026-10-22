@@ -1,0 +1,8 @@
+$ python F:\moonbit比赛\moon_langdetect\probes\gen_mbt.py --mode flat --langs all
+(cwd: F:\moonbit比赛\moon_langdetect)
+exit=0 wall_seconds=0.633
+--- stdout ---
+{"mode": "flat", "langs": ["af", "ar", "bg", "bn", "ca", "cs", "cy", "da", "de", "el", "en", "es", "et", "fa", "fi", "fr", "gu", "he", "hi", "hr", "hu", "id", "it", "ja", "kn", "ko", "lt", "lv", "mk", "ml", "mr", "ne", "nl", "no", "pa", "pl", "pt", "ro", "ru", "sk", "sl", "so", "sq", "sv", "sw", "ta", "te", "th", "tl", "tr", "uk", "ur", "vi", "zh-cn", "zh-tw"], "languages": 55, "entries": 184129, "data_mbt_bytes": 2205308, "test_mbt_bytes": 13322, "gen_seconds": 0.286}
+
+--- stderr ---
+

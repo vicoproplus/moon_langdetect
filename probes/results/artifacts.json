@@ -1,0 +1,80 @@
+{
+  "native": {
+    "build_rc": 0,
+    "total_bytes": 34653899,
+    "top5": [
+      [
+        "debug/test/__moonbit_link_core__/embed-probe.blackbox_test.obj",
+        4124103
+      ],
+      [
+        "debug/test/embed-probe.blackbox_test.exe",
+        3462656
+      ],
+      [
+        "debug/test/cmd/main/__moonbit_link_core__/main.blackbox_test.obj",
+        3275200
+      ],
+      [
+        "debug/test/cmd/main/main.blackbox_test.exe",
+        3269120
+      ],
+      [
+        "debug/build/cmd/main/main.exe",
+        3256320
+      ]
+    ]
+  },
+  "wasm-gc": {
+    "build_rc": 0,
+    "total_bytes": 26199542,
+    "top5": [
+      [
+        "debug/test/embed-probe.blackbox_test.wasm.map",
+        3462091
+      ],
+      [
+        "debug/test/embed-probe.blackbox_test.wasm",
+        3235571
+      ],
+      [
+        "debug/build/cmd/main/main.wasm.map",
+        3178785
+      ],
+      [
+        "debug/build/cmd/main/main.wasm",
+        3071693
+      ],
+      [
+        "debug/test/cmd/main/main.blackbox_test.wasm",
+        3065569
+      ]
+    ]
+  },
+  "js": {
+    "build_rc": 0,
+    "total_bytes": 7185589,
+    "top5": [
+      [
+        "debug/build/cmd/main/main.js.map",
+        3052327
+      ],
+      [
+        "debug/build/cmd/main/main.js",
+        2267129
+      ],
+      [
+        "debug/build/lib/data/data.core",
+        1843761
+      ],
+      [
+        "debug/build/all_pkgs.json",
+        15948
+      ],
+      [
+        "debug/build/cmd/main/main.core",
+        1865
+      ]
+    ]
+  }
+}

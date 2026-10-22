@@ -1,0 +1,130 @@
+{
+  "label": "s1-map",
+  "mode": "map",
+  "langs_arg": "1",
+  "languages": 1,
+  "entries": 1874,
+  "data_mbt_bytes": 30320,
+  "test_mbt_bytes": 358,
+  "gen_seconds": 0.002,
+  "gen_log": "probes/logs/s1-map-00-gen.log",
+  "build_runs": [
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-map-02-build1.log",
+      "exit_code": 0,
+      "wall_seconds": 0.721,
+      "timed_out": false,
+      "output_tail": [
+        "      │",
+        " 1893 │ pub fn entry_count(lang : String) -> Int raise {",
+        "      │                                          ──┬──  ",
+        "      │                                            ╰──── Warning (unused_error_type): The error type of this function is never used.",
+        "──────╯",
+        "Finished. moon: ran 10 tasks, now up to date (2 warnings, 0 errors)"
+      ]
+    },
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-map-02-build2.log",
+      "exit_code": 0,
+      "wall_seconds": 0.864,
+      "timed_out": false,
+      "output_tail": [
+        "      │",
+        " 1893 │ pub fn entry_count(lang : String) -> Int raise {",
+        "      │                                          ──┬──  ",
+        "      │                                            ╰──── Warning (unused_error_type): The error type of this function is never used.",
+        "──────╯",
+        "Finished. moon: ran 10 tasks, now up to date (2 warnings, 0 errors)"
+      ]
+    },
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-map-02-build3.log",
+      "exit_code": 0,
+      "wall_seconds": 0.746,
+      "timed_out": false,
+      "output_tail": [
+        "      │",
+        " 1893 │ pub fn entry_count(lang : String) -> Int raise {",
+        "      │                                          ──┬──  ",
+        "      │                                            ╰──── Warning (unused_error_type): The error type of this function is never used.",
+        "──────╯",
+        "Finished. moon: ran 10 tasks, now up to date (2 warnings, 0 errors)"
+      ]
+    }
+  ],
+  "test_runs": [
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "test",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-map-03-test.log",
+      "exit_code": 0,
+      "wall_seconds": 1.279,
+      "timed_out": false,
+      "output_tail": [
+        "   ╭─[ F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\moon.pkg:2:3 ]",
+        "   │",
+        " 2 │   \"vicoproplus/embed-probe/lib/data\"",
+        "   │   ─────────────────┬────────────────  ",
+        "   │                    ╰────────────────── Warning (unused_package): Unused package 'vicoproplus/embed-probe/lib/data'",
+        "───╯"
+      ]
+    }
+  ],
+  "timed_out": false,
+  "build_seconds": [
+    0.721,
+    0.864
+  ],
+  "build_exit_codes": [
+    0,
+    0,
+    0
+  ],
+  "exe_bytes": 404480,
+  "build_dir_bytes": 1973350,
+  "build_dir_native_bytes": 1971999,
+  "largest_artifacts": [
+    {
+      "path": "native/debug/build/libruntime.lib",
+      "bytes": 513718
+    },
+    {
+      "path": "native/debug/build/cmd/main/main.exe",
+      "bytes": 404480
+    },
+    {
+      "path": "native/debug/build/cmd/main/__moonbit_link_core__/main.obj",
+      "bytes": 365712
+    },
+    {
+      "path": "native/debug/build/runtime-backtrace.obj",
+      "bytes": 152609
+    },
+    {
+      "path": "native/debug/build/runtime-runtime.obj",
+      "bytes": 149866
+    }
+  ]
+}

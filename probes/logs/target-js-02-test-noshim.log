@@ -1,0 +1,13 @@
+$ moon test --target js   (PATH 不含 probes/bin shim)
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=4294967295
+--- stdout ---
+
+--- stderr ---
+The system cannot find the path specified.
+Error: failed to run test for target Js
+
+Caused by:
+    Failed to run the test: F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\js\debug\test\embed-probe.blackbox_test.js
+    The test executable exited with exit code: 1
+

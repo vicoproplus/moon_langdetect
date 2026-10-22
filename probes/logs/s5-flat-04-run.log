@@ -1,0 +1,13 @@
+$ F:\moonbit比赛\moon_langdetect\probes\embed-probe\_build\native\debug\build\cmd\main\main.exe
+(cwd: F:\moonbit比赛\moon_langdetect\probes\embed-probe)
+exit=0 wall_seconds=0.249 timeout=900
+--- stdout ---
+so: 1874
+sw: 1770
+tl: 1873
+af: 2143
+en: 2301
+total: 9961
+
+--- stderr ---
+

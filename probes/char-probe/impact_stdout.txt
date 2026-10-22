@@ -1,0 +1,13 @@
+plain_af     identical=True
+with_tje     identical=True
+only_tje     identical=True
+with_garay   identical=True
+rep_A_tje    identical=False
+   python : [{'lang': 'hu', 'prob': '3feffffccff6acab'}]
+   moonbit: [{'lang': 'hu', 'prob': '3feffffc2f48e5fe'}]
+rep_THE_tje  identical=False
+   python : [{'lang': 'vi', 'prob': '3feffff5ed0d6ac5'}]
+   moonbit: [{'lang': 'en', 'prob': '3feffff6ee299850'}]
+rep_plain_repeat identical=True
+changed: 2/7
+-> F:\moonbit比赛\moon_langdetect\docs\port\golden\char_upper_impact.json

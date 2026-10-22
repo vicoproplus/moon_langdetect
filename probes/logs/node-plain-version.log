@@ -1,0 +1,7 @@
+$ node --version
+exit=1
+--- stdout ---
+
+--- stderr ---
+The system cannot find the path specified.
+

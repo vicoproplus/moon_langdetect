@@ -1,0 +1,130 @@
+{
+  "label": "s1-flat",
+  "mode": "flat",
+  "langs_arg": "1",
+  "languages": 1,
+  "entries": 1874,
+  "data_mbt_bytes": 17498,
+  "test_mbt_bytes": 358,
+  "gen_seconds": 0.002,
+  "gen_log": "probes/logs/s1-flat-00-gen.log",
+  "build_runs": [
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-flat-02-build1.log",
+      "exit_code": 0,
+      "wall_seconds": 0.694,
+      "timed_out": false,
+      "output_tail": [
+        "runtime.c",
+        "sync_io.c",
+        "env.c",
+        "backtrace.c",
+        "  正在创建库 F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\_build\\native\\debug\\build\\cmd\\main\\main.lib 和对象 F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\_build\\native\\debug\\build\\cmd\\main\\main.exp",
+        "Finished. moon: ran 10 tasks, now up to date"
+      ]
+    },
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-flat-02-build2.log",
+      "exit_code": 0,
+      "wall_seconds": 0.709,
+      "timed_out": false,
+      "output_tail": [
+        "runtime.c",
+        "env.c",
+        "sync_io.c",
+        "backtrace.c",
+        "  正在创建库 F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\_build\\native\\debug\\build\\cmd\\main\\main.lib 和对象 F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\_build\\native\\debug\\build\\cmd\\main\\main.exp",
+        "Finished. moon: ran 10 tasks, now up to date"
+      ]
+    },
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "build",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-flat-02-build3.log",
+      "exit_code": 0,
+      "wall_seconds": 0.692,
+      "timed_out": false,
+      "output_tail": [
+        "runtime.c",
+        "sync_io.c",
+        "env.c",
+        "backtrace.c",
+        "  正在创建库 F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\_build\\native\\debug\\build\\cmd\\main\\main.lib 和对象 F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\_build\\native\\debug\\build\\cmd\\main\\main.exp",
+        "Finished. moon: ran 10 tasks, now up to date"
+      ]
+    }
+  ],
+  "test_runs": [
+    {
+      "cmd": [
+        "C:\\Users\\Administrator\\.moon\\bin\\moon.exe",
+        "test",
+        "--target",
+        "native"
+      ],
+      "log": "probes/logs/s1-flat-03-test.log",
+      "exit_code": 0,
+      "wall_seconds": 1.222,
+      "timed_out": false,
+      "output_tail": [
+        "   ╭─[ F:\\moonbit比赛\\moon_langdetect\\probes\\embed-probe\\moon.pkg:2:3 ]",
+        "   │",
+        " 2 │   \"vicoproplus/embed-probe/lib/data\"",
+        "   │   ─────────────────┬────────────────  ",
+        "   │                    ╰────────────────── Warning (unused_package): Unused package 'vicoproplus/embed-probe/lib/data'",
+        "───╯"
+      ]
+    }
+  ],
+  "timed_out": false,
+  "build_seconds": [
+    0.692,
+    0.709
+  ],
+  "build_exit_codes": [
+    0,
+    0,
+    0
+  ],
+  "exe_bytes": 245248,
+  "build_dir_bytes": 1520247,
+  "build_dir_native_bytes": 1518896,
+  "largest_artifacts": [
+    {
+      "path": "native/debug/build/libruntime.lib",
+      "bytes": 513718
+    },
+    {
+      "path": "native/debug/build/cmd/main/main.exe",
+      "bytes": 245248
+    },
+    {
+      "path": "native/debug/build/cmd/main/__moonbit_link_core__/main.obj",
+      "bytes": 182480
+    },
+    {
+      "path": "native/debug/build/runtime-backtrace.obj",
+      "bytes": 152609
+    },
+    {
+      "path": "native/debug/build/runtime-runtime.obj",
+      "bytes": 149866
+    }
+  ]
+}

@@ -1,0 +1,423 @@
+{
+ "meta": {
+  "moonbit_lines": 24160,
+  "golden": "docs\\port\\golden\\float_add_python.json",
+  "golden_inputs_match_live_replay": true,
+  "golden_langprob_match_live_replay": true,
+  "python_sum_semantics": {
+   "pairs": 307,
+   "builtin_vs_naive_identical": 69,
+   "builtin_vs_naive_first_mismatch": {
+    "scenario": "A-uniform",
+    "group": 1,
+    "builtin": "4039bd256889ff8d",
+    "naive": "4039bd256889ff8c"
+   },
+   "builtin_vs_neumaier_identical": 307,
+   "builtin_vs_neumaier_first_mismatch": null
+  },
+  "sum_vs_loop_per_scenario": {
+   "A-uniform": {
+    "groups": 200,
+    "sum_builtin_vs_naive_mismatched_groups": 145,
+    "first_mismatch": {
+     "group": 1,
+     "builtin": "4039bd256889ff8d",
+     "naive": "4039bd256889ff8c"
+    }
+   },
+   "B-extreme": {
+    "groups": 50,
+    "sum_builtin_vs_naive_mismatched_groups": 50,
+    "first_mismatch": {
+     "group": 0,
+     "builtin": "7e84289312c0633c",
+     "naive": "7e84289312c0633e"
+    }
+   },
+   "C-negative": {
+    "groups": 50,
+    "sum_builtin_vs_naive_mismatched_groups": 40,
+    "first_mismatch": {
+     "group": 0,
+     "builtin": "7e6d1b15cdc9d78e",
+     "naive": "7e6d1b15cdc9d78f"
+    },
+    "normalized_values": 2750,
+    "normalized_by_naive_vs_builtin_mismatched": 2027
+   },
+   "E-stochastic": {
+    "groups": 7,
+    "sum_builtin_vs_naive_mismatched_groups": 3,
+    "first_mismatch": {
+     "group": 1,
+     "builtin": "4039980b8b9d6259",
+     "naive": "4039980b8b9d625d"
+    },
+    "normalized_values": 385,
+    "normalized_by_naive_vs_builtin_mismatched": 164
+   }
+  }
+ },
+ "scenarios": {
+  "A-uniform": {
+   "input": {
+    "pairs": 11000,
+    "identical": 11000,
+    "mismatched": 0,
+    "length_python": 11000,
+    "length_moonbit": 11000,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "input",
+    "detail": "两侧输入位型"
+   },
+   "sum_naive": {
+    "pairs": 200,
+    "identical": 200,
+    "mismatched": 0,
+    "length_python": 200,
+    "length_moonbit": 200,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_naive",
+    "detail": "MoonBit 朴素顺序累加"
+   },
+   "sum_neumaier": {
+    "pairs": 200,
+    "identical": 200,
+    "mismatched": 0,
+    "length_python": 200,
+    "length_moonbit": 200,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_neumaier",
+    "detail": "MoonBit Neumaier 累加"
+   }
+  },
+  "B-extreme": {
+   "input": {
+    "pairs": 2750,
+    "identical": 2750,
+    "mismatched": 0,
+    "length_python": 2750,
+    "length_moonbit": 2750,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "input",
+    "detail": "两侧输入位型"
+   },
+   "sum_naive": {
+    "pairs": 50,
+    "identical": 50,
+    "mismatched": 0,
+    "length_python": 50,
+    "length_moonbit": 50,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_naive",
+    "detail": "MoonBit 朴素顺序累加"
+   },
+   "sum_neumaier": {
+    "pairs": 50,
+    "identical": 50,
+    "mismatched": 0,
+    "length_python": 50,
+    "length_moonbit": 50,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_neumaier",
+    "detail": "MoonBit Neumaier 累加"
+   }
+  },
+  "C-negative": {
+   "input": {
+    "pairs": 2750,
+    "identical": 2750,
+    "mismatched": 0,
+    "length_python": 2750,
+    "length_moonbit": 2750,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "input",
+    "detail": "两侧输入位型"
+   },
+   "sum_naive": {
+    "pairs": 50,
+    "identical": 50,
+    "mismatched": 0,
+    "length_python": 50,
+    "length_moonbit": 50,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_naive",
+    "detail": "MoonBit 朴素顺序累加"
+   },
+   "sum_neumaier": {
+    "pairs": 50,
+    "identical": 50,
+    "mismatched": 0,
+    "length_python": 50,
+    "length_moonbit": 50,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_neumaier",
+    "detail": "MoonBit Neumaier 累加"
+   },
+   "normalized_by_naive": {
+    "pairs": 2750,
+    "identical": 2750,
+    "mismatched": 0,
+    "length_python": 2750,
+    "length_moonbit": 2750,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "normalized_by_naive",
+    "detail": "p/sump(naive)"
+   },
+   "normalized_by_builtin_sum": {
+    "pairs": 2750,
+    "identical": 2750,
+    "mismatched": 0,
+    "length_python": 2750,
+    "length_moonbit": 2750,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "normalized_by_builtin_sum",
+    "detail": "p/sump(builtin sum)"
+   }
+  },
+  "E-stochastic": {
+   "input": {
+    "pairs": 385,
+    "identical": 385,
+    "mismatched": 0,
+    "length_python": 385,
+    "length_moonbit": 385,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "input",
+    "detail": "两侧输入位型"
+   },
+   "sum_naive": {
+    "pairs": 7,
+    "identical": 7,
+    "mismatched": 0,
+    "length_python": 7,
+    "length_moonbit": 7,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_naive",
+    "detail": "MoonBit 朴素顺序累加"
+   },
+   "sum_neumaier": {
+    "pairs": 7,
+    "identical": 7,
+    "mismatched": 0,
+    "length_python": 7,
+    "length_moonbit": 7,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "sum_neumaier",
+    "detail": "MoonBit Neumaier 累加"
+   },
+   "normalized_by_naive": {
+    "pairs": 385,
+    "identical": 385,
+    "mismatched": 0,
+    "length_python": 385,
+    "length_moonbit": 385,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "normalized_by_naive",
+    "detail": "p/sump(naive)"
+   },
+   "normalized_by_builtin_sum": {
+    "pairs": 385,
+    "identical": 385,
+    "mismatched": 0,
+    "length_python": 385,
+    "length_moonbit": 385,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "normalized_by_builtin_sum",
+    "detail": "p/sump(builtin sum)"
+   }
+  },
+  "D-langprob7": {
+   "langprob_7rounds": {
+    "pairs": 385,
+    "identical": 385,
+    "mismatched": 0,
+    "length_python": 385,
+    "length_moonbit": 385,
+    "first_mismatch": null,
+    "all_identical": true,
+    "kind": "langprob_7rounds",
+    "detail": "7 轮 +=h/7"
+   }
+  }
+ },
+ "table": [
+  {
+   "scenario": "A-uniform",
+   "kind": "input",
+   "detail": "两侧输入位型",
+   "pairs": 11000,
+   "identical": 11000,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "B-extreme",
+   "kind": "input",
+   "detail": "两侧输入位型",
+   "pairs": 2750,
+   "identical": 2750,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "C-negative",
+   "kind": "input",
+   "detail": "两侧输入位型",
+   "pairs": 2750,
+   "identical": 2750,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "E-stochastic",
+   "kind": "input",
+   "detail": "两侧输入位型",
+   "pairs": 385,
+   "identical": 385,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "A-uniform",
+   "kind": "sum_naive",
+   "detail": "MoonBit 朴素顺序累加",
+   "pairs": 200,
+   "identical": 200,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "B-extreme",
+   "kind": "sum_naive",
+   "detail": "MoonBit 朴素顺序累加",
+   "pairs": 50,
+   "identical": 50,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "C-negative",
+   "kind": "sum_naive",
+   "detail": "MoonBit 朴素顺序累加",
+   "pairs": 50,
+   "identical": 50,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "E-stochastic",
+   "kind": "sum_naive",
+   "detail": "MoonBit 朴素顺序累加",
+   "pairs": 7,
+   "identical": 7,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "A-uniform",
+   "kind": "sum_neumaier",
+   "detail": "MoonBit Neumaier 累加",
+   "pairs": 200,
+   "identical": 200,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "B-extreme",
+   "kind": "sum_neumaier",
+   "detail": "MoonBit Neumaier 累加",
+   "pairs": 50,
+   "identical": 50,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "C-negative",
+   "kind": "sum_neumaier",
+   "detail": "MoonBit Neumaier 累加",
+   "pairs": 50,
+   "identical": 50,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "E-stochastic",
+   "kind": "sum_neumaier",
+   "detail": "MoonBit Neumaier 累加",
+   "pairs": 7,
+   "identical": 7,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "C-negative",
+   "kind": "normalized_by_naive",
+   "detail": "p/sump(naive)",
+   "pairs": 2750,
+   "identical": 2750,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "C-negative",
+   "kind": "normalized_by_builtin_sum",
+   "detail": "p/sump(builtin sum)",
+   "pairs": 2750,
+   "identical": 2750,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "E-stochastic",
+   "kind": "normalized_by_naive",
+   "detail": "p/sump(naive)",
+   "pairs": 385,
+   "identical": 385,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "E-stochastic",
+   "kind": "normalized_by_builtin_sum",
+   "detail": "p/sump(builtin sum)",
+   "pairs": 385,
+   "identical": 385,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  },
+  {
+   "scenario": "D-langprob7",
+   "kind": "langprob_7rounds",
+   "detail": "7 轮 +=h/7",
+   "pairs": 385,
+   "identical": 385,
+   "first_mismatch": null,
+   "conclusion": "逐位一致"
+  }
+ ],
+ "verdict": {
+  "all_inputs_identical": true,
+  "all_naive_identical": true,
+  "all_neumaier_identical": true,
+  "all_normalized_identical": true,
+  "langprob_identical": true
+ }
+}

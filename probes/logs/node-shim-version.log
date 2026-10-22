@@ -1,0 +1,7 @@
+$ F:\moonbit比赛\moon_langdetect\probes\bin\node.cmd --version
+exit=0
+--- stdout ---
+1.4.3
+
+--- stderr ---
+
