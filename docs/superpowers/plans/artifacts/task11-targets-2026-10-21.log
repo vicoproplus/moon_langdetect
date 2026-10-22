@@ -1,0 +1,289 @@
+# Task 11 — 三目标验收证据日志（native 全量 / js 仅构建 / wasm-gc 仅构建）
+
+- 日期：2026-10-23（计划文件日期口径 2026-10-21）
+- 仓库：`F:/moonbit比赛/moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- 基线 HEAD：`5c2a7f264966decf2c93a0a6eab4294e8c3320da`
+- 工具链：`moon 0.1.20261012 (748b63c 2026-10-12)`；Feature flags `rr_moon_mod,rr_moon_pkg`
+- Python：`Python 3.12.10`（`.venv/Scripts/python.exe`）
+- 平台：win32 10.0.19045 x64；Shell = Git Bash（`D:/Program Files/Git/bin/bash.exe`）
+- 证据性质：**只读验收**。本任务不修改任何产品代码、spec、计划或 `docs/port/`。
+
+## 0. 保留策略与配额
+
+| 项 | 值 |
+|---|---|
+| 本日志保留策略 | **90 天**（自 2026-10-23 起算，至 2027-01-21） |
+| `target-report-2026-10-21.md` 保留策略 | **永久** |
+| 时长上限 | **120 分钟**（实际：本轮全部命令合计约 25 分钟墙钟，远低于上限） |
+| 外部调用轮次上限 | **20 次**（实际：**0 次**；本任务零网络、零第三方 API、零外部服务调用） |
+
+外部调用计数口径：任何离开本机的网络请求（含包管理器、CI、远程运行时、模型 API）。本轮 = 0。
+
+## 1. native 门禁（R8）
+
+```text
+$ moon build --target native
+Finished. moon: no work to do
+build_rc=0
+
+$ moon test --target native
+Total tests: 116, passed: 116, failed: 0.
+test_rc=0
+```
+
+- 汇总行：`Total tests: 116, passed: 116, failed: 0.`
+- 判定：**绿**（native 构建 + 全量测试）。
+
+## 2. native 全模式比对（R9 / R7）
+
+所有命令均以 `&&` 串联，失败即中止。逐条命令 | rc | 结果行：
+
+| # | 命令 | rc | 结果行 |
+|---|---|---|---|
+| 1 | `.venv/Scripts/python.exe tools/compare_golden.py --self-check` | 0 | `ok 268=250+18 (prob_entries=274, seeds=0/42)` |
+| 2 | `compare_golden.py --dry-run` | 0 | `ok dry-run lines=268 expected=268 (250 probability + 18 error cases)`（stdout 行数 268） |
+| 3 | `compare_golden.py --target native --seed 0 --mode prob_bits` | 0 | `ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical` |
+| 4 | `compare_golden.py --target native --seed 42 --mode prob_bits` | 0 | `ok prob_bits target=native seed=42 cases=125/125 entries=136 bitwise=identical` |
+| 5 | `compare_golden.py --target native --seed 0 --mode seed_semantics` | 0 | `ok seed_semantics target=native repeatability=14/14 groups x5 runs (70 runs), seed_diff=125/125 (0 vs 42 differ as recorded), unseeded=7/7 texts (70 runs; top in baseline distinct_langs, RNG variation required where baseline distinct_count > 1)` |
+| 6 | `compare_golden.py --target native --seed 0 --mode failures` | 0 | `ok failures target=native cases=18/18 code/message/input_len/input_prefix matched; failure_set=[]` |
+| 7 | `compare_golden.py --target native --seed 0 --mode forensics` | 0 | `ok forensics target=native cases=18/18 four_fields=code/message/input_len/input_prefix` |
+| 8 | `compare_golden.py --target native --seed 0 --mode cleaning` | 0 | `ok cleaning target=native cases=6/6 V-40..V-43` |
+| 9 | `compare_golden.py --target native --seed 0 --mode features_cache` | 0 | `ok features_cache target=native checks=2/2 V-46 raw grams exact; V-47 probs1==probs2` |
+| 10 | `compare_golden.py --target native --seed 0 --mode profile_counts` | 0 | `ok profile_counts target=native lang_list_len=55 entry_total=184129 vector_len=55 u06_parse_ms=204 u06_load_ms=323` |
+| 11 | `compare_golden.py --target native --seed 0 --mode repeatability` | 0 | `ok repeatability target=native groups=14/14 runs=70 identical=yes` |
+| 12 | `compare_golden.py --target native --seed 0 --mode top1` | 0 | `ok top1 target=native cases=250/250 top_lang=detect` |
+| 13 | `compare_golden.py --target native --seed 0 --mode lang_list_len` | 0 | `ok lang_list_len target=native len=55 order=expected.json/meta.langlist` |
+| 14 | `compare_golden.py --target native --seed 0 --mode entry_total` | 0 | `ok entry_total target=native total=184129` |
+| 15 | `compare_golden.py --target native --seed 0 --mode prob_tolerance` | 0 | `ok prob_tolerance target=native: bitwise-only, tolerance not applicable (convention C C1/C5; native compares prob_bits)` |
+| 16 | `compare_lowconf.py --short 55 --long 55 --baseline 268` | 0 | `ok lowconf seed=0 short=55/55 (<50 LowConfidence), long=55/55 (>=50 Detected, top in golden candidates), baseline=268` |
+
+模式覆盖：`--self-check` + `--dry-run` + 12 个产品模式（`prob_bits`×2 seeds、`seed_semantics`、`failures`、`forensics`、`cleaning`、`features_cache`、`profile_counts`、`repeatability`、`top1`、`lang_list_len`、`entry_total`、`prob_tolerance`）全部实跑、全部 rc=0。
+
+### 2.1 forensics 逐案例行（18/18 matched）
+
+```text
+forensics extra-digits-and-space: code=5 message='No features in text.' input_len=11 input_prefix='12 34 56 78' expected_len=11 expected_prefix='12 34 56 78'
+forensics extra-digits-only: code=5 message='No features in text.' input_len=10 input_prefix='1234567890' expected_len=10 expected_prefix='1234567890'
+forensics extra-emoji-only: code=5 message='No features in text.' input_len=5 input_prefix='😀😍🎉👍🚀' expected_len=5 expected_prefix='😀😍🎉👍🚀'
+forensics extra-emoji-only-zwj: code=5 message='No features in text.' input_len=5 input_prefix='👨‍👩‍👧' expected_len=5 expected_prefix='👨‍👩‍👧'
+forensics extra-empty: code=5 message='No features in text.' input_len=0 input_prefix='' expected_len=0 expected_prefix=''
+forensics extra-punctuation-only: code=5 message='No features in text.' input_len=12 input_prefix='!!!???...,,,' expected_len=12 expected_prefix='!!!???...,,,'
+forensics extra-url-only: code=5 message='No features in text.' input_len=38 input_prefix='https://example.com/very/long/pa' expected_len=38 expected_prefix='https://example.com/very/long/pa'
+forensics extra-whitespace-only-mixed: code=5 message='No features in text.' input_len=9 input_prefix=' \t\r\n  \xa0  ' expected_len=9 expected_prefix=' \t\r\n  \xa0  '
+forensics extra-whitespace-only-spaces: code=5 message='No features in text.' input_len=5 input_prefix='     ' expected_len=5 expected_prefix='     '
+（以上 9 条在 seed 42 各有一条 @seed42 孪生行，四字段同样 matched，合计 18 条）
+forensics: expected.json carries code/message/type only; input_len/input_prefix derived from case text (spec §5.8)
+```
+
+### 2.2 268 / 55 / 51 的口径（**必须逐字理解，不可互相替代**）
+
+| 记录值 | 来源命令 | 实际含义 |
+|---|---|---|
+| **268/268** | `--self-check`（`ok 268=250+18`）+ 12 模式覆盖 | 基准案例总数 = 250 概率案例 + 18 异常案例；`failure_set=[]` |
+| **55/55（short）** | `compare_lowconf.py --short 55 --long 55` | 55 条 **< 50 码点**文本全部返回 `LowConfidence` 且 `char_count` 与文本码点数一致 |
+| **55/55（long，实测值）** | `compare_lowconf.py --short 55 --long 55` | 55 条 **≥ 50 码点**文本全部返回 `Detected` 且 top 语言落在该案例的 golden 候选集合内 |
+| **51/55（基准口径）** | `docs/port/golden/summary.json` → `detect_accuracy_short_seed0` | 上游 Python 对**短文本**的 top-1 准确率基线：`hit=51, miss=4, n=55`，miss = `short-bg` / `short-no` / `short-zh-cn` / `short-zh-tw` |
+
+**差异声明（显式记录，不静默替换）**：brief 与 rubric R9 把 `51/55` 归到 `compare_lowconf.py --short 55 --long 55` 的 **long** 分组，但 runner 实测输出为 `long=55/55`。核对后确认：
+
+- `compare_lowconf.py` 的 long 判据是「`>=50 Detected` 且 top ∈ golden 候选集合」（见 `tools/compare_lowconf.py:266-277`），**不是** top-1 严格准确率，故不可能输出 51/55；
+- `51/55` 的真实来源是 `docs/port/golden/summary.json` 的 `detect_accuracy_short_seed0`（短文本 top-1 基线，seed=0），与 `docs/port/architecture-decisions.md:83,93` 及 spec V-23 的表述一致。
+
+结论：`55/55`（short）、`55/55`（long）、`51/55`（上游短文本准确率基线）三个数值**各自成立但语义不同**，本日志按实测分别记录，不以 51/55 替换 long 的实测 55/55。**R9 的字面措辞（"55/55 short and 51/55 long from compare_lowconf.py"）与 runner 行为不符，属 rubric 口径缺陷，已在 `task-11-report.md` §5 记为偏差项。**
+
+## 3. js 目标（仅构建，R10 / R11）
+
+```text
+$ moon build --target js
+Finished. moon: no work to do
+js_build_rc=0
+```
+
+- **rc = 0**；产物已就位且与当前源码一致（`moon` 报 `no work to do`，即无需重编）。
+- 产物：`_build/js/debug/build/src/core/cmd/golden/golden.js`（2 766 239 B，mtime 2026-10-23 02:04）
+
+### 3.1 `moon test --target js` **未在本机执行**（明确声明）
+
+本机**未**运行 `moon test --target js`。理由（逐字采用 brief Step 2 的实测理由）：
+
+> `probes/bin` 只有 `node.cmd`，而 moon spawn 的是 `node.exe` → `Failed to spawn node.exe … program not found`；且在仓库根执行 `moon test --target js` 会输出 `Total tests: 0` 且 rc=0（**空跑也绿**），不可作为证据。
+
+本机旁证（同一根因，非 test 命令本身）：
+
+```text
+$ moon run --target js src/core/cmd/main
+The system cannot find the path specified.
+run_js_rc=1
+```
+
+即：js 目标的可执行链路在本机因运行时缺失而在 spawn 阶段失败（rc=1，无任何测试计数），与 brief 记录的 `node.exe` spawn 失败同源。另实测 `moonrun --version` → **rc=127**（命令不存在）。
+
+### 3.2 本机 js 侧判定
+
+| 项 | 状态 | 依据 |
+|---|---|---|
+| `moon test --target js` | `[LOCAL_DEAD_LINK]` | U-02 / M-02；本机不得判绿 |
+| `compare_golden.py --target js --mode top1` | `[LOCAL_DEAD_LINK]` | U-02 / M-02（U-10 → M-10 的 js 侧） |
+| `compare_golden.py --target js --mode lang_list_len` | `[LOCAL_DEAD_LINK]` | U-02 / M-02（U-09 → M-09 的 js 侧） |
+| `compare_golden.py --target js --mode entry_total` | `[LOCAL_DEAD_LINK]` | U-02 / M-02（U-09 → M-09 的 js 侧） |
+| `ln_for_gauss(2.0)` js 侧冒烟（A9） | `[LOCAL_DEAD_LINK]` | U-02 / M-02；异地执行 |
+
+### 3.3 js 运行时身份（本机可观测部分，R18）
+
+| 观测项 | 观测命令 | 观测结果 |
+|---|---|---|
+| `probes/bin` 内容 | `ls probes/bin/` | 仅 `node.cmd`（59 B），**无 `node.exe`** |
+| `probes/bin/node.cmd` 指向 | `cat probes/bin/node.cmd` | `"C:\Users\Administrator\.bun\bin\bun.EXE" %*` |
+| 该替代运行时版本 | `"/c/Users/Administrator/.bun/bin/bun.exe" --version` | `1.4.3`（**bun 1.4.3，非 Node**） |
+| `node.exe` 是否存在 | `where.exe node.exe` | `INFO: Could not find files for the given pattern(s).` → **rc=1，不存在** |
+| `node`（无扩展名）解析结果 | `where.exe node` | `C:\Users\Administrator\.bunpm\bin\node.cmd`（仍是 `.cmd`，非 `.exe`） |
+| 该 `.cmd` 指向 | `cat "C:/Users/Administrator/.bunpm/bin/node.cmd"` | `"D:\nvm4w\nodejs\bun" %*` |
+| 该目标是否存在 | `ls /d/nvm4w/nodejs` | `No such file or directory` → **指向已失效路径** |
+| 官方 Node 安装 | `ls "C:/Program Files/nodejs"` | `No such file or directory` → **未安装** |
+| `moonrun` | `moonrun --version` | **rc=127**（命令不存在） |
+| `moon --help` runner 覆盖项 | `moon --help \| grep -i run` | 仅 `run`、`runwasm  Deprecated…`，**无 runner 覆盖变量** |
+
+**结论**：本机 js 运行时身份 = **bun 1.4.3（经 `probes/bin/node.cmd` 与 `~/.bunpm/bin/node.cmd` 两层 shim）**，官方 Node **未安装**、`node.exe` **不存在**、`moonrun` **不存在**。因此 moon 无法 spawn `node.exe` → js 运行时链路为**死链**。不虚构任何 Node 版本号。
+
+## 4. wasm-gc 目标（仅构建，R12）
+
+```text
+$ moon build --target wasm-gc
+Finished. moon: no work to do
+wasm_build_rc=0
+```
+
+- **rc = 0**；产物：`_build/wasm-gc/debug/build/src/core/cmd/golden/golden.wasm`（3 416 907 B，mtime 2026-10-23 02:04）
+- **未**执行 `moon test --target wasm-gc`（依据 U-01 / U-08；本机 `moonrun` 不存在，rc=127，同上表）。
+
+## 5. 三目标主语言 / 语言数 / 条目合计（R14）
+
+| 目标 | 主语言（`--mode top1`） | 语言数（`--mode lang_list_len`） | 条目合计（`--mode entry_total`） | 判定 |
+|---|---|---|---|---|
+| **native (win32 x64)** | `detect`（250/250 案例 top 语言一致） | **55** | **184129** | **绿**（M-09 / M-10 的 native 部分本机实跑通过） |
+| **js** | `[LOCAL_DEAD_LINK]` | `[LOCAL_DEAD_LINK]` | `[LOCAL_DEAD_LINK]` | **不判绿** — U-02 / M-02（js 侧比对异地执行） |
+| **wasm-gc** | `[LOCAL_DEAD_LINK]` | `[LOCAL_DEAD_LINK]` | `[LOCAL_DEAD_LINK]` | **不判绿** — U-01 / U-08 → M-01 / M-08 / M-09 / M-10（wasm 运行器不可达） |
+
+native 证据行（原文）：
+
+```text
+ok top1 target=native cases=250/250 top_lang=detect
+ok lang_list_len target=native len=55 order=expected.json/meta.langlist
+ok entry_total target=native total=184129
+```
+
+## 6. 容差档 `--mode prob_tolerance`（仅登记，R15）
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode prob_tolerance
+ok prob_tolerance target=native: bitwise-only, tolerance not applicable (convention C C1/C5; native compares prob_bits)
+rc=0
+```
+
+**登记口径：不做任何数值容差判定。**
+
+| 平台 | 状态 | 登记项 |
+|---|---|---|
+| native | 位级唯一口径，容差**不适用**（约定 C C1 / C5） | — |
+| js / wasm-gc | 容差数值**待校准**，不判绿 | U-04 / U-12 / M-04 |
+| native-other（linux / macos） | 不判绿 | U-05 / U-11 / M-05 / M-11 |
+
+## 7. A11 两档证据（R16）
+
+### 7.1 构建面（三目标产物 sha256）
+
+```text
+$ sha256sum _build/native/debug/build/src/core/cmd/golden/golden.exe \
+            _build/js/debug/build/src/core/cmd/golden/golden.js \
+            _build/wasm-gc/debug/build/src/core/cmd/golden/golden.wasm
+5d75dc59d47d7dee8153f1058258425884d408c97982f3eb66e11ad22fbe56e2 *.../golden.exe
+f5acb7eea3b306c617db512a4f0ec315a4e365a9b1f6f6dae7b2424ea0b843a6 *.../golden.js
+11023f2f1c084e39765ce57df9395be6aa3d3a5d0f736c0fc9a48cf5cbd37bf0 *.../golden.wasm
+```
+
+静默 CLI（`cmd/main`）产物 sha256（对照用，非诊断入口）：
+
+```text
+3aaed8a379bcb0e3b89cedb06121c1d15eebd0c5816f3f423e39c1a6566d1b73 *.../cmd/main/main.exe
+d07c83c16ae93cdff10e7ef12cbbfc217cc150bd8666ecd995ecc52a9315ac9b *.../cmd/main/main.js
+cec742f154d115fc139d41e2a3267930b3a7f1334cf0197cbe9e02018007a9ff *.../cmd/main/main.wasm
+```
+
+| 目标 | 产物 | 字节数 | sha256 | 构建 rc |
+|---|---|---|---|---|
+| native | `golden.exe` | 4 268 544 | `5d75dc59d47d7dee8153f1058258425884d408c97982f3eb66e11ad22fbe56e2` | 0 |
+| js | `golden.js` | 2 766 239 | `f5acb7eea3b306c617db512a4f0ec315a4e365a9b1f6f6dae7b2424ea0b843a6` | 0 |
+| wasm-gc | `golden.wasm` | 3 416 907 | `11023f2f1c084e39765ce57df9395be6aa3d3a5d0f736c0fc9a48cf5cbd37bf0` | 0 |
+
+（wasm-gc 完整哈希：`11023f2f1c084e39765ce57df9395be6aa3d3a5d0f736c0fc9a48cf5cbd37bf0`）
+
+### 7.2 运行面（native 运行证据）
+
+- golden 输出行：见 §2 表 1–15 的 15 条 `ok …` 结果行（268 案例覆盖）。
+- 测试汇总：`Total tests: 116, passed: 116, failed: 0.`
+- 低置信入口：`ok lowconf seed=0 short=55/55 …, long=55/55 …, baseline=268`
+
+## 8. U-06 回填值（本机实测，Task 10 来源）
+
+Task 10 对 `golden.exe '{"mode":"meta"}'` 做 3 次冷进程采样（N=3，取中位数）：
+
+| 运行 | `parse_ms` | `load_ms` | `total_ms` | `entry_total` |
+|---|---|---|---|---|
+| 1 | 229 | 347 | 576 | 184129 |
+| 2 | 209 | 358 | 567 | 184129 |
+| 3 | 207 | 317 | 524 | 184129 |
+| **中位数** | **209** | **347** | **567** | **184129** |
+
+- `parse_ms` = `@data.parse_profiles(@data.profiles_flat())` 单独耗时（解析 184129 条 freq 条目）。
+- `load_ms` = `@core.DetectorFactory::new()` + `factory.load_profile()` 耗时（解析 + 概率表构建）。
+- 本轮 Task 11 的 `profile_counts` 模式同时给出同量级单次采样：`u06_parse_ms=204 u06_load_ms=323`（与上表一致，作为交叉核对，不替代中位数口径）。
+
+## 9. 验收链（brief Output 命令，整条执行一次）
+
+```text
+$ date "+start=%Y-%m-%dT%H:%M:%S%z"
+start=2026-10-23T03:55:22+0800
+
+$ moon build --target native && moon build --target js && moon build --target wasm-gc \
+    && moon test --target native \
+    && .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode prob_bits
+Finished. moon: no work to do
+Finished. moon: no work to do
+Finished. moon: no work to do
+Total tests: 116, passed: 116, failed: 0.
+ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical
+chain_rc=0
+
+$ date "+end=%Y-%m-%dT%H:%M:%S%z"
+end=2026-10-23T03:56:08+0800
+```
+
+- **rc = 0**（与 brief「期望退出码：0」一致）。
+- 链式连接符全部为 `&&`（R5）；`chain_rc=$?` 仅为记录，不参与判定。
+
+## 10. 本批验收口径（N-03，逐字）
+
+- **wasm-gc 本批口径 = 仅 `moon build --target wasm-gc` rc=0；`moon test --target wasm-gc` 不入本批验收范围（依据 U-01 + M-01）**
+- **js 本批口径 = 仅 `moon build --target js` rc=0；`moon test --target js` 与 js 侧 `compare_golden` 比对 **不入本批验收范围**（交付范围显式收缩，依据 U-02 + M-02）**
+- native = 位级全量（`prob_bits` seeds 0/42 位级一致 + 268 案例 + 116 单测）。
+- **本批交付范围收缩**：js 运行时验证不入本批验收范围。
+
+## 11. 判定汇总
+
+| 维度 | 项 | 判定 |
+|---|---|---|
+| native 构建 | `moon build --target native` rc=0 | 绿 |
+| native 测试 | `moon test --target native` 116/116 | 绿 |
+| native 位级 | `prob_bits` seed 0 / 42 均 `bitwise=identical` | 绿 |
+| native 案例 | 268/268（250+18），`failure_set=[]` | 绿 |
+| native 低置信 | short 55/55、long 55/55、baseline 268 | 绿 |
+| native 主语言/语言数/条目 | detect / 55 / 184129 | 绿 |
+| js 构建 | `moon build --target js` rc=0 | 绿（**仅构建**） |
+| js 运行时 | test + 3 个 compare 模式 + `ln_for_gauss` 冒烟 | `[LOCAL_DEAD_LINK]`（U-02 / M-02），不判绿 |
+| wasm-gc 构建 | `moon build --target wasm-gc` rc=0 | 绿（**仅构建**） |
+| wasm-gc 运行时 | `moon test` / `profile_counts` / 三目标行 | `[LOCAL_DEAD_LINK]`（U-01 / U-08 → M-01 / M-08 / M-09 / M-10），不判绿 |
+| 容差档 | `--mode prob_tolerance` | 仅登记（U-04 / U-12 / M-04；U-05 / U-11 / M-05 / M-11） |
+| 验收链 | brief Output 命令整条 | rc=0 |
+
+**RESULT: PASS（native 全量绿；js / wasm-gc 按已声明的交付范围收缩，仅构建判绿，运行时全部登记为 `[LOCAL_DEAD_LINK]`）**
