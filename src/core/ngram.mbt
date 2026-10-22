@@ -70,13 +70,13 @@ fn lookup_vi(base : Int, mark : Int) -> Int? {
 }
 
 ///| Convert an in-range codepoint from the generated tables to a `Char`.
-///| Every constant and table entry is a valid Unicode scalar value, so the
-///| fallback (a space) is unreachable; the safe conversion avoids relying
-///| on the deprecated conversion primitive.
+///| Every constant and table entry is a valid Unicode scalar value, so a
+///| failed conversion means the table data is corrupt: abort loudly rather
+///| than silently substituting a space and changing normalization.
 fn char_of(codepoint : Int) -> Char {
   match codepoint.to_char() {
     Some(ch) => ch
-    None => ' '
+    None => abort("char_of: codepoint is not a valid Unicode scalar value")
   }
 }
 
