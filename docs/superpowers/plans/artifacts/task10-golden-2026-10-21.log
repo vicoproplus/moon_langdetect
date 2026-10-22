@@ -1,0 +1,307 @@
+# Task 10 golden 产品模式 + compare_lowconf + 268 案例 — 原始日志（2026-10-23）
+
+- 任务：Task 10 — `compare_golden.py` 产品模式 + `compare_lowconf.py` + 268 案例 + C6 零网络断言
+- 日期：2026-10-23
+- 计划文件：`docs/superpowers/plans/2026-10-21-moon-langdetect-语种检测.md`（Task 10 段，行 866 起）
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`6f14f27be5e1a5b7a563135bccc5e559adc6e4a3`
+- HEAD（Phase A 提交后）：`1b3e1ca1d9c0cdcc5d008028820f307ff67c450c`
+- 工具链：`moon 0.1.20261012 (748b63c 2026-10-12)`；native = win32 x64；Bash = Git Bash
+- 交付物（Phase A 4 路径）：`tools/compare_golden.py`（改，+868/−79）、`tools/compare_lowconf.py`（新，14228 B）、`src/core/cmd/golden/main.mbt`（新，10238 B）、`src/core/cmd/golden/moon.pkg`（新，167 B）
+- 交付物（Phase B 2 路径）：`tools/c6_zero_network.sh`（新，4196 B）、本日志
+
+## 0. 残留清理（Job 1）
+
+删除：`probe_lowconf3.py`、`probe_upstream_tw.py`、`tools/__pycache__/`。
+保留（用户文件，不动）：`2026-10-22-183213-empty-conversation.txt`。
+
+清理后工作树（`git status --porcelain --untracked-files=all | grep -vE '^\?\? (_build|\.venv)/'`），Phase A 提交前：
+
+```text
+ M tools/compare_golden.py
+?? 2026-10-22-183213-empty-conversation.txt
+?? src/core/cmd/golden/main.mbt
+?? src/core/cmd/golden/moon.pkg
+?? tools/c6_zero_network.sh
+?? tools/compare_lowconf.py
+?? tools/gen_float_golden.py
+?? tools/gen_golden.py
+?? tools/gen_rand_golden.py
+?? tools/probe_facts.py
+?? tools/profile_stats.py
+?? tools/summarize_probes.py
+```
+
+## 1. 产品模式验证（Job 2，步骤 1-15）
+
+基准文件 `docs/port/golden/expected.json` md5 = `219519ee19d7cc10d404ddbdab3acd87`（与 spec 命令 15 期望一致）。
+
+### 1.1 `moon build --target native`
+
+```text
+$ moon build --target native
+Finished. moon: ran 8 tasks, now up to date
+rc=0
+```
+
+### 1.2 `compare_golden.py --self-check`（支撑 268 计数行）
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --self-check
+ok 268=250+18 (prob_entries=274, seeds=0/42)
+rc=0
+```
+
+### 1.3 `--mode prob_bits`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode prob_bits
+ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical
+rc=0
+
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 42 --mode prob_bits
+ok prob_bits target=native seed=42 cases=125/125 entries=136 bitwise=identical
+rc=0
+```
+
+### 1.4 `--mode failures`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode failures
+ok failures target=native cases=18/18 code/message/input_len/input_prefix matched; failure_set=[]
+rc=0
+```
+
+失败集合为空：`failure_set=[]`（0 条未解释失败）。
+
+### 1.5 `--mode seed_semantics`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode seed_semantics
+unseeded text_len=15 runs=10 distinct_results=10 distinct_top_langs=['fi', 'pl']
+unseeded text_len=21 runs=10 distinct_results=10 distinct_top_langs=['de']
+unseeded text_len=2 runs=10 distinct_results=10 distinct_top_langs=['sw']
+unseeded text_len=5 runs=10 distinct_results=10 distinct_top_langs=['ca']
+unseeded text_len=26 runs=10 distinct_results=10 distinct_top_langs=['en']
+unseeded text_len=41 runs=10 distinct_results=10 distinct_top_langs=['en']
+unseeded text_len=60 runs=10 distinct_results=10 distinct_top_langs=['en']
+ok seed_semantics target=native repeatability=14/14 groups x5 runs (70 runs), seed_diff=125/125 (0 vs 42 differ as recorded), unseeded=7/7 texts x10 runs (70 runs, no exceptions; RNG variation recorded only)
+rc=0
+```
+
+### 1.6 `--mode repeatability`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode repeatability
+ok repeatability target=native groups=14/14 runs=70 identical=yes
+rc=0
+```
+
+### 1.7 `--mode top1`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode top1
+ok top1 target=native cases=250/250 top_lang=detect
+rc=0
+```
+
+### 1.8 `--mode lang_list_len`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode lang_list_len
+ok lang_list_len target=native len=55 order=expected.json/meta.langlist
+rc=0
+```
+
+### 1.9 `--mode entry_total`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode entry_total
+ok entry_total target=native total=184129
+rc=0
+```
+
+### 1.10 `--mode profile_counts`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode profile_counts
+ok profile_counts target=native lang_list_len=55 entry_total=184129 vector_len=55 u06_parse_ms=206 u06_load_ms=336
+rc=0
+```
+
+### 1.11 `--mode cleaning`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode cleaning
+ok cleaning target=native cases=6/6 V-40..V-43
+rc=0
+```
+
+### 1.12 `--mode features_cache`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode features_cache
+ok features_cache target=native checks=2/2 V-46 raw grams exact; V-47 probs1==probs2
+rc=0
+```
+
+### 1.13 `--mode forensics`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode forensics
+forensics extra-digits-and-space: code=5 message='No features in text.' input_len=11 input_prefix='12 34 56 78' expected_len=11 expected_prefix='12 34 56 78'
+forensics extra-empty: code=5 message='No features in text.' input_len=0 input_prefix='' expected_len=0 expected_prefix=''
+forensics extra-emoji-only-zwj: code=5 message='No features in text.' input_len=5 input_prefix='👨\u200d👩\u200d👧' expected_len=5 expected_prefix='👨\u200d👩\u200d👧'
+forensics extra-whitespace-only-spaces: code=5 message='No features in text.' input_len=5 input_prefix='     ' expected_len=5 expected_prefix='     '
+forensics: expected.json carries code/message/type only; input_len/input_prefix derived from case text (spec §5.8)
+ok forensics target=native cases=18/18 four_fields=code/message/input_len/input_prefix
+rc=0
+```
+
+（18 条逐案例行全部 matched，此处按首/尾 5 行截取；完整 18 行见运行产物。）
+
+### 1.14 `--mode prob_tolerance`
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode prob_tolerance
+ok prob_tolerance target=native: bitwise-only, tolerance not applicable (convention C C1/C5; native compares prob_bits)
+rc=0
+```
+
+### 1.15 268 案例汇总行（Job 4 要求）
+
+```text
+ok 268=250+18 (prob_entries=274, seeds=0/42)
+```
+
+即 268 = 250 概率案例 + 18 异常案例，全部通过；失败集合为空（`failure_set=[]`）。
+
+## 2. 低置信比对（步骤 15）
+
+```text
+$ .venv/Scripts/python.exe tools/compare_lowconf.py --short 55 --long 55 --baseline 268
+ok lowconf seed=0 short=55/55 (<50 LowConfidence), long=55/55 (>=50 Detected, top in golden candidates), baseline=268
+rc=0
+```
+
+## 3. 回归与三目标构建（步骤 16-17）
+
+```text
+$ moon test --target native
+Total tests: 116, passed: 116, failed: 0.
+rc=0
+
+$ moon build --target js && moon build --target wasm-gc
+Finished. moon: ran 2 tasks, now up to date
+Finished. moon: ran 2 tasks, now up to date
+rc=0
+```
+
+（附加观察，非验收项）`moon check` → `Finished. moon: ran 4 tasks, now up to date (5 warnings, 0 errors)`，rc=0。
+
+## 4. C6 零网络运行时断言（FR-24 / NE4-1，步骤 18-19）
+
+被测二进制真实路径 = `./_build/native/debug/build/src/core/cmd/golden/golden.exe`（MoonBit 以**包目录名**命名可执行产物；`cmd/golden` 包 → `golden.exe`）。brief 字面写的是 `main.exe`，该文件在同目录下**不存在**。
+
+```text
+$ sh tools/c6_zero_network.sh ./_build/native/debug/build/src/core/cmd/golden/golden.exe docs/port/golden/cases.jsonl
+HITS=0 SAMPLES=3 WINPID=34436 child_rc=0
+aux_netstat_diff added=3 removed=4 (observation only; TIME_WAIT noise, not a criterion)
+c6_rc=0
+```
+
+结论：检测期间**没有任何**属于被测 PID 的对外连接 → `HITS=0`，rc=0（态 ①）。
+
+```text
+$ sh tools/c6_zero_network.sh ./_build/native/debug/build/src/core/cmd/golden/main.exe docs/port/golden/cases.jsonl; echo "c6_mainexe_rc=$?"
+c6_mainexe_rc=2
+```
+
+说明（保真记录，不改写）：brief 字面路径 `.../cmd/golden/main.exe` 在本机**不存在**，脚本按契约 `test -x "$1" || exit 2` 直接退出 → rc=2。这是 Task 10 Output 五态表中**态 ③（二进制缺失 → rc=2）** 的现场证据，同时也记录了这个路径偏差；真实二进制走的 `golden.exe` 分支 rc=0。`[LOCAL_DEAD_LINK]` 不适用（真实路径可达且已判绿）。
+
+## 5. U-06 计时（首次工厂加载 + 解析 184129 条 profile 条目）
+
+测量定义（逐字对应 `src/core/cmd/golden/main.mbt` 的 `meta_json()`，均为**冷进程内**测量，单位 ms，取自 `@env.now()` 单调时钟差值）：
+
+- `parse_ms` = `@data.parse_profiles(@data.profiles_flat())` 单独耗时（解析 184129 条 freq 条目）。
+- `load_ms` = `@core.DetectorFactory::new()` + `factory.load_profile()` 耗时（解析 + 概率表构建）。
+- 每次运行都是新的 OS 进程（一进程一 mode），因此 `load_ms` 含首次工厂加载成本。
+
+命令与 3 次运行（N=3，`golden.exe '{"mode":"meta"}'`，取 JSON 中的 `parse_ms` / `load_ms` / `entry_total`）：
+
+```text
+$ for i in 1 2 3; do ./_build/native/debug/build/src/core/cmd/golden/golden.exe '{"mode":"meta"}' | .venv/Scripts/python.exe -c "..."; done
+parse_ms=229 load_ms=347 total_ms=576 entry_total=184129
+parse_ms=209 load_ms=358 total_ms=567 entry_total=184129
+parse_ms=207 load_ms=317 total_ms=524 entry_total=184129
+```
+
+| 运行 | parse_ms | load_ms | total (parse+load) |
+|---|---|---|---|
+| 1 | 229 | 347 | 576 |
+| 2 | 209 | 358 | 567 |
+| 3 | 207 | 317 | 524 |
+| **中位数** | **209** | **347** | **567** |
+
+U-06 结论：首次解析 184129 条 profile 条目中位 **209 ms**；首次工厂加载（parse + 概率表）中位 **347 ms**；两者合计中位 **567 ms**。与 `profile_counts` 模式自测的一次采样（`u06_parse_ms=206 u06_load_ms=336`）同量级。
+
+## 6. 静态红线（步骤 21 + spec §10.6 命令 1-14）
+
+### 6.1 命令 11b（修订形态；豁免 `cmd/main` 与 `cmd/golden` 两个 CLI 包）
+
+```text
+$ grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\/]cmd[\/]' | wc -l
+0
+rc=0
+```
+
+计数 = 0 → 库侧（`src/core` 非 cmd 部分、`src/data`、`src/unicode`、`src/math_seam`）无任何打印 / `@stdio` 依赖。
+
+### 6.2 命令 11 原始形态（仅 `src/core`，不豁免；仅记录，不判红）
+
+```text
+$ grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core | wc -l
+1
+rc=0
+```
+
+唯一命中 = `src/core/cmd/golden/main.mbt:330: println(output.stringify())` —— 诊断 CLI 的**契约输出行**（每调用一行 JSON），位于 `cmd/golden` 包内，属 11b 的显式豁免范围；`src/core/cmd/main`（静默 CLI）无命中（Task 9 已判绿）。
+
+### 6.3 spec §10.6 命令 1-14（期望全部 rc=1 的负向红线 grep）
+
+命令取自 `.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/spec-10.6-commands.md`（`NN<TAB>command`，30 行），逐条单独执行：
+
+| # | rc | 期望 | 命中 |
+|---|---|---|---|
+| 1 | 1 | 1 | 空集（无 `#cfg` / `#if`） |
+| 2 | 1 | 1 | 空集（无 `is_wasm` / `target_name`） |
+| 3 | 1 | 1 | 空集（无跨包目录依赖） |
+| 4 | 1 | 1 | 空集（无 `data.` / `math.` / `fs.` 调用） |
+| 5 | 1 | 1 | 空集（无 `@math.sqrt`） |
+| 6 | 1 | 1 | 空集（无 `extern "C" fn c_cos/c_sin`） |
+| 7 | 1 | 1 | 空集（无 `is_ascii_uppercase`） |
+| 8 | 1 | 1 | 空集（无 `unicode-data` / `moonbitlang/x`） |
+| 9 | 1 | 1 | 空集（无 `moonbitlang/core/fs`） |
+| 10 | 1 | 1 | 空集（无 `derive(Show)`） |
+| 11 | 1 | 1 | 空集（豁免两个 cmd 包后 0 命中，见 6.1） |
+| 12 | 1 | 1 | 空集（无 http / socket / write_file / log_write） |
+| 13 | 1 | 1 | 空集（无 `read_file`） |
+| 14 | 1 | 1 | 空集（无 `moonbit-community` / `moonbitlang/x`） |
+
+事实记录：命令 1-14 全部 rc=1，无 RED。
+
+运行前提（避免「空集假绿」，计划 v5.1「执行期易错点」）：上表 14 条均为 `grep` 无命中 → rc=1 的正常形态；同步核对了正向计数证据（命令 11b = 0 命中计数、`grep -c 'exit 3' tools/compare_golden.py` = 0），并确认 `src/` 树真实存在且非空（`moon check` / 三目标 build / 116 测试均实跑通过），故不是「目录不存在导致 grep 空跑」的假绿。
+
+## 7. 其他事实
+
+- `grep -c 'exit 3' tools/compare_golden.py` = **0**（B-08 收尾完成）。
+- `tools/c6_zero_network.sh` 通过 `sh -n` 语法检查（4196 B），五态契约与 7 个判据点齐备。
+- 交互中未写入 `docs/port/`、`probes/`、`langdetect/`、`src/core/cmd/main/`、`src/core/*.mbt`、`src/data`、`src/unicode`、`src/math_seam`。
+
+## 8. 资源上限与保留策略
+
+- 时长上限：90 分钟（计划 Task 10 Output）。本轮实际执行远低于该上限。
+- 外部调用轮次上限：15；本轮实际外部调用 **0 次**（全部为本地 shell / grep / Python / moon 工具链，无网络、无 LLM、无外部服务）。
+- 保留策略：本日志保留 90 天。
+
+RESULT: PASS
