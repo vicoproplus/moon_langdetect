@@ -1,0 +1,149 @@
+# Task 6 src/core 基础（错误 / 常量 / NGram / 清洗 / 特征）— 原始日志（2026-10-22）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`cf13002`（Task 5，`feat: add flat profile data and probability table`）
+- 交付物（11 个路径，仅这些）：`src/core/error.mbt`、`constants.mbt`、`ngram.mbt`、`cleaning.mbt`、`features.mbt`、`ngram_tables.mbt`（生成）、`ngram_test.mbt`、`cleaning_test.mbt`、`src/core/moon.pkg`、`tools/gen_core_tables.py`、本日志
+- 工具链：`.venv/Scripts/python.exe` = CPython 3.12.10；`moon 0.1.20261012 (748b63c 2026-10-12)`；`moonc v0.10.15+943464bfa`；native = win32 x64
+- 执行窗口：2026-10-22（单会话内完成，未触及 120 分钟上限）
+- 结论：**PASS** —— `--verify` 输出 `12 blocks / 11 arms / 126 groups / 6667 keys`（rc=0，5 组 T2 篡改全部 rc=1）；本包 `moon test` 19/19；全模块 33/33；三目标 build 全 0；本包三目标 build 全 0；静态门命令 1-14 + 11b 全部 0 命中 / rc=1（扫描面 18 个 `.mbt`，空集假绿解除）；验收链 rc=0
+- 保留策略：**90 天**（至 2027-01-20）
+- 时长上限：**120 分钟**（单会话完成，未超）；外部调用轮次上限：**20**（本 Task 外部调用 **0** 次，仅本地 python / moon / grep / git）
+
+## 1. 破坏性操作快照与原子标记
+
+- 快照：**N/A** —— Task 6 开始时 `src/core/ngram_tables.mbt` **不存在**（`ls src/core` 仅见 `cmd/` 与空 `moon.pkg`），属任务新增产物，无「已存在文件」可备份。
+- 原子标记：错误类型 + 常量 + 生成器 + 表 + NGram/清洗/特征 + 测试 + 包清单同时落地；中断恢复先核对 `--verify` 四元组 `12/11/126/6667` 与 `moon test` 19/19。
+
+## 2. 生成器与确定性
+
+命令（默认生成）：
+
+```text
+$ .venv/Scripts/python.exe tools/gen_core_tables.py
+wrote F:\moonbit比赛\moon_langdetect\src\core\ngram_tables.mbt : 12 block constants / 6667 CJK pairs / 120 VI triples
+rc=0
+```
+
+- 源 = 仓库内上游副本 `langdetect/langdetect/utils/ngram.py:64-260` + `unicode_block.py` 常量；生成器只读上游，不写 `langdetect/`、`docs/port/`、`golden/`。
+- 产物形态：12 个 `pub const UNICODE_*`；`pub let latin1_excluded`（4 码点，全 `\u{XXXX}` 转义）；`pub let cjk_pairs : Array[(Int, Int)]`（6667 条，按码点严格升序）；`pub let vi_triples : Array[(Int, Int, Int)]`（120 条，按 `(base, mark)` 严格升序）。不使用 `Map::from_array`；产物不含 `moonbitlang/x` / `unicode-data`。
+- 首行：`// 由 tools/gen_core_tables.py 生成，勿手改。来源: langdetect 1.0.9 ngram.py:64-260 + unicode_block.py 常量。`
+- 原子写：同目录 `tempfile.mkstemp` + `os.fsync` + `os.replace`；LF、UTF-8、无时间戳、无随机量。
+- 确定性：连续两次生成前后 md5 均为 `14f191d4167a8d058bffba6ffe58e2cc`（sha256 `d0bf968d229802e641df62c42b8c3147ca6d04bf3f2fd160f2746bb3e5b6bcc0`，138011 B）。
+- 生成器源码：15074 B，sha256 `f3bef1f0f0063570e01c9bce3498b38e17a67f8022797b5ff0c6314b9b1e3710`。
+
+## 3. `--verify` 与 T2 证伪
+
+默认校验（产品路径）：
+
+```text
+$ .venv/Scripts/python.exe tools/gen_core_tables.py --verify
+ok 12 blocks / 11 arms / 126 groups / 6667 keys
+ok 120 vi triples / 4 latin1 excluded / 0 diff
+rc=0
+```
+
+口径：块 = 上游 `ngram.py` 引用的 12 个 `UNICODE_*` 名（值取自上游 `unicode_block.py`）；臂 = 上游源码 `block ==`（10 处）+ `block in`（1 处）= 11；组 = 上游 `NGram.CJK_CLASS` 长度 126；键 = 上游 `NGram.CJK_MAP` 长度 6667。校验读取**产物文件**并与上游逐项对拍（块名/值、latin1 排除集、6667 CJK 对、120 VI 三元组、严格升序），不是「数行数」。
+
+T2（scratch 副本，`--input` 指向篡改文件；产品文件未改动）：
+
+| 篡改 | 命令输出 | rc |
+|---|---|---:|
+| `UNICODE_ARABIC` 13 → 12 | `error: block UNICODE_ARABIC = 12, upstream is 13` | 1 |
+| 删除 CJK 对 `(0x4E03, 0x4E01)` | `error: parsed 6666 CJK pairs, expected 6667` | 1 |
+| VI 替换码 `0x00C0` → `0x00C1` | `error: VI triple mismatch: generated (65, 768, 193), upstream (65, 768, 192)` | 1 |
+| 删除首行「勿手改」 | `error: generated header missing 勿手改 on line 1` | 1 |
+| `UNICODE_KATAKANA` 105 → 104 | `error: block UNICODE_KATAKANA = 104, upstream is 105` | 1 |
+
+## 4. 测试
+
+- 本包：`moon test -p vicoproplus/langdetect/src/core --target native` → `Total tests: 19, passed: 19, failed: 0`（rc=0，0 warning）。
+- 全模块：`moon test --target native` → `Total tests: 33, passed: 33, failed: 0`（rc=0）。
+- 上游 `test_ngram.py` 7 组全部移植（`src/core/ngram_test.mbt`）：
+
+| 上游用例 | 目标测试 | 断言规模 |
+|---|---|---:|
+| `test_constants` | `n_gram_constant` | 1 |
+| `test_normalize_with_latin` | `normalize_with_latin` | 16 |
+| `test_normalize_with_cjk_kanji` | `normalize_with_cjk_kanji` | 25 |
+| `test_normalize_for_romanian` | `normalize_for_romanian` | 4 |
+| `test_ngram` | `ngram` | 35 |
+| `test_ngram3` | `ngram3` | 9 |
+| `test_normalize_vietnamese` | `normalize_vietnamese` | 124（4 前置 + 120 表项；断言由上游测试文件逐条转写） |
+
+- V-46：`extract_ngrams("USA NASA FBI")` 实测恰为 `["U", " U", "A ", "SA ", "N", " N", "A ", "SA ", "F", " F"]`（10 项，`extract_ngrams_capitalword_v46`）；`"AB"` → `["A", " A"]`（`extract_ngrams_capitalword_ab`）；`"ab"` 原始序列 `["a", " a", "b", "ab", " ab"]`、空串/纯空格 → `[]`（`extract_ngrams_raw_sequence`）。**原始抽取不做词表过滤**，注释与测试均写明过滤属 Task 7/8。
+- `cleaning_text` 覆盖：拉丁/非拉丁剥离（`日本語… hello` → `日本語… `）、严格 `<` 阈值（5 : 10 不剥离）、`A`..`z` 闭区间 quirk（`[ \ ] ^ _ \`` 六个字符各自 ×4 计入 Latin，若按字母计则会被剥离）、LEA 永不豁免（`aaaaa ` + 20×`ạ` → ` ` + 20×`ạ`，V-45）、幂等（6 个样本，V-54）。
+- 错误/常量测试：9 个码值 0..8；10 个常量精确值；`CantDetect(code~, message~, input_len~, input_prefix~)` 四标签由 raise/catch helper 往返断言（code=5）。
+- 抛出点：生产文件 raise 语句 **0** 条（`grep 'raise '` 仅命中 `error.mbt` 三条注释）；`raise CantDetect` 仅出现在 `ngram_test.mbt` 测试 helper。码 0 / 6 / 7 无抛出点（V-13）。
+
+## 5. 编译门
+
+| 命令 | rc | 结果 |
+|---|---:|---|
+| `moon check` | 0 | 0 errors；5 warnings 均为 `src/data/profiles.mbt` 既有 `[0033]` 超长声明行（Task 5 已登记） |
+| `moon build --target native src/core` | 0 | `ran 2 tasks, now up to date` |
+| `moon build --target js src/core` | 0 | `ran 2 tasks, now up to date` |
+| `moon build --target wasm-gc src/core` | 0 | `ran 2 tasks, now up to date` |
+| `moon build --target native` | 0 | `no work to do` |
+| `moon build --target js` | 0 | `no work to do` |
+| `moon build --target wasm-gc` | 0 | `no work to do` |
+
+## 6. 静态门（spec §10.6 命令 1-14 + 计划命令 11b）
+
+全部单条执行、显式捕获 rc；期望 0 行 / rc=1。扫描面：`find src -name '*.mbt' | wc -l` = **18**（`src/core` 9 个，含 8 个 Task 6 文件 + `cmd/main/main.mbt`）。
+
+| # | 检索对象 | rc | 命中 |
+|---|---|---:|---:|
+| 1 | DR9 `src/core` 条件编译 | 1 | 0 |
+| 2 | DR10 `src/core` 运行期平台 API | 1 | 0 |
+| 3 | DR11 反向模块依赖 | 1 | 0 |
+| 4 | DR8 跨包调用未加 `@` 前缀 | 1 | 0 |
+| 5 | DR1 `@math.sqrt` | 1 | 0 |
+| 6 | DR3 自行绑定 `c_cos`/`c_sin` | 1 | 0 |
+| 7 | DR4 `is_ascii_uppercase` | 1 | 0 |
+| 8 | DR4 第三方 Unicode 包 | 1 | 0 |
+| 9 | DR6 core `@fs` | 1 | 0 |
+| 10 | DR7 `derive(Show)` | 1 | 0 |
+| 11 | NE1 静态（排除 `cmd/`） | 1 | 0 |
+| 11b | NE1 静态（只排除 `cmd/main/`） | 1 | 0 |
+| 12 | L1-A1 网络/写文件副作用 | 1 | 0 |
+| 13 | NE4-2 `read_file` | 1 | 0 |
+| 14 | NE4-4 第三方运行时依赖 | 1 | 0 |
+
+### B-03 关闭（空集假绿解除）
+
+- 复跑时机：Task 6 全部 `.mbt` 落地后（扫描面 18 个 `.mbt`，`src/core` 非空）。
+- DR9（命令 1）rc=1 / 0 命中；DR10（命令 2）rc=1 / 0 命中；DR11（命令 3）rc=1 / 0 命中。
+- 命令 4、5-14 与 11b 同为实跑态 0 命中；命令 1-14 + 11b 的「通过」不再依赖空扫描面。**B-03 关闭。**
+
+## 7. 验收链（brief Output 逐字）
+
+```bash
+C:/Users/Administrator/.moon/bin/moon.exe check && C:/Users/Administrator/.moon/bin/moon.exe test --target native && test "$(grep -rnE '(^|[^[:alnum:]_])(is_wasm|target_name)[[:space:]]*[(]' --include=*.mbt src/core | wc -l)" = "0" && .venv/Scripts/python.exe tools/gen_core_tables.py --verify
+# rc=0；--verify 输出含 12 blocks / 11 arms / 126 groups / 6667 keys；moon test 33/33
+```
+
+## 8. 文件指纹
+
+| 路径 | 字节 | sha256 |
+|---|---:|---|
+| `tools/gen_core_tables.py` | 15074 | `f3bef1f0f0063570e01c9bce3498b38e17a67f8022797b5ff0c6314b9b1e3710` |
+| `src/core/error.mbt` | 2230 | `23f5a42f77b20e226fa3c11aa837b25a444ac0c100d210ea8be946690317bb8b` |
+| `src/core/constants.mbt` | 1511 | `0d75ac467d8727ffecc48e965410bba3ec1208f789b551f89617547d1401b0fe` |
+| `src/core/ngram.mbt` | 8623 | `1ebac7fae4d120695cff252baaafac9b0b688838dd39ab2df366fc8877614653` |
+| `src/core/cleaning.mbt` | 1892 | `d8d44b1ba19cdfc86b9ce8fbbd75829c90909367f9015700d3cff273553e321c` |
+| `src/core/features.mbt` | 1258 | `f7352c5489cd3c8d4eb9b335c14215ea52dfec7b926e7337852070f812ad4bbd` |
+| `src/core/ngram_tables.mbt` | 138011 | `d0bf968d229802e641df62c42b8c3147ca6d04bf3f2fd160f2746bb3e5b6bcc0` |
+| `src/core/ngram_test.mbt` | 18100 | `098aae1669cd9b6380c6ad898d81bb20ab9ebf794d630324646b43623d889f5d` |
+| `src/core/cleaning_test.mbt` | 2581 | `0b13f0741d35dc224f1bd22a97663ba850c933c924b5030e88e22b78eccc4c4a` |
+| `src/core/moon.pkg` | 51 | `5e0b79d173708eea460998ad9fa9e2191c93189bd21d8bb9b3aeb3b27ac402b9` |
+
+## 9. 自评关注点
+
+- `extract_ngrams` 是**原始**特征序列，不含 `word_lang_prob_map` 过滤（上游 `_extract_ngrams` 的 `w in word_lang_prob_map` 属 Task 7/8）；V-46 只对原始序列成立，过滤后的 10 项结论需在 Task 8 用真实词表复核。
+- `normalize` 的产品签名是整体 String→String；上游逐字符语义被完整保留，上游单字符用例按单字符字符串移植。`add_char` 走同一私有 `normalize_char`，无重复实现。
+- `capitalword` 的 `if ch.isupper(): if last.isupper(): set True` 语义按上游逐行保留（大写且前一字非大写时保持原值，该分支在真状态下不可达）。
+- `latin_count` 与 `non_latin_count` 用码点 Int 比较实现闭区间 `A`..`z`；LEA 豁免按 V-45 显式不做（注释说明上游 Int 与字符串比较恒真）。
+- 生成表用排序数组 + 二分查找，未使用 `Map::from_array`；`cjk_pairs`/`vi_triples` 的严格升序由 `--verify` 断言，二分查找前提被机检。
+- `char_of` 对表内合法码点使用安全转换 `Int::to_char`，回退空格不可达；避免 `Char::from_int` 的 deprecation 警告。
+- 测试文件为黑盒测试包，全部跨包引用使用 `@core.` 前缀（`moon test` 0 warning）。

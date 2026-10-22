@@ -1,0 +1,3 @@
+import {
+  "vicoproplus/langdetect/src/unicode",
+}
