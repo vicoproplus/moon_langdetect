@@ -48,7 +48,7 @@ $ .venv/Scripts/python.exe tools/compare_golden.py --self-check
 ok 268=250+18 (prob_entries=274, seeds=0/42)
 rc=0
 
-$ .venv/Scripts/python.exe tools/compare_golden.py --dry-run
+$ .venv/Scripts/python.exe tools/compare_golden.py --dry-run > /dev/null   # stdout 被重定向丢弃（268 行逐案例清单）；脚本内部 lines == 268 断言仍生效，rc=0 即断言成立
 ok dry-run lines=268 expected=268 (250 probability + 18 error cases)
 rc=0
 
@@ -238,12 +238,13 @@ rc=0
 - `观测输出` = 「首次解析 184129 条档案条目 209 ms；首次工厂加载 347 ms；合计 567 ms（N=3 冷进程中位数，见 `docs/superpowers/plans/artifacts/target-report-2026-10-21.md` §8）」
 - `状态` = 「已验证（U-06 回填，证据见 target-report §8）」
 
-**责任与状态（四项，逐条陈述）**：
+**责任与状态（五项，逐条陈述）**：
 
 1. plan Task 11 Step 8 **要求**写入该行（`docs/superpowers/plans/2026-10-21-moon-langdetect-语种检测.md:937`：「U-06 回填：把 Task 10 的首次加载耗时写入报告与 spec §8.1 对应行的验收记录」）；承接表 `…:67` 把 U-06 指派给 **Task 10**（「CLI 首次加载计时落档并回填 spec §8.1 该行」）。
 2. **全局约束 R1 禁止**在无授权情况下修改 `docs/superpowers/specs/`；本会话对该行**无** spec 编辑授权（此前的 NE1 修订系用户单独授权，不构成普遍许可）。
 3. 因此该行**未执行回填**（`观测输出` 仍为 `—`，`状态` 仍为 `未验证`）。
-4. **OWNER: unassigned —— 需要用户对「spec 编辑」的显式授权。** 该行按 **OPEN ACCEPTANCE ROW / BLOCKER** 带入 Task 13 的阻塞项清单。**Task 12 不拥有该项**：`grep -c '§8.1' task-12-brief.md` = **0**，`grep -c '§8.1' task-13-brief.md` = **0**（两者均无任何 §8.1 承担表述）；plan 第 67 行把回填指派给 Task 10，而 Task 10 亦未执行。
+4. **OWNER: unassigned —— 需要用户对「spec 编辑」的显式授权。** 该项**不只是「无主」，而是存在被静默关闭的实际风险**：`task-13-brief.md:17`（源自 plan Step 6）指示最终门把 U-06 与 U-07 一并列为「已回填」，而 `spec.md:614` 仍读「未验证」——两者**相互冲突**。若最终门执行者照自己的 brief 行事，会直接把 U-06 记为已回填，本阻塞项**不会自行穿过交接**。补充事实：`grep -c '§8.1'` 对 `task-12-brief.md` 与 `task-13-brief.md` 均为 **0**（两 brief 均无任何 §8.1 承担表述，即 brief 里写「已回填」并不伴随任何 spec 落档动作）；plan `:67` 把回填指派给 Task 10，而 Task 10 亦未执行。
+5. **交接方式：由 controller 注入，不依赖任务归属。** controller 将在 Task 13 的派发中把本项作为**必需显式条目**注入（不得按 brief 的「已回填」归类），并把它作为**spec 编辑授权决策**上报给用户；在本会话内该行保持未回填。
 
 > **OPEN ACCEPTANCE ROW: spec.md:614 U-06 backfill — awaiting spec-edit authorization**
 
@@ -279,5 +280,5 @@ rc=0        # start=2026-10-23T03:55:22+0800, end=2026-10-23T03:56:08+0800
 - js / wasm-gc 的运行面在本机**不可达**，本批只判构建；三目标一致性（主语言 / 语言数 / 条目合计）**只有 native 行有实测**，其余两行为 `[LOCAL_DEAD_LINK]`。
 - 容差档（js / wasm-gc / native-other）数值**未校准**，本批只登记不判定；校准依据必须来自 js 目标实测，不得凭空写数。
 - U-06 为 N=3 冷进程采样的中位数；如需更稳定口径应增大 N（Task 10 已记录该限制）。
-- **OPEN ACCEPTANCE ROW: spec.md:614 U-06 backfill — awaiting spec-edit authorization**（详见 §8.1：目标行、待写入值、责任归属；按 OPEN ACCEPTANCE ROW / BLOCKER 带入 Task 13 阻塞项清单）。
+- **OPEN ACCEPTANCE ROW: spec.md:614 U-06 backfill — awaiting spec-edit authorization**（详见 §8.1：目标行、待写入值、责任归属）。**注意**：`task-13-brief.md:17` 把 U-06 归入「已回填」，与 `spec.md:614` 仍读「未验证」**冲突**，故本项存在**被最终门静默关闭**的风险；交接由 **controller** 在 Task 13 派发时注入为必需显式条目，并作为 spec 编辑授权决策上报用户。
 - `51/55` 归属偏差见 §2.1：brief/rubric 将其置于 `compare_lowconf` 的 long 分组，实测 runner 输出 `long=55/55`；`51/55` 实为上游短文本准确率基线。

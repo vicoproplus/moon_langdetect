@@ -239,7 +239,7 @@ Task 10 对 `golden.exe '{"mode":"meta"}'` 做 3 次冷进程采样（N=3，取�
 - `load_ms` = `@core.DetectorFactory::new()` + `factory.load_profile()` 耗时（解析 + 概率表构建）。
 - 本轮 Task 11 的 `profile_counts` 模式同时给出同量级单次采样：`u06_parse_ms=204 u06_load_ms=323`（与上表一致，作为交叉核对，不替代中位数口径）。
 
-**落档状态（详见 `target-report-2026-10-21.md` §8.1）**：待写入 `docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md:614` 的 `首次调用完成档案加载 / native (win32 x64)` 行（该行当前 `观测输出 = —`、`状态 = 未验证（产品实现未落地）`）。plan Task 11 Step 8（`…语种检测.md:937`）要求写入，全局约束 R1 禁止无授权修改 spec，本会话无该行授权 → **未执行**。`grep -c '§8.1'` 对 `task-12-brief.md` 与 `task-13-brief.md` 均为 **0**；plan `:67` 把 U-06 指派给 Task 10（未执行）。
+**落档状态（详见 `target-report-2026-10-21.md` §8.1）**：待写入 `docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md:614` 的 `首次调用完成档案加载 / native (win32 x64)` 行（该行当前 `观测输出 = —`、`状态 = 未验证（产品实现未落地）`）。plan Task 11 Step 8（`…语种检测.md:937`）要求写入，全局约束 R1 禁止无授权修改 spec，本会话无该行授权 → **未执行**。`grep -c '§8.1'` 对 `task-12-brief.md` 与 `task-13-brief.md` 均为 **0**；plan `:67` 把 U-06 指派给 Task 10（未执行）。**静默关闭风险**：`task-13-brief.md:17` 指示最终门把 U-06 归入「已回填」，与 `spec.md:614` 仍读「未验证」冲突；本项**不会自行穿过交接**，须由 controller 在 Task 13 派发时注入为必需显式条目，并作为 spec 编辑授权决策上报用户。
 
 > **OPEN ACCEPTANCE ROW: spec.md:614 U-06 backfill — awaiting spec-edit authorization**
 
