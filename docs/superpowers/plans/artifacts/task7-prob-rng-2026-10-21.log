@@ -148,3 +148,10 @@ moon test --target native && moon build --target native && moon build --target j
 - `getrandbits_u64` 文档化范围为 0..64，但未对 `k > 64` 做 `abort` 守卫（公开 `getrandbits` 已守卫 k>32；`randbelow` 实际 k≤31）。当前所有调用点均在范围内；Task 8/12 若扩展调用面应补守卫。
 - `detect_block_synthetic_seed42` / `prior` 的 golden 由 scratch 脚本 `.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task7/gen_detect_block_golden.py` 复算：输出 `3feffff204d03d5a / 3edbf65f854db7aa`（seed 42）与 `3feffff37e1db0ad / 3ed903c49ea660ad`（seed 7），与测试一致；该脚本不在提交清单内。
 - js / wasm-gc 仅验证 build（本机无 node 运行器）；`@math.ln` 降级路径的运行时等价性属 Task 11（spec 已登记非等价降级）。
+
+## 12. Fix round 1（2026-10-22，review Important 1）
+
+- 守卫：`src/core/rng.mbt` `getrandbits_u64` 入口新增 `if k < 0 || k > 64 { abort("getrandbits_u64: k must be in 0..=64") }`（在任何位运算之前；与既有 `getrandbits` 守卫同一 `abort` 形式，不打印）；`0..=64` 行为不变；仅 3 行新增、0 删除。
+- 命令：`moon test -p vicoproplus/langdetect/src/core --target native` → `Total tests: 59, passed: 59, failed: 0.`，rc=0。
+- 命令：`moon check` → `Finished. moon: ran 4 tasks, now up to date (5 warnings, 0 errors)`，rc=0（5 个 warning 均为既有 `src/data/profiles.mbt` `[0033]`）。
+- 提交：`fix: guard getrandbits_u64 range`（新提交，不 amend；显式路径仅 `src/core/rng.mbt` + 本日志）。

@@ -200,6 +200,9 @@ pub fn bit_length_u64(value : UInt64) -> Int {
 /// cases for k = 32 / 33 use this form; the public `Int` form below is
 /// capped at 32 bits because MoonBit `Int` is 32-bit signed.
 pub fn Mt19937::getrandbits_u64(self : Mt19937, k : Int) -> UInt64 {
+  if k < 0 || k > 64 {
+    abort("getrandbits_u64: k must be in 0..=64")
+  }
   if k <= 0 {
     return 0UL
   }
