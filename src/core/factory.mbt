@@ -60,34 +60,52 @@ pub fn DetectorFactory::create(
   detector
 }
 
-///| Reject a profile that would divide by zero or index outside
+///| Raise code 1 (`Profile format error.`) for a rejected profile.
+fn raise_format_error() -> Unit raise LangDetectError {
+  raise CantDetect(
+    code=ERROR_FORMAT,
+    message="Profile format error.",
+    input_len=0,
+    input_prefix="",
+  )
+}
 
-///| `n_words`: upstream `n_words` must hold the three 1/2/3-gram totals and
+///| Reject a profile that would divide by zero, index outside
 
-///| every total must be positive (`detector_factory.py:89-92`; a zero
+///| `n_words`, or carry meaningless data: upstream `n_words` must hold the
 
-///| denominator is a `ZeroDivisionError` wrapped as code 1). The check
+///| three 1/2/3-gram totals and every total must be positive
+
+///| (`detector_factory.py:89-92`; a zero denominator is a
+
+///| `ZeroDivisionError` wrapped as code 1). The name must be non-empty and no
+
+///| `n_words` total nor `freq` count may be negative, since neither a
+
+///| nameless language nor a negative count is meaningful. The check runs
 
 ///|
-/// runs before any container mutation and before any division.
+/// before any container mutation and before any division.
 fn validate_profile(profile : @data.Profile) -> Unit raise LangDetectError {
+  if profile.name == "" {
+    raise_format_error()
+  }
   if profile.n_words.length() != 3 {
-    raise CantDetect(
-      code=ERROR_FORMAT,
-      message="Profile format error.",
-      input_len=0,
-      input_prefix="",
-    )
+    raise_format_error()
+  }
+  for total in profile.n_words {
+    if total < 0 {
+      raise_format_error()
+    }
   }
   match profile.zero_n_words_index() {
-    Some(_) =>
-      raise CantDetect(
-        code=ERROR_FORMAT,
-        message="Profile format error.",
-        input_len=0,
-        input_prefix="",
-      )
+    Some(_) => raise_format_error()
     None => ()
+  }
+  for _word, count in profile.freq {
+    if count < 0 {
+      raise_format_error()
+    }
   }
 }
 
@@ -143,11 +161,13 @@ pub fn DetectorFactory::load_profile(
 
 ///| A duplicate language raises code 3 (`Duplicate the same language
 
-///| profile.`) before any mutation. A malformed `n_words` (not length 3,
+///| profile.`) before any mutation. A malformed profile raises code 1
 
-///| or any zero total) raises code 1 (`Profile format error.`) before any
+///| (`Profile format error.`) before any mutation or division: empty name,
 
-///| mutation or division. Otherwise every existing word vector grows by one
+///| `n_words` not length 3, any zero or negative total, any negative
+
+///| frequency count. Otherwise every existing word vector grows by one
 
 ///| zero slot, the language is appended at `langlist.length()`, and words
 

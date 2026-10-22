@@ -384,6 +384,71 @@ test "profile_format_error_test" {
   assert_eq(factory.word_lang_prob_map.length(), before_words)
 }
 
+///| Whether `langlist` still has exactly the recorded codes, in order.
+
+fn langlist_matches(
+  factory : @core.DetectorFactory,
+  langs : Array[String],
+) -> Bool {
+  let after = factory.get_lang_list()
+  if after.length() != langs.length() {
+    return false
+  }
+  let mut index = 0
+  while index < langs.length() {
+    if after[index] != langs[index] {
+      return false
+    }
+    index += 1
+  }
+  true
+}
+
+///| Error code 1: an empty profile name is rejected before any mutation.
+test "profile_empty_name_test" {
+  let factory = must(three_language_factory)
+  let before_langs = factory.get_lang_list()
+  let before_words = factory.word_lang_prob_map.length()
+  let profile = make_profile("", [1, 1, 1], [("z", 1)])
+  let (code, message, _, _) = capture(() => factory.add_profile(profile))
+  assert_eq(code, @core.ERROR_FORMAT)
+  assert_eq(message, "Profile format error.")
+  assert_true(langlist_matches(factory, before_langs))
+  assert_eq(factory.word_lang_prob_map.length(), before_words)
+}
+
+///| Error code 1: a negative `n_words` total is rejected before any
+
+///|
+/// mutation or division.
+test "profile_negative_n_words_test" {
+  let factory = must(three_language_factory)
+  let before_langs = factory.get_lang_list()
+  let before_words = factory.word_lang_prob_map.length()
+  let profile = make_profile("negtotal", [1, -1, 1], [("z", 1)])
+  let (code, message, _, _) = capture(() => factory.add_profile(profile))
+  assert_eq(code, @core.ERROR_FORMAT)
+  assert_eq(message, "Profile format error.")
+  assert_true(langlist_matches(factory, before_langs))
+  assert_eq(factory.word_lang_prob_map.length(), before_words)
+}
+
+///| Error code 1: a negative frequency count is rejected before any
+
+///|
+/// mutation.
+test "profile_negative_freq_count_test" {
+  let factory = must(three_language_factory)
+  let before_langs = factory.get_lang_list()
+  let before_words = factory.word_lang_prob_map.length()
+  let profile = make_profile("negcount", [1, 1, 1], [("z", -2)])
+  let (code, message, _, _) = capture(() => factory.add_profile(profile))
+  assert_eq(code, @core.ERROR_FORMAT)
+  assert_eq(message, "Profile format error.")
+  assert_true(langlist_matches(factory, before_langs))
+  assert_eq(factory.word_lang_prob_map.length(), before_words)
+}
+
 ///| Error code 2 is retained but unreachable in this port: the embedded
 
 ///| loader has no path and performs no file open (upstream

@@ -161,3 +161,12 @@ $ moon build --target native && moon build --target js && moon build --target wa
 - 码 2（`FileLoadError`）按 spec §6 保留但不可达；`profile_open_error_test` 仅断言常量值 2 与文档化不可达性。
 - js / wasm-gc 仅验证 **build**（U-01 / U-02：本机无 node / wasm 运行器），运行期证据属 Task 11 异地回补。
 - 5 条 `[0033]` warning 为既有 `src/data/profiles.mbt` 告警，不在本 Task 改动范围。
+
+## 11. Fix round 1（2026-10-22 15:08 +0800）
+
+- 来源：`task-8-review.md` Important #2（`add_profile` 校验缺口）；Important #1（低置信重载）按 controller 裁定 parked，仅测量。
+- 改动：`src/core/factory.mbt` 新增 `raise_format_error()`，`validate_profile` 在原有 `n_words` 长度 / 零分母检查之外再拒绝空 `name`、任一负 `n_words`、任一负 `freq` 计数（均为 code 1 `Profile format error.`，先于任何容器变更与除法）；`confidence.mbt` 未动。
+- 测试：`detector_test.mbt` 新增 `profile_empty_name_test` / `profile_negative_n_words_test` / `profile_negative_freq_count_test`，均断言 code 1 + message + `langlist` 与词表不变。反向对照（临时移除新检查）：`Total tests: 103, passed: 100, failed: 3`（三例 `-1 != 1`）。
+- 门禁：`moon test -p vicoproplus/langdetect/src/core --target native` = **102/102**；`moon test --target native` = **116/116**；`moon check` rc=0（5 条既有 `[0033]`，0 error）。
+- 计时（临时 scratch 测试，未提交、已删除）：`detect_with_confidence` 对 69 码点文本 5 次调用 = debug **1961 ms**（≈392 ms/次）/ release **1774 ms**（≈355 ms/次），`@env.now()` 毫秒时钟；每次调用重新解析 55 个 profile 并重建概率表。
+- 提交：新提交（未 amend），仅暂存 `src/core/factory.mbt`、`src/core/detector_test.mbt`、本日志，message `fix: validate profile fields before add`；SHA 见 `task-8-report.md` / `git log -1`。
