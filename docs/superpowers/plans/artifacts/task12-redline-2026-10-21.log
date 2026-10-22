@@ -52,7 +52,7 @@ moon check && moon build --target native && moon build --target js && moon build
 - 基线对照：`docs/superpowers/plans/artifacts/baseline-2026-10-21.md` §4 + `task0-baseline-2026-10-21.log`。
 - 「空集态 vs 实跑态」：Task 0 基线为 B-03 空集态（0 个产品 `.mbt`，命令 1-14 的 rc=1 是空集假绿）；本轮 `src/` 树含 30+ 个产品 `.mbt`、`moon check` / 三目标 build / 116 测试实跑通过，故本轮 rc=1 是**实跑态**零命中，不是空集假绿（计划 v5.1「执行期易错点」）。
 
-| N | 命令（逐字，与 `spec-10.6-commands.md` 第 N 行字段逐字节一致；`<NL>` 表示命令内部换行，执行时已拆为真实换行） | rc | 基线 rc | rc 比对 | 关键输出（命中/摘要） | 新失败 | 基线漂移 |
+| N | 命令（逐字，与 `spec-10.6-commands.md` 第 N 行字段逐字节一致；`<NL>` 表示命令内部换行，执行时已拆为真实换行。**逐字节一致指渲染后的文本**：单元格里出现的「反斜杠 + 管线符」两字符组合，是 GFM 表格中表示字面管线符的转义写法；执行前必须还原为单个管线符，否则命令 1 / 2 / 4 / 6 等的 grep ERE 会被改动） | rc | 基线 rc | rc 比对 | 关键输出（命中/摘要） | 新失败 | 基线漂移 |
 |---|---|---|---|---|---|---|---|
 | 1 | `grep -rnE '^[[:space:]]*#(cfg\|if)[[:space:]]*[(]' --include=*.mbt src/core` | 1 | 1 | 匹配 | 0 行 / 0 字节（无 `#cfg` / `#if`） | 无 | 无（基线为空集态 0 行，本轮实跑态 0 行） |
 | 2 | `grep -rnE '(^\|[^[:alnum:]_])(is_wasm\|target_name)[[:space:]]*[(]' --include=*.mbt src/core` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
@@ -166,7 +166,7 @@ unzip -l _build/publish/vicoproplus-langdetect-0.1.0.zip \
 
 ### §4.3 根因（逐字）
 
-**根因：仓库根目录没有 `.moonignore`；本仓库用 `.git/info/exclude` 隐藏这些路径，而 moonc 忽略 `.git/info/exclude`。** 因此 `moon package` 把工作区中除 `.gitignore` 生效项外的全部内容打进压缩包，`.git/info/exclude` 里列的 `_build/`、`analysis/`、`langdetect/`、`probes/`、`moon.mod` 等隐藏项**不影响打包**。
+**根因：仓库根目录没有 `.moonignore`；本仓库用 `.git/info/exclude` 隐藏这些路径，而 moonc 忽略 `.git/info/exclude`。** 因此 `moon package` 把工作区中除 `.gitignore` 生效项外的全部内容打进压缩包，`.git/info/exclude` 里列的 `analysis/`、`langdetect/`、`probes/`、`moon.mod` 等隐藏项**不影响打包**（`_build/` 亦列于该文件，但它由 moon 自身独立排除，压缩包内确实没有 `_build/` 条目——故它不构成这条根因的例证）。
 
 实测佐证：`ls -a | grep -i moonignore` → 无匹配（rc=1，仓库根确无 `.moonignore`）。
 
