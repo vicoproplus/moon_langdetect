@@ -64,7 +64,7 @@ moon check && moon build --target native && moon build --target js && moon build
 | 8 | `grep -rn -e unicode-data -e 'moonbitlang/x' --include=moon.pkg src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
 | 9 | `grep -rn '"moonbitlang/core/fs"' --include=moon.pkg src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
 | 10 | `grep -rn 'derive(Show)' --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
-| 11 | `grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam \| grep -vE '[\\/]cmd[\\/]'` | 1 | 1 | 匹配 | 0 行 / 0 字节。原始（不豁免 `cmd`）计数 = 1，唯一命中 = `src/core/cmd/golden/main.mbt:330: println(output.stringify())`，即 NE1  sanction 的诊断输出行（见 §3.1） | 无 | 无 |
+| 11 | `grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam \| grep -vE '[\\/]cmd[\\/]'` | 1 | 1 | 匹配 | 0 行 / 0 字节。原始（不豁免 `cmd`）计数 = 1，唯一命中 = `src/core/cmd/golden/main.mbt:330: println(output.stringify())`，即 NE1 已裁决的诊断输出例外行（见 §3.1） | 无 | 无 |
 | 12 | `grep -rn -e http -e socket -e write_file -e log_write --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
 | 13 | `grep -rn 'read_file' src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
 | 14 | `grep -rn -e moonbit-community -e 'moonbitlang/x' --include=moon.pkg src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
@@ -89,7 +89,7 @@ moon check && moon build --target native && moon build --target js && moon build
 
 ### §3.1 NE1 静态门：命令 11 / 11b 与本轮新增的「spec 形态 11b」
 
-Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/core/cmd/golden/main.mbt`，是**受 sanction 的 NE1 诊断输出行**。本轮除 spec 命令 11 外，另跑两条 NE1 变体并记录 rc：
+Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/core/cmd/golden/main.mbt`，是**已裁决（2026-10-22）的 NE1 诊断输出例外行**。本轮除 spec 命令 11 外，另跑两条 NE1 变体并记录 rc：
 
 | 形态 | 过滤式 | rc | 命中 | 判定 |
 |---|---|---|---|---|
@@ -153,8 +153,8 @@ Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/cor
 
 | 项 | 上限 | 本轮实际 |
 |---|---|---|
-| 时长上限 | 90 分钟 | 约 8 分钟（快照 ~30 s + 干净构建 ~40 s + 30 条命令 ~10 s + package ~4 s + `&&` 链 ~12 s；均在单次会话内连续完成，无中断） |
-| 外部调用轮次上限 | 15 | **3**（`moon package` 的 `moon check` 前置、`&&` 链内的 `moon check`/`moon package`；本任务无网络调用、无 `moon publish`、无 HTTP 交互；30 条 §10.6 命令与本地 Python 均为本地执行，不计外部调用） |
+| 时长上限 | 90 分钟 | 实测各步骤 wall time 合计约 **50 秒**（`moon check` 2.7 s / native 3.7 s / js 2.8 s / wasm-gc 2.9 s / `moon test` 10.0 s / `moon package` 3.8 s / `&&` 验收链 11.7 s / 30 条 §10.6 命令 9.7 s），加快照复制与日志撰写，整轮远低于上限 |
+| 外部调用轮次上限 | 15 | **0**：未执行 `moon publish`（U-03），无 HTTP / 认证 / 下载 / 任何对外网络请求；`moon` 子命令、30 条 §10.6 命令与本地 Python 断言全部为本地进程。§3.1 的三条 NE1 变体同样是本地 grep，不占外部轮次 |
 
 - 保留策略：本证据日志保留 **90 天**（自 2026-10-23 起）。
 - 本轮无红灯命中（§3 全部 rc 符合预期；§3.1 的 11b rc=0 已归因为规范文本滞后且当前 spec 口径判定通过），因此未触发 Fix Loop 修复轮、未回退到步骤 2 重跑。
