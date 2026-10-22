@@ -14,10 +14,9 @@
 - 十二个产品比对模式：``prob_bits`` / ``seed_semantics`` / ``failures`` /
   ``forensics`` / ``cleaning`` / ``features_cache`` / ``profile_counts`` /
   ``repeatability`` / ``top1`` / ``lang_list_len`` / ``entry_total`` /
-  ``prob_tolerance``。native 目标通过诊断 CLI
-  ``src/core/cmd/golden`` 逐案例求值；``prob_tolerance`` 只登记
-  native 的「位级唯一口径」结论，js / wasm-gc / native-other 记录为
-  ``[LOCAL_DEAD_LINK]``（容差值未登记，Task 11 回补）。
+  ``prob_tolerance``。native 目标通过诊断 CLI ``src/core/cmd/golden`` 逐案例
+  求值；``prob_tolerance`` 只登记 native 的「位级唯一口径」结论，js / wasm-gc /
+  native-other 因容差值未登记而以 exit 2 拒绝（与 ``require_native`` 同语义）。
 
 诊断 CLI 协议
 - 每次调用读一个 JSON 参数（``mode`` / ``text`` / ``text2?`` / ``seed`` /
@@ -41,7 +40,7 @@
 - 脚本只以只读方式打开基准文件，不写入、不改名、不删除任何文件。
 
 退出码
-- 0：模式执行成功且所有判据成立（``prob_tolerance`` 的记录模式也返回 0）。
+- 0：模式执行成功且所有判据成立（``prob_tolerance`` 的 native 记录模式也返回 0）。
 - 1：基准内容或产品输出不满足契约（md5 / 结构 / 计数 / seed / prob_bits /
   异常四字段 / 其他模式判据）。
 - 2：参数非法、基准目录 / 基准文件 / 诊断二进制缺失或不可执行。
@@ -388,12 +387,12 @@ def require_native(ctx: Context, mode: str) -> None:
 
 
 class Diagnostic:
-    """逐案例调用诊断 CLI，并按 (case id, seed) 缓存结果。"""
+    """逐案例调用诊断 CLI，并按 (case id, seed, mode) 缓存结果。"""
 
     def __init__(self, binary: Path, timeout: float) -> None:
         self.binary = binary
         self.timeout = timeout
-        self._cache: dict[tuple[str, int | None], dict[str, Any]] = {}
+        self._cache: dict[tuple[str, int | None, str], dict[str, Any]] = {}
 
     def run(self, payload: dict[str, Any]) -> dict[str, Any]:
         line = json.dumps(payload, ensure_ascii=False)
@@ -441,7 +440,7 @@ class Diagnostic:
         return result
 
     def case(self, case: dict[str, Any], mode: str = "langs") -> dict[str, Any]:
-        key = (case["id"], case["seed"])
+        key = (case["id"], case["seed"], mode)
         if key not in self._cache:
             self._cache[key] = self.run(
                 {
@@ -1175,15 +1174,15 @@ def run_features_cache(ctx: Context) -> int:
 
 
 def run_prob_tolerance(ctx: Context) -> int:
-    if ctx.target == "native":
-        print(
-            "ok prob_tolerance target=native: bitwise-only, tolerance not applicable "
-            "(convention C C1/C5; native compares prob_bits)"
+    if ctx.target != "native":
+        raise SetupError(
+            f"prob_tolerance: target {ctx.target!r} is not executable in this "
+            "environment (only native is available; js / wasm-gc / native-other "
+            "have no registered tolerance values)"
         )
-        return EXIT_OK
     print(
-        f"prob_tolerance target={ctx.target}: [LOCAL_DEAD_LINK] "
-        "(tolerance values not registered; js / wasm-gc / native-other deferred to Task 11)"
+        "ok prob_tolerance target=native: bitwise-only, tolerance not applicable "
+        "(convention C C1/C5; native compares prob_bits)"
     )
     return EXIT_OK
 
@@ -1209,8 +1208,16 @@ MODE_HANDLERS: dict[str, Handler] = {
     "prob_tolerance": run_prob_tolerance,
 }
 
-# 派发完整性守卫：每个 --mode 选项必须各有处理函数。
-assert set(MODE_HANDLERS) == set(MODE_NAMES), "mode dispatch table is incomplete"
+# 派发完整性守卫：每个 --mode 选项必须各有处理函数。写成显式分支而非
+# ``assert``，否则 ``python -O`` 会把守卫优化成空操作。
+if set(MODE_HANDLERS) != set(MODE_NAMES):
+    print(
+        "error: mode dispatch table is incomplete: "
+        f"missing={sorted(set(MODE_NAMES) - set(MODE_HANDLERS))} "
+        f"unknown={sorted(set(MODE_HANDLERS) - set(MODE_NAMES))}",
+        file=sys.stderr,
+    )
+    raise SystemExit(EXIT_USAGE)
 
 
 # --------------------------------------------------------------------------- #

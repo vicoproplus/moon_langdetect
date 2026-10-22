@@ -31,7 +31,8 @@
 退出码
 - 0：全部分组判据成立。
 - 1：基准内容或产品输出不满足判据。
-- 2：参数非法、基准 / 案例 / 诊断二进制缺失或不可执行。
+- 2：参数非法、基准 / 案例 / 诊断二进制缺失或不可执行；``--target`` 非
+  ``native``（诊断二进制只能在本机 native 运行，其他目标不冒充）。
 
 用法
     .venv/Scripts/python.exe tools/compare_lowconf.py --short 55 --long 55 --baseline 268
@@ -48,6 +49,7 @@ from compare_golden import (
     BASELINE_MD5,
     DEFAULT_GOLDEN_DIR,
     GOLDEN_DIR_ENV,
+    TARGETS,
     CheckFailure,
     Diagnostic,
     SetupError,
@@ -63,7 +65,7 @@ EXIT_USAGE = 2
 
 BASELINE_NAME = "expected.json"
 CASES_NAME = "cases.jsonl"
-TARGETS = ("native",)
+
 SEED_CHOICES = (0, 42)
 
 
@@ -361,6 +363,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(
             f"error: golden dir does not exist or is not a directory: "
             f"{golden_dir} (source: {source})",
+            file=sys.stderr,
+        )
+        return EXIT_USAGE
+    if args.target != "native":
+        print(
+            f"error: lowconf: target {args.target!r} is not executable in this "
+            "environment (only native is available)",
             file=sys.stderr,
         )
         return EXIT_USAGE
