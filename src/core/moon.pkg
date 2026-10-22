@@ -1,6 +1,7 @@
 import {
   "moonbitlang/core/env",
   "moonbitlang/core/math",
+  "vicoproplus/langdetect/src/data",
   "vicoproplus/langdetect/src/math_seam",
   "vicoproplus/langdetect/src/unicode",
 }

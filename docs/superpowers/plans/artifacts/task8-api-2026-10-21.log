@@ -1,0 +1,163 @@
+# Task 8 公开 API（detect / detect_langs / 低置信 / Detector / debug_vector_len）— 原始日志（2026-10-22）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`607f32e`（`fix: guard getrandbits_u64 range`）
+- 交付物（提交清单，8 个路径）：`src/core/api.mbt`、`confidence.mbt`、`detector.mbt`、`detector_test.mbt`、`factory.mbt`、`language_test.mbt`、`src/core/moon.pkg`、本日志
+- 工具链：`moon 0.1.20261012 (748b63c 2026-10-12)`；native = win32 x64
+- 执行窗口：2026-10-22 14:49–14:53（+0800，证据文件时间戳）；远低于 90 分钟上限
+- 外部调用轮次：**0 / 15**（无网络 / LLM / 外部服务调用；全部为本地 shell / test / build）
+- 结论：**PASS** —— 全模块 `moon test --target native` **113/113**（core **99/99**，其中 Task 8 = 38 + 2 = **40**）；签名门 **11/11 + 4/4** rc=0；spec 命令 1-14（+ 计划增补 11b）全部按期望 rc=1 / 0 命中；三目标 build rc=0；`moon check` rc=0（0 errors，5 个既有 `src/data/profiles.mbt` `[0033]` warning）。
+
+## 1. 文件指纹（执行前 / 提交前两次一致）
+
+| 路径 | 字节 | sha256（执行前 = 提交前） |
+|---|---:|---|
+| `src/core/api.mbt` | 3748 | `3eb6f30002100168f7d24d6a1b6fa6f8b4ac15c59b44bf6c40d11b841fadf437` |
+| `src/core/confidence.mbt` | 3534 | `b6d4cb6e359170cce3dba47ca21910767bd6a9ba48efa2e6a6b6a78a349f1fde` |
+| `src/core/detector.mbt` | 15601 | `831b2399d31c3e96ecfc61a601a2c48a81a8a0345a4261b84340de943a77b7de` |
+| `src/core/detector_test.mbt` | 32321 | `471f4d5da07b5f34fbeea50de9f7d33e325a2c29a4b7d5df7a773a71f4cf2630` |
+| `src/core/factory.mbt` | 6830 | `cdf5ff0283cf39f6ba12f29b6e65874bc69a6e0555e0335213133744ad7874b1` |
+| `src/core/language_test.mbt` | 1475 | `a1bcec841ce2bfc743beaf1d617332ebaf6f6b43687e3b06e05f3fbecfaeddd5` |
+| `src/core/moon.pkg` | 183 | `83c264ede4c210e723384abcdc3ab0c16f5467691d90ff2f9d1726a881457fb2` |
+
+- 两次 `sha256sum` 输出逐行相同；未出现并行会话改写。`src/core/moon.pkg` 仅新增 1 行导入 `vicoproplus/langdetect/src/data`。
+
+## 2. 测试
+
+```text
+$ moon test --target native
+Total tests: 113, passed: 113, failed: 0.        # rc=0
+
+$ moon test -p vicoproplus/langdetect/src/core --target native
+Total tests: 99, passed: 99, failed: 0.          # rc=0
+```
+
+- 113 = core 99 + math_seam 3 + unicode 5 + data 6。
+- core 99 = Task 6 既有 19 + Task 7 既有 40 + Task 8 新增 40（`detector_test.mbt` 38 + `language_test.mbt` 2）。
+- `moon check` rc=0；`[0033]` warning 5 条，均位于 `src/data/profiles.mbt`（行 20 / 44 / 83 / 86 / 89），为既有告警，非本 Task 引入。
+
+## 3. 签名门（brief Output 逐字命令）
+
+```text
+$ moon test --target native && for p in '^pub fn detect\(' '^pub fn detect_langs\(' '^pub fn detect_with_confidence\(' '^pub fn get_lang_list\(' '^pub fn debug_vector_len\(' '^pub fn (Detector::)?new\(\) -> Detector' '^pub fn (Detector::)?set_seed\(self' '^pub fn (Detector::)?set_prior_map\(self' '^pub fn (Detector::)?set_max_text_length\(self' '^pub fn ln_for_gauss\(' '^pub fn is_upper_cp312\('; do grep -rEq --include=*.mbt -- "$p" src || { echo "MISSING: $p"; exit 1; }; done && for t in 'LangDetectError' 'LangProb' 'LowConfidence' 'Detected'; do grep -rq --include=*.mbt -- "$t" src || { echo "MISSING TYPE: $t"; exit 1; }; done
+Total tests: 113, passed: 113, failed: 0.
+# rc=0；11/11 签名 + 4/4 类型
+```
+
+逐项命中（`grep -rEn`，行首锚定）：
+
+| # | 签名 / 类型 | 命中 |
+|---|---|---|
+| 1 | `^pub fn detect\(` | `src/core/api.mbt:63` |
+| 2 | `^pub fn detect_langs\(` | `src/core/api.mbt:88` |
+| 3 | `^pub fn detect_with_confidence\(` | `src/core/confidence.mbt:100` |
+| 4 | `^pub fn get_lang_list\(` | `src/core/api.mbt:109` |
+| 5 | `^pub fn debug_vector_len\(` | `src/core/api.mbt:128` |
+| 6 | `^pub fn (Detector::)?new\(\) -> Detector` | `src/core/detector.mbt:48` |
+| 7 | `^pub fn (Detector::)?set_seed\(self` | `src/core/detector.mbt:88` |
+| 8 | `^pub fn (Detector::)?set_prior_map\(self` | `src/core/detector.mbt:123` |
+| 9 | `^pub fn (Detector::)?set_max_text_length\(self` | `src/core/detector.mbt:100` |
+| 10 | `^pub fn ln_for_gauss\(` | `src/math_seam/math_seam.mbt:15,23`（两目标分支） |
+| 11 | `^pub fn is_upper_cp312\(` | `src/unicode/unicode.mbt:9` |
+| T1 | `LangDetectError` | `src/core/error.mbt`（定义）等 |
+| T2 | `LangProb` | `src/core/confidence.mbt:21` |
+| T3 | `LowConfidence` | `src/core/confidence.mbt:56` |
+| T4 | `Detected` | `src/core/confidence.mbt:57` |
+
+## 4. V 事实与测试覆盖
+
+| 事实 | 测试（文件:行） | 断言摘要 |
+|---|---|---|
+| V-47 实例缓存不失效 | `detector_test.mbt:627` `langprob_cache_survives_append` | 首次 detect 后 append `"b d"`，二次 detect 结果不变；两次 `prob_bits` 逐位相等 |
+| V-48 / V-53 向量长度 | `detector_test.mbt:651` `debug_vector_len_embedded_v48`；`:790` `vector_row_length_v53` | `debug_vector_len()==55` ×2；`get_lang_list()` 55 且与 `@data.languages` 顺序逐项相等（af … zh-tw）；`word_lang_prob_map.at("D").length()==55`；合成 2 语言行长为 2 |
+| V-49 真实 `>0.1` 阈值 | `detector_test.mbt:685` `threshold_filter_real_path_v49` | 三组位型经**真实** `get_probabilities` 过滤；标签 `synthetic:基准 250 例中最小条目 0.1428…，无 ≤ 0.1（V-49）` |
+| V-50 平票稳定序 | `detector_test.mbt:715` `tied_probabilities_keep_load_order` | 两个同频档案均 `0x3FDFFFFFFFFFFFFE`；序 `x1,x2`；`detect()=="x1"` |
+| V-51 NaN 先验 | `detector_test.mbt:326` `prior_nan_unknown_test` | 先验向量 55 项全 NaN；过滤后 0 项；`detect()=="unknown"`；原始缓存 55 项保留 |
+| V-52 / L1-A4 别名共享 | `detector_test.mbt:739` `factory_instance_alias_sharing` | `physical_equal` 断言 `langlist` / `word_lang_prob_map`；create 后 `add_profile` 立即可见；`load_profile` 让已建实例看到 55；`clear` 原地清空并触发码 4 |
+| V-54 append 累积 / 清洗幂等 | `detector_test.mbt:588` `append_accumulates_and_cleaning_idempotent` | 两次 append = `"hellohello"`；`cleaning_text()` 两次结果相同 |
+| 低置信边界 / 无码 5 | `detector_test.mbt:406` `lowconf_empty_test`；`:421` `lowconf_boundary_test`；`:461` `lowconf_char_count_is_codepoints` | 见 §5；`detect_with_confidence` 签名无 raise，码 5 一律转 `LowConfidence` |
+| Task 5 零 `n_words` 码 1 | `detector_test.mbt:370` `profile_format_error_test` | `[1,0,1]` → 码 1 `Profile format error.`；长度 2 → 码 1；均在任何除法与容器变更之前；`langlist` 仍 3、词表长度不变 |
+| 上游 `test_detector.py` 6 例 | `detector_test.mbt:140,149,158,167,176,191` | 4 个 detect + lang list + add_profile（JSON 加载器不在本移植范围） |
+| 上游 `test_language.py` 2 例 | `language_test.mbt:14,27` | 字段 / 空对象；仅按 `prob` 比较，平票互不 less |
+
+生产方覆盖（本 Task 写入字段与对应测试名）：
+- `langlist`：`upstream_language_list_order`、`factory_instance_alias_sharing`
+- `word_lang_prob_map`：`upstream_factory_from_json_profiles`、`factory_instance_alias_sharing`、`vector_row_length_v53`
+- `seed`：`factory_seed_copied_at_create`、`detector_instance_seed_overrides`
+- `prior_map`：`prior_map_normalized`、`prior_negative_test`、`prior_zero_sum_test`、`prior_nan_unknown_test`
+
+## 5. 低置信与阈值样本
+
+`detect_with_confidence` 阈值 50（`LOW_CONFIDENCE_THRESHOLD = 50`）；`char_count` = 原始输入的 Unicode 码点数（URL/邮件清洗与截断之前）。
+
+| 输入 | `char_count` | 结果 |
+|---|---:|---|
+| `""` | 0 | `LowConfidence(0)`，不抛码 5 |
+| `"     "` | 5 | `LowConfidence(5)` |
+| 正常英文 49 码点 | 49 | `LowConfidence(49)`，不运行检测 |
+| 正常英文 50 码点 | 50 | `Detected`，probs 全部 `>0.1`、降序、首项与 lang 一致 |
+| 60 个空格 | 60 | 码 5 → `LowConfidence(60)` |
+| 纯 URL（≥50） | 原始长度 | 码 5 → `LowConfidence(len)` |
+| 49 / 50 个 emoji | 49 / 50 | `LowConfidence(49)` / 码 5 → `LowConfidence(50)` |
+
+V-49 三组位型（真实过滤路径 `Detector::set_raw_probabilities` → `get_probabilities`）：
+
+| 样本 | 位型 | 关系 | 过滤结果 |
+|---|---|---|---|
+| exact | `0x3FB999999999999A` | `== 0.1` | 丢弃 |
+| above | `0x3FB999999999999B` | `> 0.1` | 保留（索引 1 → `fr`），`detect()=="fr"` |
+| below | `0x3FB9999999999999` | `< 0.1` | 丢弃 |
+| NaN | `0x7FF8…` | NaN | 全部丢弃 → 0 项 → `"unknown"` |
+| negative zero | `0x8000000000000000` | `== 0.0` | 丢弃 |
+
+## 6. spec 命令 1-14（+ 计划增补 11b）
+
+执行方式：逐条原样执行并显式断言期望退出码（不忽略错误、不用 `|| true`）；扫描面为非空 `src/`（core 等包含大量 `.mbt`），非空集假绿。
+
+| 命令 | 期望 | 实测 rc | 命中行 |
+|---|---|---:|---:|
+| 1 DR9 条件编译（src/core） | 1 | 1 | 0 |
+| 2 DR10 运行期平台 API（src/core） | 1 | 1 | 0 |
+| 3 DR11 反向模块依赖 | 1 | 1 | 0 |
+| 4 DR8 跨包调用未加 `@` | 1 | 1 | 0 |
+| 5 DR1 `@math.sqrt` | 1 | 1 | 0 |
+| 6 DR3 自绑 `c_cos`/`c_sin` | 1 | 1 | 0 |
+| 7 DR4 `is_ascii_uppercase` | 1 | 1 | 0 |
+| 8 DR4 第三方 Unicode 包 | 1 | 1 | 0 |
+| 9 DR6 core `@fs` | 1 | 1 | 0 |
+| 10 DR7 `derive(Show)` | 1 | 1 | 0 |
+| 11 NE1 静态（排除 cmd） | 1 | 1 | 0 |
+| 12 L1-A1 网络/写文件 | 1 | 1 | 0 |
+| 13 NE4-2 `read_file` | 1 | 1 | 0 |
+| 14 NE4-4 第三方运行时依赖 | 1 | 1 | 0 |
+| 11b NE1（计划增补，仅豁免 `cmd/main`） | 1 | 1 | 0 |
+
+补充手工检索：`Map::from_array`、`derive(Show)`、`println`、`@fs`、`is_ascii_uppercase` 在 `src/core`、`src/data`、`src/unicode`、`src/math_seam` 均 0 命中；`sqrt` 仅 `src/core/gauss.mbt` 的 `Double::sqrt()` 方法（非 `@math.sqrt`），`cos`/`sin` 来自 `@math`。
+
+## 7. 三目标构建
+
+```text
+$ moon build --target native && moon build --target js && moon build --target wasm-gc
+# rc=0（native / js 输出 "Finished. moon: no work to do"；wasm-gc 输出同）
+```
+
+## 8. 提交
+
+- 显式路径暂存（不使用 `git add -A` / 目录）：上述 6 个 `.mbt` + `src/core/moon.pkg` + 本日志，共 8 个文件。
+- 提交信息：`feat: add public API detector factory confidence`
+- 不 amend；提交后 `git show --stat` 核对：无删除、无 `src/core/cmd/**`、无 `tools/**`、无 `docs/port/**`、无 spec/plan/.venv。SHA 见 `task-8-report.md` 与 `git log -1`。
+
+## 9. 上限与保留
+
+- 时长上限 90 分钟：证据窗口 2026-10-22 14:49:09–14:53（+0800），**未超限**。
+- 外部调用轮次上限 15：**0 / 15**（无外部调用）。
+- 证据保留 90 天：保留至 **2027-01-20**（自执行日 2026-10-22 起算）。
+
+## 10. 备注 / 保留意见
+
+- `Detector::set_raw_probabilities` 是 V-49「真实过滤路径」所需的诊断接缝（`pub fn`，不在 brief 的 §5 接口清单内）；生产入口不依赖它。
+- V-48 的上游目录条目短路（`len(langlist)` 与向量长度可能不等）无法在无文件系统的嵌入数据上构造；`debug_vector_len()` 恒为 55 并已在源码注释登记。
+- 码 2（`FileLoadError`）按 spec §6 保留但不可达；`profile_open_error_test` 仅断言常量值 2 与文档化不可达性。
+- js / wasm-gc 仅验证 **build**（U-01 / U-02：本机无 node / wasm 运行器），运行期证据属 Task 11 异地回补。
+- 5 条 `[0033]` warning 为既有 `src/data/profiles.mbt` 告警，不在本 Task 改动范围。
