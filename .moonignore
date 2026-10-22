@@ -1,0 +1,13 @@
+# Paths that must never ship in the published package: they are reference
+# inputs (upstream sources, probe workspaces, port documentation, session
+# scratch) rather than part of the distributable module.
+/probes/
+/langdetect/
+/docs/
+/analysis/
+/.superpowers/
+/_build/
+/.venv/
+*.txt
+__pycache__/
+*.pyc
