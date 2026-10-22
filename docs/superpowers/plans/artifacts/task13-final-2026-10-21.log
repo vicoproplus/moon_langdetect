@@ -1,0 +1,392 @@
+# Task 13 证据日志 — 终局验收门禁（V5，全量终局）
+
+- 任务：Task 13（`task-13-brief.md`）
+- 计划：`docs/superpowers/plans/2026-10-21-moon-langdetect-语种检测.md`（v5.1）
+- 评分表：`.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/rubric-task-13-brief.md`（R1…R18）
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`（未切换；`main` 未触碰）
+- HEAD（本任务开始时）：`c674a892ac92015b4dd0ac2c61d4c3acbad412bc`（`c674a89`，`fix: correct task 12 report citation and log claims`）
+- 执行日期：2026-10-23（时间戳均为 +0800）
+- 工具链（本轮实测）：`moon 0.1.20261012 (748b63c 2026-10-12)` / `moonc v0.10.15+943464bfa (2026-10-12)` / `Python 3.12.10`（`.venv/Scripts/python.exe`）/ `GNU grep 3.0` / `GNU bash 5.3.15(2)` / `GNU Awk 5.4.1` / `md5sum (GNU coreutils) 8.32`；平台 win32 10.0.19045 x64。与 Task 0 基线工具链一致，未更换。
+- `moon --version` 本轮 rc=**127**（`Error: failed to get "C:\Users\Administrator\.moon\bin\moonrun.exe" version`，末行无换行）；该 rc 来自 `moonrun` 探测失败，版本串仍完整输出 —— 与 Task 0 基线 rc=127 完全一致（既有现象，非回归）。
+- 证据性质：**只读验收**。本任务只写两个 artifacts 文件与 SDD 报告；未改产品代码 / spec / plan / `docs/port/` / `langdetect/` / `probes/` / `tools/`。
+
+---
+
+## §1 工作树排他复核（W1b）
+
+### 1.1 `git status --porcelain --untracked-files=all`（本任务开始时，逐字）
+
+```text
+?? 2026-10-22-183213-empty-conversation.txt
+?? tools/gen_float_golden.py
+?? tools/gen_golden.py
+?? tools/gen_rand_golden.py
+?? tools/probe_facts.py
+?? tools/profile_stats.py
+?? tools/summarize_probes.py
+```
+
+过滤式（brief / report-back 要求）：`git status --porcelain --untracked-files=all | grep -vE '^\?\? (_build|\.venv)/'` → **输出与上表逐行相同**（7 行）。
+
+### 1.2 逐项分类
+
+| 条目 | 字节 / mtime | 分类 | 判定 |
+|---|---|---|---|
+| `2026-10-22-183213-empty-conversation.txt` | 1547761 B / 2026-10-22 18:32:22 | **用户本地会话记录**（私密 prompt 历史） | 本任务之前即存在的未跟踪输入；非本任务产生，本任务未读写其内容（仅登记路径与字节数） |
+| `tools/gen_float_golden.py` | sha256 `f5fcbce0032cd8af7bbb997fe9b8ba3563253ca94d254cae62c2d54a4f7a1ff6` | 既存未跟踪输入（生成器） | 与 Task 0 基线 §2 记录的哈希**逐字节相同** |
+| `tools/gen_golden.py` | `918230cf867d14264d939f253d19e6d52a76af2a894674238780e7a64d43408c` | 同上 | 同上（与基线一致） |
+| `tools/gen_rand_golden.py` | `1cd4435796a488e47458412ef6635b897b7b5db86298259db412ec145c86cd23` | 同上 | 同上 |
+| `tools/probe_facts.py` | `81625df99afaf06ae125e1de1830fb8e4ed60529f7c210b6312d9d928b8a9a15` | 同上 | 同上 |
+| `tools/profile_stats.py` | `0782ae982e78e83fbad6659e6c41c20df00f9356a585587e6ac86a5141c40732` | 同上 | 同上 |
+| `tools/summarize_probes.py` | `6f7aeb6c71570545d37a52614e34e2c64a6a92071ee85467abe94c802290a825` | 同上 | 同上 |
+
+- `_build/` 与 `.venv/`：**不出现在 `git status` 输出中**。原因（实测）：二者列于 `.git/info/exclude`（`/_build/`、`/.venv/`），被 git 视为已排除，故**不产生 `??` 行**。二者均为本机既存构建/虚拟环境目录，非源码改动。
+- 仓库根**无 `.gitignore`**（`cat .gitignore` → `No such file or directory`）；隐藏机制全部来自 `.git/info/exclude`（见 §6.2，这也是 `moon package` 越界的根因）。
+- **外来 overlay / 非预期条目：0**。除上述 7 项（6 个 Task 0 时即存在且哈希未变的生成器 + 1 个用户会话记录）外无任何未跟踪文件。
+
+### 1.3 本任务自身产生的临时副产物及清理
+
+- 本任务以 `.venv/Scripts/python.exe tools/compare_golden.py …` 运行时，CPython 在 `tools/__pycache__/` 生成 `compare_golden.cpython-312.pyc`（57792 B，mtime 2026-10-23 05:09）。该目录**不属于既存工作树**（Task 12 报告记录的 7 项不含它），为避免污染 W1b 清单，已于 §7 全模式复跑后 `rm -rf tools/__pycache__` 删除，并重跑 `git status` 确认回到上述 7 行。本任务未新增任何持久未跟踪文件。
+
+### 1.4 共享配置是否自 Task 12 起发生变更 —— **未变更**
+
+判据（三重）：
+
+1. `git status --porcelain` 对**所有 tracked 文件为空**（无 `M` / `A` / `D` 行）→ 工作树中每个版本受管共享配置（`moon.mod`、全部 `src/**/moon.pkg`、`tools/compare_golden.py`、`tools/compare_lowconf.py`、`tools/c6_zero_network.sh`、`tools/gen_*.py`）与 HEAD 逐字节相同。
+2. `git diff --stat 2215243719a7335e4d66582a2e146add199f4e4a..HEAD`（Task 12 日志记录的起始 HEAD → 当前 HEAD）只涉 3 个文件，**全部是 artifacts 文档**：
+
+   ```text
+    .../plans/artifacts/target-report-2026-10-21.md    |   9 +-
+    .../plans/artifacts/task11-targets-2026-10-21.log  |   2 +-
+    .../plans/artifacts/task12-redline-2026-10-21.log  | 213 +++++++++++++++++++++
+    3 files changed, 219 insertions(+), 5 deletions(-)
+   ```
+
+   `git diff --name-only` 同一区间仅 `target-report-2026-10-21.md`、`task11-targets-2026-10-21.log`、`task12-redline-2026-10-21.log` 三项 —— 无 `src/`、无 `moon.mod`、无 `tools/`、无 spec / plan 变更。
+3. 关键共享配置指纹（本轮实测）：`moon.mod` sha256 `7a8fe1d119750a5cee8f559275a546f3fb218a7ce1733f4b348ba2f266e71458`，51 B，mtime `2026-10-22 10:18:58`；`docs/port/golden/expected.json` md5 `219519ee19d7cc10d404ddbdab3acd87`（命令 15 rc=0 实证，且 268/250/18 结构断言复验通过）。
+
+**结论：共享配置自 Task 12 起未变更 → 不触发「强制从头复跑」条款；本任务按 brief 正常顺序执行（§2 起）。** 本日志全部绿均在当前 HEAD 的树上实测，未沿用 Task 12 的任何旧结果（Task 12 的数字仅作为比对列引用）。
+
+---
+
+## §2 spec §10.6 命令 1-30 逐条复跑
+
+执行方式与 Task 0 / Task 12 一致：每条命令**单独**执行（脚本 `run106.sh`：把 `spec-10.6-commands.md` 的 `NN<TAB>command` 拆表，命令 20 / 21 / 29 的 `<NL>` token 还原为真实换行后落盘为 `cNN.sh`，再以 `env -u SHELLOPTS bash --noprofile --norc cNN.sh` 执行），stdout / stderr / rc 分落独立文件。命令之间不用 `;`、不用 `|| true`。共执行 **30 条**（runner 打印 `ran=30`，wall time 5.42 s）。
+
+### 2.1 命令原文（逐字，`<NL>` = 命令内部真实换行）
+
+```bash
+ 1  grep -rnE '^[[:space:]]*#(cfg|if)[[:space:]]*[(]' --include=*.mbt src/core
+ 2  grep -rnE '(^|[^[:alnum:]_])(is_wasm|target_name)[[:space:]]*[(]' --include=*.mbt src/core
+ 3  grep -rn -e 'vicoproplus/langdetect/src/core' --include=moon.pkg src/data src/unicode src/math_seam
+ 4  grep -rnE '(^|[^@[:alnum:]_])(data|math|fs)\.[a-z_]+[(]' --include=*.mbt src
+ 5  grep -rn '@math\.sqrt' --include=*.mbt src
+ 6  grep -rnE 'extern "C" fn c_(cos|sin)' --include=*.mbt src
+ 7  grep -rn 'is_ascii_uppercase' --include=*.mbt src
+ 8  grep -rn -e unicode-data -e 'moonbitlang/x' --include=moon.pkg src
+ 9  grep -rn '"moonbitlang/core/fs"' --include=moon.pkg src
+10  grep -rn 'derive(Show)' --include=*.mbt src
+11  grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\/]cmd[\/]'
+12  grep -rn -e http -e socket -e write_file -e log_write --include=*.mbt src
+13  grep -rn 'read_file' src
+14  grep -rn -e moonbit-community -e 'moonbitlang/x' --include=moon.pkg src
+15  test "$(md5sum docs/port/golden/expected.json | awk '{print $1}')" = "219519ee19d7cc10d404ddbdab3acd87"
+16  .venv/Scripts/python.exe -c "import json;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];assert (len(c),sum(1 for x in c if x.get('detect_langs')),sum(1 for x in c if 'error' in x))==(268,250,18);print('ok')"
+17  .venv/Scripts/python.exe -c "import json;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];assert sorted({x['seed'] for x in c})==[0,42];print('ok')"
+18  .venv/Scripts/python.exe -c "import json;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];assert {x['error']['code'] for x in c if 'error' in x}=={5};print('ok')"
+19  .venv/Scripts/python.exe -c "import json,re;c=json.load(open('docs/port/golden/expected.json',encoding='utf-8'))['cases'];bad=[e for x in c for e in (x.get('detect_langs') or []) if not re.fullmatch(r'[0-9a-f]{16}',e['prob_bits'])];assert not bad;print('ok')"
+20  .venv/Scripts/python.exe -c "exec('import sys,unicodedata\nassert sys.version.split()[0]==\'3.12.10\'\nassert unicodedata.unidata_version==\'15.0.0\'\ncps=[cp for cp in range(0x110000) if not (0xD800<=cp<=0xDFFF) and chr(cp).isupper()]\nassert len(cps)==1951\niv=[]\nfor cp in cps:\n    if iv and cp==iv[-1][1]+1:\n        iv[-1][1]=cp\n    else:\n        iv.append([cp,cp])\nassert len(iv)==651\nprint(\'ok 1951 cps / 651 intervals\')')"
+21  test -d src || exit 2<NL>test "$(grep -rl -e 'moonbitlang/x' -e unicode-data src | wc -l)" = "0"
+22  .venv/Scripts/python.exe -c "import json,sys;sys.exit(0 if json.load(open('probes/gen-manifest.json',encoding='utf-8'))['mode']=='flat' else 1)"
+23  head -1 probes/embed-probe/lib/data/data.mbt | grep -q '勿手改'
+24  test "$(wc -c < probes/embed-probe/lib/data/data.mbt | awk '{print $1}')" = "2205308"
+25  test "$(grep -c 'Map::from_array' probes/embed-probe/lib/data/data.mbt)" = "0"
+26  awk '/^### 10\.[1-4]/,/^### 10\.5/' docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md | grep -cE '^\| \*{0,2}(C-|DR)'
+27  grep -rn '^pub fn' --include=*.mbt src
+28  tr -d '\r' < moon.mod | grep -q '^name = "vicoproplus/langdetect"$'
+29  test -x ./_build/native/debug/build/src/core/cmd/main/main.exe || exit 2<NL>./_build/native/debug/build/src/core/cmd/main/main.exe >/tmp/o.txt 2>/tmp/e.txt || exit 1<NL>test ! -s /tmp/o.txt && test ! -s /tmp/e.txt
+30  grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg
+```
+
+### 2.2 逐条 rc 与比对（新失败 / 基线漂移分列）
+
+基线列 = `task0-baseline-2026-10-21.log` §3 原始 rc；Task 12 列 = `task12-redline-2026-10-21.log` §3 表。
+
+| N | rc | 基线 rc | Task 12 rc | rc 比对 | 关键输出（本轮实测） | **新失败** | **基线漂移** |
+|---|---|---|---|---|---|---|---|
+| 1 | 1 | 1 | 1 | 匹配 | stdout 0 B / stderr 0 B（0 行；`src/core` 无 `#cfg` / `#if`） | 无 | 无 |
+| 2 | 1 | 1 | 1 | 匹配 | 0 B（无 `is_wasm(` / `target_name(`） | 无 | 无 |
+| 3 | 1 | 1 | 1 | 匹配 | 0 B（无反向 import `…/src/core`） | 无 | 无 |
+| 4 | 1 | 1 | 1 | 匹配 | 0 B（无 `data.` / `math.` / `fs.` 小写前缀调用） | 无 | 无 |
+| 5 | 1 | 1 | 1 | 匹配 | 0 B（无 `@math.sqrt`） | 无 | 无 |
+| 6 | 1 | 1 | 1 | 匹配 | 0 B（无 `extern "C" fn c_cos/c_sin`） | 无 | 无 |
+| 7 | 1 | 1 | 1 | 匹配 | 0 B（无 `is_ascii_uppercase`） | 无 | 无 |
+| 8 | 1 | 1 | 1 | 匹配 | 0 B（无 `unicode-data` / `moonbitlang/x` import） | 无 | 无 |
+| 9 | 1 | 1 | 1 | 匹配 | 0 B（无 core `@fs`） | 无 | 无 |
+| 10 | 1 | 1 | 1 | 匹配 | 0 B（无 `derive(Show)`） | 无 | 无 |
+| 11 | 1 | 1 | 1 | 匹配 | 0 B（spec 宽豁免形态 0 行）。原始未豁免计数 = **1**，唯一命中 `src/core/cmd/golden/main.mbt:330:  println(output.stringify())`（NE1 已裁决诊断输出例外，见 §2.3） | 无 | 无 |
+| 12 | 1 | 1 | 1 | 匹配 | 0 B（无 http / socket / write_file / log_write） | 无 | 无 |
+| 13 | 1 | 1 | 1 | 匹配 | 0 B（`src` 全树无 `read_file`） | 无 | 无 |
+| 14 | 1 | 1 | 1 | 匹配 | 0 B（无 moonbit-community / moonbitlang/x） | 无 | 无 |
+| 15 | 0 | 0 | 0 | 匹配 | 0 B；md5 = `219519ee19d7cc10d404ddbdab3acd87`（基准未被覆写） | 无 | 无 |
+| 16 | 0 | 0 | 0 | 匹配 | `ok`（4 B；268 = 250 detect_langs + 18 error） | 无 | 无 |
+| 17 | 0 | 0 | 0 | 匹配 | `ok`（seeds = [0, 42]） | 无 | 无 |
+| 18 | 0 | 0 | 0 | 匹配 | `ok`（error code 集合 = {5}） | 无 | 无 |
+| 19 | 0 | 0 | 0 | 匹配 | `ok`（全部 `prob_bits` 为 16 位 hex） | 无 | 无 |
+| 20 | 0 | 0 | 0 | 匹配 | `ok 1951 cps / 651 intervals`（29 B） | 无 | 无 |
+| 21 | 0 | 0 | 0 | 匹配 | 0 B；`src` 存在（未走 rc=2 分支），第三方 Unicode 文件数 = 0（`<NL>` 两行命令） | 无 | 无 |
+| 22 | 0 | 0 | 0 | 匹配 | 0 B；`gen-manifest.json` 的 `mode` = `flat` | 无 | 无 |
+| 23 | 0 | 0 | 0 | 匹配 | 0 B；`probes/embed-probe/lib/data/data.mbt` 首行含「勿手改」 | 无 | 无 |
+| 24 | 0 | 0 | 0 | 匹配 | 0 B；该文件 **2205308 B** | 无 | 无 |
+| 25 | 0 | 0 | 0 | 匹配 | 0 B；`Map::from_array` 命中数 = 0 | 无 | 无 |
+| 26 | 0 | 0 | 0 | 匹配 | `25`（3 B；§10.1-10.4 门禁表派生行数，与基线同值） | 无 | 无 |
+| 27 | 0 | **1** | 0 | 匹配 Task 12 | **51 行 / 3994 B**（stdout sha256 `7c5c061e1ec7ce1a2c85f0bf249d7ade5c3b843f0f90f7656786f0123d7cc5d4`） | 无 | **有（预期推进，非回归）**：基线 rc=1 是 B-02 空集态（0 个 `pub fn`）；本轮 rc=0 / 51 行是产品公开符号已落地。brief「命令 27 现应为 rc=0」明确要求该形态 |
+| 28 | 0 | 0 | 0 | 匹配 | 0 B；`moon.mod` name = `vicoproplus/langdetect` | 无 | 无 |
+| 29 | 0 | 0 | 0 | 匹配 | 0 B / 0 B；`main.exe` 存在可执行（未走 rc=2），运行未走 rc=1，stdout 与 stderr **均 0 字节**（三行 `<NL>` 命令） | 无 | 无 |
+| 30 | 0 | 0 | 0 | 匹配 | 0 B；`src/core/cmd/main/moon.pkg` 含 `pkgtype(kind: "executable")` | 无 | 无 |
+
+**rc 范围**：命令 **1-14 = rc 1**；**15-26 = rc 0**；**27-30 = rc 0**。与计划预期分割（1-14 → 1、15-26 → 0、27 → 0、28-30 → 0）**逐条一致**。
+
+- **新失败：0 条**（无任何命令出现基线之外的新非零 rc，也无期望 0 而实测非 0 的行）。
+- **基线漂移：1 条**（命令 27：rc 1 → 0），已按上表归因为计划**预期推进**（B-02 关闭），非回归；Task 0 基线 §3 的对照结论「1-14 + 11b → 1；15-26、28、30 → 0；27 → 1；29 → 0」在本轮除 27 外全部保持。
+- **与 Task 12 的差异：0 条**（30 条 rc 与 Task 12 逐条相同）。
+
+### 2.3 NE1 静态门三形态（命令 11 / 11b，本轮复测）
+
+| 形态 | 过滤式 | rc | 命中 | 判定 |
+|---|---|---|---|---|
+| spec 命令 11（宽豁免，`spec-10.6-commands.md` 第 11 行） | `grep -vE '[\/]cmd[\/]'` | **1** | 0 行（原始计数 1，命中落在 `cmd/golden` 内被豁免） | 符合期望（rc=1） |
+| 计划 v5.1 命令 11b（仅豁免 `cmd/main`） | `grep -vE '[\/]cmd[\/]main[\/]'` | **0** | 1 行：`src/core/cmd/golden/main.mbt:330:  println(output.stringify())` | 计划文本期望 rc=1 → **rc 偏离，见 §6.1 阻塞项 B-3** |
+| spec 行 756 修订形态（豁免 `cmd/main` + `cmd/golden`） | `grep -vE '[\/]cmd[\/](main|golden)[\/]'` | **1** | 0 行 | 符合 spec §9.4 NE1 operative 条文 |
+
+- 三形态 rc 与 Task 12 §3.1 **完全一致**（1 / 0 / 1），无新增命中。
+- 归因（沿用 Task 12 D1 三步，未改变）：命中行是 golden 诊断 CLI 的契约输出（每调用一行 JSON，供 `tools/compare_golden.py` 消费），责任文件 `src/core/cmd/golden/main.mbt`、责任 Task 10、已登记为 NE1 诊断输出例外；库侧（`src/core` 非 `cmd/`）+ `src/data` + `src/unicode` + `src/math_seam` + `cmd/main` **零命中**（spec 形态 rc=1 / 0 行为证）。**本任务不放宽、不豁免、不改代码**，只记录并按 spec 行 756 判绿，同时把计划文本滞后列为开放项（B-3）。
+
+---
+
+## §3 完整链：`moon check` + 三目标 build + native test
+
+命令（单条 `&&` 链，逐字）：
+
+```bash
+moon check && moon build --target native && moon build --target js && moon build --target wasm-gc && moon test --target native
+```
+
+- 起止：`start=2026-10-23T05:02:45+0800` → `end=2026-10-23T05:02:52+0800`（7 s）
+- **`CHAIN_RC=0`**
+
+| 门禁 | 命令 | rc | 关键输出 |
+|---|---|---|---|
+| 类型检查 | `moon check` | **0** | `Finished. moon: ran 2 tasks, now up to date (5 warnings, 0 errors)`；5 个 warning 均为 `src/data/profiles.mbt`（`:20`/`:44`/`:83`/`:86`/`:89`）的长字符串字面量 `[0033]`，既有基线现象 |
+| native 构建 | `moon build --target native` | **0** | `Finished. moon: no work to do`（产物与源码一致） |
+| js 构建 | `moon build --target js` | **0** | `Finished. moon: no work to do` |
+| wasm-gc 构建 | `moon build --target wasm-gc` | **0** | `Finished. moon: no work to do` |
+| 根测试（native） | `moon test --target native` | **0** | `Total tests: 116, passed: 116, failed: 0.` |
+
+- 测试汇总：**116 / 116 通过，0 失败**（与 Task 11 / Task 12 同值）。
+- 测试文件实测 10 个（`find src -name '*_test.mbt' | wc -l` = 10）：`src/core/{cleaning,detect_block,detector,language,ngram,rng}_test.mbt`、`src/data/profile_test.mbt`、`src/math_seam/math_seam_test.mbt`、`src/unicode/{block,unicode}_test.mbt`。
+- 三目标产物（本轮实测，`moon build` 报 no work to do，即产物对应当前源码）：
+
+  | 目标 | 产物 | 字节 | sha256 |
+  |---|---|---:|---|
+  | native | `_build/native/debug/build/src/core/cmd/golden/golden.exe` | 4268544 | `2cb6a0d6a092756a592d47ab1b2962137e28c65d118ee9b154abf930c449c191` |
+  | js | `_build/js/debug/build/src/core/cmd/golden/golden.js` | 2766239 | `f5acb7eea3b306c617db512a4f0ec315a4e365a9b1f6f6dae7b2424ea0b843a6` |
+  | wasm-gc | `_build/wasm-gc/debug/build/src/core/cmd/golden/golden.wasm` | 3416907 | `11023f2f1c084e39765ce57df9395be6aa3d3a5d0f736c0fc9a48cf5cbd37bf0` |
+
+  静默 CLI 对照产物：`_build/native/debug/build/src/core/cmd/main/main.exe` 4126208 B。
+
+---
+
+## §4 `compare_golden` 全模式 + `compare_lowconf`
+
+执行方式：逐条单独执行（`P=.venv/Scripts/python.exe`），stdout / stderr / rc 分落 `/tmp/t13/modes/`。**未使用 `;` 串联、未用 `|| true`**。整批 wall time 351.34 s。
+
+| # | 命令 | rc | 结果行（原文） |
+|---|---|---|---|
+| 1 | `compare_golden.py --self-check` | **0** | `ok 268=250+18 (prob_entries=274, seeds=0/42)` |
+| 2 | `compare_golden.py --dry-run` | **0** | stderr：`ok dry-run lines=268 expected=268 (250 probability + 18 error cases)`；stdout = 268 行逐案例清单（`wc -l` = 268；首行 `long-af\t0\tlong,per-language`，末行 `extra-with-url-and-mail@seed42\t42\textra`） |
+| 3 | `--target native --seed 0 --mode prob_bits` | **0** | `ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical` |
+| 4 | `--target native --seed 42 --mode prob_bits` | **0** | `ok prob_bits target=native seed=42 cases=125/125 entries=136 bitwise=identical` |
+| 5 | `--target native --seed 0 --mode seed_semantics` | **0** | `ok seed_semantics target=native repeatability=14/14 groups x5 runs (70 runs), seed_diff=125/125 (0 vs 42 differ as recorded), unseeded=7/7 texts (70 runs; top in baseline distinct_langs, RNG variation required where baseline distinct_count > 1)` |
+| 6 | `--target native --seed 0 --mode failures` | **0** | `ok failures target=native cases=18/18 code/message/input_len/input_prefix matched; failure_set=[]` |
+| 7 | `--target native --seed 0 --mode forensics` | **0** | `ok forensics target=native cases=18/18 four_fields=code/message/input_len/input_prefix` |
+| 8 | `--target native --seed 0 --mode cleaning` | **0** | `ok cleaning target=native cases=6/6 V-40..V-43` |
+| 9 | `--target native --seed 0 --mode features_cache` | **0** | `ok features_cache target=native checks=2/2 V-46 raw grams exact; V-47 probs1==probs2` |
+| 10 | `--target native --seed 0 --mode profile_counts` | **0** | `ok profile_counts target=native lang_list_len=55 entry_total=184129 vector_len=55 u06_parse_ms=187 u06_load_ms=318` |
+| 11 | `--target native --seed 0 --mode repeatability` | **0** | `ok repeatability target=native groups=14/14 runs=70 identical=yes` |
+| 12 | `--target native --seed 0 --mode top1` | **0** | `ok top1 target=native cases=250/250 top_lang=detect` |
+| 13 | `--target native --seed 0 --mode lang_list_len` | **0** | `ok lang_list_len target=native len=55 order=expected.json/meta.langlist` |
+| 14 | `--target native --seed 0 --mode entry_total` | **0** | `ok entry_total target=native total=184129` |
+| 15 | `--target native --seed 0 --mode prob_tolerance` | **0** | `ok prob_tolerance target=native: bitwise-only, tolerance not applicable (convention C C1/C5; native compares prob_bits)` |
+| 16 | `compare_lowconf.py --short 55 --long 55 --baseline 268` | **0** | `ok lowconf seed=0 short=55/55 (<50 LowConfidence), long=55/55 (>=50 Detected, top in golden candidates), baseline=268`（wall time 19.87 s） |
+
+- **模式覆盖**：`--self-check` + `--dry-run` + 12 个产品模式（`prob_bits` 双 seed、`seed_semantics`、`failures`、`forensics`、`cleaning`、`features_cache`、`profile_counts`、`repeatability`、`top1`、`lang_list_len`、`entry_total`、`prob_tolerance`）——共 16 条，**全部 rc=0**。
+- **268/268**：`--self-check` 断言 `268=250+18`；`--dry-run` 断言并实际输出 `lines=268`；`failures` `cases=18/18`；`top1` `cases=250/250`；`failure_set=[]`（无任何案例落在失败集）。
+- **short / long 拆分**：`short=55/55`（<50 码点全部返回 `LowConfidence`）、`long=55/55`（≥50 码点全部 `Detected` 且 top 落在该案例 golden 候选集内）、`baseline=268`。三个数值口径不同（`51/55` 是上游**短文本 top-1 准确率**基线 `summary.json → detect_accuracy_short_seed0`，不是 `compare_lowconf.py` 的 long 输出），本轮**不替换、不混淆**，详见 `task11-targets-2026-10-21.log` §2.2 的口径声明。
+- 与 Task 11 的差异：仅 `profile_counts` 的计时采样（本轮 `u06_parse_ms=187 u06_load_ms=318`，Task 11 为 `204/323`）——单次采样抖动，量级一致；其余结果行逐字相同。
+- js 侧比对（`--target js`）与 wasm-gc 侧比对：**[LOCAL_DEAD_LINK]，未执行、未判绿**（U-02 / U-01；见 §5）。
+
+---
+
+## §5 12 个 U 项逐条状态（无静默通过）
+
+U 编号与承接任务取自计划 `…语种检测.md:62-73` 的 Carry-over 承接表；手册取自同文件 §`[LOCAL_DEAD_LINK]` 五要素回补手册（M-01…M-12）。
+
+| U | 项 | 承接任务 | 手册 | 本轮状态 | 当前证据（本轮实测 / 既有记录） |
+|---|---|---|---|---|---|
+| U-01 | wasm-gc 目标 `moon test` 结果 | Task 11 | M-01 | **`[LOCAL_DEAD_LINK]`**（能力未验证） | `moonrun --version` → rc=**127**（命令不存在，本轮复测）；`moon --version` rc=127 同源；本机仅有 `moon build --target wasm-gc` rc=0（§3） |
+| U-02 | js 目标官方 node 结果 | Task 11 | M-02 | **`[LOCAL_DEAD_LINK]`**（能力未验证） | `where.exe node.exe` → `INFO: Could not find files…` rc=**1**；`probes/bin/` 仅 `node.cmd`（指向 bun 1.4.3）；`moon test --target js` 会空跑 0 测试，不作证据；js 侧仅 build rc=0（§3） |
+| U-03 | mooncakes 服务端体积 / 文件数限制 | Task 12 | M-03 | **`[LOCAL_DEAD_LINK]`**（指标未测）；本地侧已落档 | `_build/publish/vicoproplus-langdetect-0.1.0.zip`：7212092 B / 360 文件 / 解压 25744994 B（§6.2 独立复算）；`moon publish` **未执行** |
+| U-04 | js / wasm-gc 概率容差数值 | Task 11 | M-04 | **`[LOCAL_DEAD_LINK]`**（指标未测） | native `--mode prob_tolerance` rc=0，声明 bitwise-only、容差「不适用」（§4 #15）；js / wasm-gc 容差数值仍待校准 |
+| U-05 | 跨平台 libm 位级一致性 | Task 11 | M-05 | **`[LOCAL_DEAD_LINK]`**（能力未验证） | 位级档仅 native(win32 x64) 实测（`prob_bits` 双 seed bitwise=identical）；linux / macos 无载体 |
+| U-06 | 首次加载解析 184129 条耗时 | Task 10 | M-06 | **已回填（报告侧）/ 未落档（spec 侧，阻塞）** | 报告侧：`target-report-2026-10-21.md` §8（N=3 冷进程中位 parse 209 ms / load 347 ms / total 567 ms，`entry_total=184129`）+ 本轮交叉采样 `u06_parse_ms=187 u06_load_ms=318`（§4 #10）。spec 侧：`spec.md:614` 仍读「未验证」→ **OPEN ACCEPTANCE ROW, OWNER: unassigned, 需用户 spec 编辑授权**（B-1） |
+| U-07 | `str.isupper` 与 `Uppercase` 属性集合是否完全相等 | Task 4 | M-07 | **已回填**（本机可执行、三要素齐备） | `.venv/Scripts/python.exe tools/gen_upper_table.py --verify` → rc=**0**，输出两行：`ok 1951 cps / 651 intervals / 0 diff`、`ok 220 blocks / 0 diff (full codepoint lookup)`（全码点对拍 0 不一致） |
+| U-08 | wasm-gc 首次调用完成档案加载 | Task 11 | M-08 | **`[LOCAL_DEAD_LINK]`**（能力未验证） | 同 U-01：`--target wasm-gc --mode profile_counts` 不可达（无 wasm 运行器）；native 侧 `profile_counts` rc=0（§4 #10） |
+| U-09 | 三目标可用语言数 / 条目合计一致性 | Task 11 | M-09 | **`[LOCAL_DEAD_LINK]`**（js / wasm-gc 侧）；native 侧绿 | native：`len=55`、`total=184129`（§4 #13/#14）；js / wasm-gc 侧未执行，不判绿 |
+| U-10 | 三目标主语言一致性 | Task 11 | M-10 | **`[LOCAL_DEAD_LINK]`**（js / wasm-gc 侧）；native 侧绿 | native：`top1 cases=250/250 top_lang=detect`（§4 #12）；js / wasm-gc 侧未执行，不判绿 |
+| U-11 | 其他平台位级一致 | Task 11 | M-11 | **`[LOCAL_DEAD_LINK]`**（能力未验证） | 同 U-05；`--target native-other` 无载体，仅登记为容差档 |
+| U-12 | js / wasm-gc 容差档 | Task 11 | M-12 | **`[LOCAL_DEAD_LINK]`**（指标未测） | 同 U-04；两目标实测概率差分布未取得 |
+
+- **无「静默通过」**：12/12 逐条有状态、有承接任务、有手册号。其中 10 项判 `[LOCAL_DEAD_LINK]`（U-01…U-05、U-08…U-12），1 项（U-07）已回填，1 项（U-06）**报告侧已回填 / spec 侧阻塞**（按 controller 指令 O-1，不得记为「已验证」）。
+- **`[LOCAL_DEAD_LINK]` 五要素**（验证地点 / 方式、判据、载体、授权、注入）逐项见计划 §363-450（M-01…M-12），本任务未改写。
+
+---
+
+## §6 三要素回填与开放项
+
+### 6.1 三要素回填（目标环境 + 命令 + 观测输出）
+
+spec §8 各验收行（8.1 4 行 / 8.2 8 行 / 8.3 5 行 / 8.4 5 行 = 22 行）。判定口径：三要素齐备 = 已回填；缺其一 = 部分（标「未完成」）；`[LOCAL_DEAD_LINK]` = 登记降级，不计完成。
+
+| spec 行（§/项目） | 目标环境 | 命令 | 观测输出（本轮） | 三要素 | 状态 |
+|---|---|---|---|---|---|
+| 8.1 首次调用完成档案加载 / native | native (win32 x64) | `.venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode profile_counts`（+ §3 `moon test --target native`） | `lang_list_len=55 entry_total=184129 vector_len=55 u06_parse_ms=187 u06_load_ms=318`；`Total tests: 116, passed: 116, failed: 0.`；N=3 中位 209/347/567 ms（报告 §8） | 齐备（**报告侧**） | **已回填（报告侧）/ 未落档（spec 侧，阻塞）** — `spec.md:614` 仍「未验证」；OPEN ACCEPTANCE ROW，OWNER: unassigned，需 spec 编辑授权（B-1） |
+| 8.1 首次调用完成档案加载 / js | js | `moon test --target js`（PATH 前置 `probes/bin`） | 无（无 `node.exe`；空跑 0 测试不作证据） | 缺观测输出（结构性不可达） | `[LOCAL_DEAD_LINK]`（U-02 / M-02），**未完成** |
+| 8.1 首次调用完成档案加载 / wasm-gc | wasm-gc | `moon build --target wasm-gc` | `Finished. moon: no work to do`，rc=0 | 齐备（**仅构建层**） | 构建层已回填；运行时 `[LOCAL_DEAD_LINK]`（U-01 / M-01），运行时**未完成** |
+| 8.1 空目录下可检测 / native | native (win32 x64) | `mkdir -p /tmp/t13/emptydir && cd /tmp/t13/emptydir && "F:/moonbit比赛/moon_langdetect/_build/native/debug/build/src/core/cmd/main/main.exe"` | 目录条目数 0；`rc=0`；stdout **0 B** / stderr **0 B** | 齐备 | **已回填**（本轮新增实测证据；PRD FR-13 空目录可检测成立） |
+| 8.2 主检测与概率形态 | native | `--target native --seed 0 --mode prob_bits`（+ seed 42） | `cases=125/125 entries=138 bitwise=identical` / `entries=136 bitwise=identical` | 齐备 | **已回填** |
+| 8.2 seed 语义 | native | `--target native --mode seed_semantics` | `repeatability=14/14 groups x5 (70 runs), seed_diff=125/125, unseeded=7/7 (70 runs…)` | 齐备 | **已回填** |
+| 8.2 参数与失败路径 | native | `--target native --mode failures` | `cases=18/18 … matched; failure_set=[]` | 齐备 | **已回填** |
+| 8.2 失败取证通道 | native | `--target native --mode forensics` | `cases=18/18 four_fields=code/message/input_len/input_prefix` | 齐备 | **已回填** |
+| 8.2 清洗契约 | native | `--target native --mode cleaning` | `cases=6/6 V-40..V-43` | 齐备 | **已回填** |
+| 8.2 大写词与缓存 | native | `--target native --mode features_cache` | `checks=2/2 V-46 raw grams exact; V-47 probs1==probs2` | 齐备 | **已回填** |
+| 8.2 低置信入口 | native | `tools/compare_lowconf.py --short 55 --long 55 --baseline 268` | `short=55/55 …, long=55/55 …, baseline=268`，rc=0 | 齐备 | **已回填** |
+| 8.2 内嵌档案与零外部读取 | native | §10.6 命令 21-25 + `--mode profile_counts` | 命令 21-25 全 rc=0（第三方 Unicode 文件 0 / `mode=flat` / 首行「勿手改」/ 2205308 B / `Map::from_array` 0）；`entry_total=184129`；命令 13 `read_file` 0 行 | 齐备 | **已回填** |
+| 8.3 三目标 build 通过 | native / js / wasm-gc | §3 三目标 build | 三条均 rc=0（`no work to do`） | 齐备 | **已回填** |
+| 8.3 三目标主语言一致 | native / js / wasm-gc | `--target {native,js,wasm-gc} --mode top1` | native `cases=250/250 top_lang=detect`；js / wasm-gc 无输出 | 缺 js / wasm-gc 观测 | **部分**：native 已回填；js / wasm-gc `[LOCAL_DEAD_LINK]`（U-02 / U-01），**未完成** |
+| 8.3 三目标可用语言数一致 | native / js / wasm-gc | `--mode lang_list_len` | native `len=55 order=expected.json/meta.langlist`；js / wasm-gc 无输出 | 缺 js / wasm-gc 观测 | **部分**：native 已回填；js / wasm-gc `[LOCAL_DEAD_LINK]`，**未完成** |
+| 8.3 三目标条目合计一致 | native / js / wasm-gc | `--mode entry_total` | native `total=184129`；js / wasm-gc 无输出 | 缺 js / wasm-gc 观测 | **部分**：native 已回填；js / wasm-gc `[LOCAL_DEAD_LINK]`，**未完成** |
+| 8.3 源侧 23 用例的目标侧对应文件存在且通过 | native | `moon test --target native` | 10 个 `*_test.mbt` 存在；`Total tests: 116, passed: 116, failed: 0.` | 齐备（按文件 + 全量通过） | **已回填**；限制：spec §2A 的 23 个源用例到 116 个目标测试的**逐用例一一映射**未在 spec 登记，本报告按「文件存在 + 全量通过」判定，逐映射仍属文档缺口（非本任务授权范围） |
+| 8.4 `prob_bits` 逐位一致（seed 0） | native (win32 x64) | `--target native --seed 0 --mode prob_bits` | `cases=125/125 entries=138 bitwise=identical` | 齐备 | **已回填** |
+| 8.4 `prob_bits` 逐位一致（seed 42） | native (win32 x64) | `--target native --seed 42 --mode prob_bits` | `cases=125/125 entries=136 bitwise=identical` | 齐备 | **已回填** |
+| 8.4 同 seed 重复 5 次一致 | native (win32 x64) | `--target native --mode repeatability` | `groups=14/14 runs=70 identical=yes` | 齐备 | **已回填** |
+| 8.4 容差档（native 其他平台） | native（其他平台） | `--target native-other --mode prob_tolerance` | 无载体 | 缺观测输出 | `[LOCAL_DEAD_LINK]`（U-05 / M-05），**未完成** |
+| 8.4 容差档（js / wasm-gc） | js / wasm-gc | `--target {js,wasm-gc} --mode prob_tolerance` | 无载体 | 缺观测输出 | `[LOCAL_DEAD_LINK]`（U-04 / U-12 / M-04），**未完成** |
+
+**回填小结**：22 行中 **已回填 15 行**（8.1×2、8.2×8、8.3×2、8.4×3）、**部分 3 行**（8.3 三目标一致性三行，native 侧已回填、js/wasm-gc 侧缺）、**未完成 4 行**（8.1 js、8.1 wasm-gc 运行时、8.4 两行容差），**报告侧 1 行回填但 spec 侧未落档**（8.1 native / U-06，B-1）。任何缺三要素的行一律标「未完成」，未判完成。
+
+### 6.2 开放项与阻塞项（逐条带证据）
+
+**B-1 — U-06 acceptance row 未落档（`OPEN ACCEPTANCE ROW`）**
+
+- 目标行：`docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md:614`（§8.1「首次调用完成档案加载 / native (win32 x64)」），本轮实测该行 `观测输出 = —`、`状态 = 未验证（产品实现未落地）`。
+- 已具备的回填值：`target-report-2026-10-21.md` §8（parse 209 ms / load 347 ms / total 567 ms，N=3 冷进程中位数，`entry_total=184129`；本轮交叉采样 `187/318`）。
+- 阻塞原因：修改 spec 需用户在本次会话的**显式编辑授权**，本会话未持有；本任务只读 spec。
+- **OWNER: unassigned —— 需用户 spec 编辑授权。** 在授权落地前，U-06 **不得**记为「已验证」。
+
+**B-2 — `moon package` 内容越界（RELEASE BLOCKER）**
+
+- 产物：`_build/publish/vicoproplus-langdetect-0.1.0.zip` —— **7212092 B**，**360 文件**，解压 **25744994 B**（`stat -c %s` + `unzip -l` 汇总行，本轮独立复核）。
+- 本轮独立复算的顶层条目字节表（脚本：`unzip -l … | awk 'NR>3 && NF>=4 {...}' | sort -k2,2nr`，结果与 Task 12 §4.1 **逐字节一致**）：
+
+  | 顶层条目 | 解压字节 | 占 25744994 B | 文件数 | 性质 |
+  |---|---:|---:|---:|---|
+  | `probes/` | 16291909 | 63.28 % | 175 | 探针工程（非产品；含 `probes/logs/` 执行期日志） |
+  | `docs/` | 2690422 | 10.45 % | 49 | 文档（非产品）；其中 `docs/port/golden/` = 20 文件（本轮 `grep` 计数 = 20），R1 明定的**只读证据区** |
+  | `src/` | 2645814 | 10.28 % | 37 | **唯一产品源** |
+  | `langdetect/` | 2325270 | 9.03 % | 79 | 上游 Python 参考实现（非产品，只读对照物） |
+  | `2026-10-22-183213-empty-conversation.txt` | 1547761 | 6.01 % | 1 | **用户本地 agent 会话记录（含私密 prompt 历史）** |
+  | `tools/` | 189909 | 0.74 % | 12 | 生成 / 校验脚本（非产品） |
+  | `analysis/` | 47847 | 0.19 % | 4 | 分析草稿（非产品） |
+  | `申报书-moon_langdetect-语种检测.md` | 4922 | 0.02 % | 1 | 申报材料（非产品） |
+  | `LICENSE` | 1089 | 0.00 % | 1 | 许可证 |
+  | `moon.mod` | 51 | 0.00 % | 1 | 模块清单 |
+  | **合计** | **25744994** | 100 % | **360** | 产品 `src/` 仅 10.28 %；**非产品 = 23099180 B = 89.72 %** |
+
+- 三类必须消除的内容：① 会话记录 1547761 B（6.01 %，私密）；② `docs/port/golden/`（1728082 B / 20 文件，只读证据区，随包分发破坏 R1 边界）；③ `langdetect/`（2325270 B / 79 文件，上游参考实现）。
+- 根因（本轮复核）：仓库根**无 `.moonignore`**（`ls -a | grep -i moonignore` → rc=1 无匹配）；隐藏靠 `.git/info/exclude`（其中列 `/.venv/ /_build/ /analysis/ /langdetect/ /probes/ /moon.mod /申报书…md /docs/*` 加 artifacts 白名单），而 **moonc 忽略 `.git/info/exclude`**，故除 `_build/`（moon 自身排除）外全部被打包。
+- 修复需新增仓库根 `.moonignore` —— **超出本任务允许写入面，需用户授权**。`moon publish` **从未执行**（U-03），本轮未产生任何泄露。
+- 说明：本任务**未重跑** `moon package`（不在 Task 13 Output 验收链内，且会写 `_build/publish/`）。所依据的 zip 由 Task 12 于 2026-10-23 04:25 生成；本任务在同一棵树上独立复算其字节表与条目数，数值逐项一致，故该 blocker 在**当前树**上仍然成立（`git diff 2215243..HEAD` 仅改 artifacts 文档，`src/` 未变）。
+
+**B-3 — 计划 v5.1 命令 11b 的 rc 偏离（`PENDING CONTROLLER RULING`）**
+
+- 计划 11b（仅豁免 `cmd/main`）实测 **rc=0 / 1 命中**（`src/core/cmd/golden/main.mbt:330`）；spec 行 756（2026-10-22 用户授权的 NE1 修订）同时豁免 `cmd/main` 与 `cmd/golden`，其形态实测 **rc=1 / 0 命中**。
+- spec 行 423 / 424（§4A GP1 两行）仍写「NE1 静态门**仅豁免 `cmd/main/`**」，与行 756 **内部矛盾**。
+- 本轮处置：按 spec 行 756（operative 条文）判**绿**；**未放行任何代码、未改 spec / plan**。计划文本与 spec 423/424 的一致性需 controller / 用户裁决 —— `PENDING CONTROLLER RULING`。
+
+---
+
+## §7 brief Output 验收链（单条 `&&` 串联，整条执行一次）
+
+命令（逐字）：
+
+```bash
+moon check && moon build --target native && moon build --target js && moon build --target wasm-gc && moon test --target native && .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode prob_bits && .venv/Scripts/python.exe tools/compare_lowconf.py --short 55 --long 55 --baseline 268
+```
+
+- 起止：`start=2026-10-23T05:10:34+0800` → `end=2026-10-23T05:11:44+0800`（70.53 s）
+- **`OUTPUT_CHAIN_RC=0`**（期望退出码 0，符合）
+- 逐段输出（末行）：
+
+  ```text
+  Finished. moon: ran 2 tasks, now up to date (5 warnings, 0 errors)
+  Finished. moon: no work to do
+  Finished. moon: no work to do
+  Finished. moon: no work to do
+  Total tests: 116, passed: 116, failed: 0.
+  ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical
+  ok lowconf seed=0 short=55/55 (<50 LowConfidence), long=55/55 (>=50 Detected, top in golden candidates), baseline=268
+  ```
+
+- 连接符全部为 `&&`，无 `;`、无 `|| true`、无忽略错误（R5）。
+
+---
+
+## §8 判定与保留策略
+
+### 8.1 保留策略
+
+- `final-report-2026-10-21.md`：**永久**。
+- 本证据日志：**90 天**（自 2026-10-23 起算，至 2027-01-21）。
+
+### 8.2 配额实测
+
+| 项 | 上限 | 本轮实际 |
+|---|---|---|
+| 时长 | 60 分钟 | 实测命令执行合计约 **460.4 s（7.7 分钟）**：30 条 §10.6 命令 5.42 s + 结果收集 4.11 s + 完整链 7 s + 全模式 351.34 s + 低置信 19.87 s + Output 验收链 70.53 s + U-07 校验 2.15 s；含 W1b 复核与撰写整轮远低于 60 分钟上限 |
+| 外部调用轮次 | 10 | **0**：无 HTTP / 无包管理器 / 无 CI / 无模型 API / 无 `moon publish`；全部为本地 `moon`、`grep`、`md5sum`、`unzip`、`.venv` Python 与 shell 内建 |
+
+### 8.3 判定
+
+| 维度 | 结果 |
+|---|---|
+| 30 条 §10.6 命令 | 1-14 rc=1、15-26 rc=0、27-30 rc=0 —— 全部符合预期分割；新失败 0；基线漂移 1（命令 27，预期推进） |
+| 完整链（check + 三目标 build + native test） | rc=0；116/116 通过 |
+| `compare_golden` 全模式（16 条） | 全部 rc=0；268/268；双 seed 位级一致 |
+| `compare_lowconf` | rc=0；short 55/55、long 55/55、baseline 268 |
+| Output 验收链 | rc=0 |
+| 12 个 U 项 | 10 项 `[LOCAL_DEAD_LINK]`、U-07 已回填、U-06 报告侧已回填 / spec 侧阻塞 |
+| 开放项 | B-1（U-06 spec 行）、B-2（`moon package` RELEASE BLOCKER）、B-3（11b 与 spec 423/424 矛盾） |
+
+**RESULT: DONE_WITH_CONCERNS** —— 产品代码观测面（30 条静态门、三目标构建、116 单测、268 golden、低置信、双 seed 位级）全部绿且未沿用旧绿；js / wasm-gc 运行时按已声明的交付范围收缩登记 `[LOCAL_DEAD_LINK]`，不判绿；**3 个开放项未关闭**（B-1 / B-2 / B-3），均需用户或 controller 决策，本任务无授权自行处置。
+
+---
+
+## §9 V5 条款（终局生效）
+
+> 本 Task 通过后，**任何共享配置变更**（`moon.mod`、任一 `moon.pkg`、`tools/*.py`、`tools/*.sh`、`docs/port/golden/` 基准、产品源码 `src/**`、C 运行时 / 工具链版本）**必须复跑本 Task 全量**（30 条 §10.6 命令 + 完整链 + 全模式比对 + 低置信 + 12 个 U 状态核对），**禁止沿用旧绿**。
+
+---
+
+**文档结束**
