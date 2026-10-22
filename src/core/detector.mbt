@@ -407,22 +407,18 @@ pub fn Detector::append(self : Detector, text : String) -> Unit {
   let without_urls = strip_urls(text)
   let without_mail = strip_mail_addresses(without_urls)
   let normalized = NGram::normalize_vi(without_mail)
-  let chars = normalized.to_array()
-  let limit = if chars.length() < self.max_text_length {
-    chars.length()
-  } else {
-    self.max_text_length
-  }
   let buffer = StringBuilder()
   let mut previous_space = false
-  let mut index = 0
-  while index < limit {
-    let ch = chars[index]
+  let mut count = 0
+  for ch in normalized.iter() {
+    if count >= self.max_text_length {
+      break
+    }
     if ch != ' ' || !previous_space {
       buffer.write_char(ch)
     }
     previous_space = ch == ' '
-    index += 1
+    count += 1
   }
   self.text = self.text + buffer.to_string()
 }
