@@ -1,0 +1,8 @@
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "vicoproplus/langdetect/src/core",
+  "vicoproplus/langdetect/src/data",
+}
+
+pkgtype(kind: "executable")

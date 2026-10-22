@@ -1,52 +1,53 @@
 # -*- coding: utf-8 -*-
-"""golden 基准比对脚本（Task 2 交付面：仅 ``--self-check``）。
+"""golden 基准比对器（约定 C 全部产品模式，Task 10 phase 10a）。
 
 契约来源
 - `约定 C：golden 基准消费契约` §2（C1-C6）/ §3（C-C1…C-C6 门禁命令）/ §4（分档）。
-- spec §8.2 / §8.4（维度二 / 维度四的比对入口）与 §10.6 命令 15-19。
+- spec §8.2 / §8.3 / §8.4（维度二 / 三 / 四的比对入口）与 §4A 的产品落点。
 
-交付分期（B-08 裁决）
-- 本文件当前只实现 ``--self-check``：校验基准自身的完整性。
-- ``prob_bits`` / ``seed_semantics`` / ``failures`` / ``forensics`` / ``cleaning`` /
-  ``features_cache`` / ``profile_counts`` / ``repeatability`` / ``top1`` /
-  ``lang_list_len`` / ``entry_total`` / ``prob_tolerance`` 十二个产品比对模式
-  留待 Task 10 交付；在此之前它们打印 ``mode not implemented`` 并以退出码 3
-  结束，**不得**静默返回 0。
+模式
+- ``--self-check``：校验基准自身完整性（C1-C6 + 顶层结构），输出
+  ``ok 268=250+18``。
+- 十二个产品比对模式：``prob_bits`` / ``seed_semantics`` / ``failures`` /
+  ``forensics`` / ``cleaning`` / ``features_cache`` / ``profile_counts`` /
+  ``repeatability`` / ``top1`` / ``lang_list_len`` / ``entry_total`` /
+  ``prob_tolerance``。native 目标通过诊断 CLI
+  ``src/core/cmd/golden`` 逐案例求值；``prob_tolerance`` 只登记
+  native 的「位级唯一口径」结论，js / wasm-gc / native-other 记录为
+  ``[LOCAL_DEAD_LINK]``（容差值未登记，Task 11 回补）。
 
-``--self-check`` 的判据（逐条对应约定 C）
-- C2：`cases` 计数三元组 = (268, 250, 18)，即 268 = 250（有 ``detect_langs``）+ 18（有 ``error``）。
-- C3：`cases[*].seed` 集合 = {0, 42}。
-- C1/C5：每条 ``detect_langs[*].prob_bits`` 匹配 ``^[0-9a-f]{16}$``（IEEE754 双精度大端 hex）。
-- C4：异常案例 ``error.code`` 集合 = {5}。
-- C6：``expected.json`` 的 md5 等于登记的基准摘要 ``BASELINE_MD5``（基准只读）。
-- 结构：顶层 ``cases`` / ``meta`` / ``repeatability`` / ``seed_diff`` / ``unseeded_runs``
-  齐备且容器类型分别为 list / dict / list / list / list。
-
-md5 先于结构校验执行：摘要不符即判「基准被改，应回滚而非改期望值」（C6）；
-结构校验把 C1-C6 的语义契约写成独立判据，登记新基准摘要后仍然生效。
+诊断 CLI 协议
+- 每次调用读一个 JSON 参数（``mode`` / ``text`` / ``text2?`` / ``seed`` /
+  ``max_length?``），stdout 输出一行 JSON。
+- 默认二进制路径（相对仓库根）：
+  ``_build/native/debug/build/src/core/cmd/golden/main.exe``；本工具链按
+  包目录名命名可执行产物，因此同一目录下的 ``golden.exe`` 作为回退候选。
+  覆盖顺序：``--binary`` > 环境变量 ``LANGDETECT_GOLDEN_BIN`` > 默认候选。
+- 判据（约定 C）：native 只比 ``prob_bits``（16 位小写 hex），不比
+  ``prob`` / ``prob_repr``；异常案例比 ``code`` / ``message`` /
+  ``input_len`` / ``input_prefix``，其中后两者由案例原文推导
+  （``input_len`` = 码点数，``input_prefix`` = 前 32 码点，spec §5.8）。
 
 路径与可移植性
 - 默认基准目录 = 本脚本所在目录的上一级（仓库根）下的 ``docs/port/golden``；
   脚本内不出现任何机器绝对路径。
 - 覆盖顺序：``--golden-dir`` > 环境变量 ``LANGDETECT_GOLDEN_DIR`` > 默认目录。
 - 相对路径按当前工作目录解析。
-- 当前只登记一个基准摘要（``docs/port/golden``，约定 C §3 记录）。``--golden-dir``
-  指向内容相同的副本仍可通过；指向内容不同的基准则以退出码 1 拒绝——登记第二个
-  基准摘要属于 Task 10 的扩展面。
 
 只读承诺（C6）
 - 脚本只以只读方式打开基准文件，不写入、不改名、不删除任何文件。
 
 退出码
-- 0：模式执行成功（``--self-check`` 输出 ``ok 268=250+18``）。
-- 1：基准内容不满足契约（md5 / 结构 / 计数 / seed / prob_bits / 异常码）。
-- 2：参数非法、基准目录不存在、``expected.json`` 缺失或不可读。
-- 3：产品比对模式尚未实现（Task 10）。
+- 0：模式执行成功且所有判据成立（``prob_tolerance`` 的记录模式也返回 0）。
+- 1：基准内容或产品输出不满足契约（md5 / 结构 / 计数 / seed / prob_bits /
+  异常四字段 / 其他模式判据）。
+- 2：参数非法、基准目录 / 基准文件 / 诊断二进制缺失或不可执行。
 
 用法
     .venv/Scripts/python.exe tools/compare_golden.py --self-check
-    .venv/Scripts/python.exe tools/compare_golden.py --mode self-check
-    LANGDETECT_GOLDEN_DIR=<dir> .venv/Scripts/python.exe tools/compare_golden.py --self-check
+    .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode prob_bits
+    .venv/Scripts/python.exe tools/compare_golden.py --target native --mode seed_semantics
+    .venv/Scripts/python.exe tools/compare_golden.py --target native --mode failures
 """
 from __future__ import annotations
 
@@ -55,6 +56,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -67,6 +69,15 @@ from typing import Any, Callable, Sequence
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GOLDEN_DIR = ROOT / "docs" / "port" / "golden"
 GOLDEN_DIR_ENV = "LANGDETECT_GOLDEN_DIR"
+
+# 诊断可执行产物：moon 按包目录名命名，golden 包的产物是 golden.exe；
+# 任务约定路径写的是 main.exe，故两者都列为默认候选（存在者优先）。
+DEFAULT_BINARY_CANDIDATES = (
+    ROOT / "_build" / "native" / "debug" / "build" / "src" / "core" / "cmd" / "golden" / "main.exe",
+    ROOT / "_build" / "native" / "debug" / "build" / "src" / "core" / "cmd" / "golden" / "golden.exe",
+)
+BINARY_ENV = "LANGDETECT_GOLDEN_BIN"
+DEFAULT_TIMEOUT_SECONDS = 120.0
 
 # --------------------------------------------------------------------------- #
 # 常量：约定 C 判据
@@ -92,6 +103,11 @@ TOP_LEVEL_TYPES = (
     ("unseeded_runs", list),
 )
 
+# 产品规模判据（spec §4.5 / FR-13 / FR-25 / 约定 A）
+EXPECTED_LANG_LIST_LEN = 55
+EXPECTED_ENTRY_TOTAL = 184129
+EXPECTED_VECTOR_LEN = 55
+
 # --------------------------------------------------------------------------- #
 # 常量：CLI 与退出码
 # --------------------------------------------------------------------------- #
@@ -99,7 +115,6 @@ TOP_LEVEL_TYPES = (
 TARGETS = ("native", "js", "wasm-gc", "native-other")
 SEED_CHOICES = (0, 42)
 MODE_SELF_CHECK = "self-check"
-# 十二个产品比对模式：Task 10 交付；在此之前统一 exit 3。
 PRODUCT_MODES = (
     "prob_bits",
     "seed_semantics",
@@ -119,23 +134,22 @@ MODE_NAMES = (MODE_SELF_CHECK,) + PRODUCT_MODES
 EXIT_OK = 0
 EXIT_CHECK_FAILED = 1
 EXIT_USAGE = 2
-EXIT_NOT_IMPLEMENTED = 3  # 产品模式占位 exit 3；Task 10 交付真实实现时删除
 
 # --------------------------------------------------------------------------- #
-# 异常：区分「环境/参数问题」(exit 2) 与「基准内容违约」(exit 1)
+# 异常：区分「环境/参数问题」(exit 2) 与「基准/产品内容违约」(exit 1)
 # --------------------------------------------------------------------------- #
 
 
 class SetupError(Exception):
-    """路径缺失、文件不可读等环境问题 → exit 2。"""
+    """路径缺失、文件不可读、二进制缺失等环境问题 → exit 2。"""
 
 
 class CheckFailure(Exception):
-    """基准内容不满足约定 C 的判据 → exit 1。"""
+    """基准内容或产品输出不满足约定 C 的判据 → exit 1。"""
 
 
 # --------------------------------------------------------------------------- #
-# 运行上下文与模式派发（Task 10 在此扩展产品模式）
+# 运行上下文与模式派发
 # --------------------------------------------------------------------------- #
 
 
@@ -147,6 +161,8 @@ class Context:
     target: str
     seed: int | None
     golden_dir: Path
+    binary: Path
+    timeout: float
 
     @property
     def baseline_path(self) -> Path:
@@ -299,50 +315,798 @@ def check_error_codes(cases: list[Any]) -> None:
 
 
 # --------------------------------------------------------------------------- #
-# 模式实现
+# 基准加载（只读，C6）
+# --------------------------------------------------------------------------- #
+
+
+def load_baseline(ctx: Context, verify_md5: bool = True) -> dict[str, Any]:
+    """读取并结构校验基准；产品模式同样先验 md5，保证只读口径一致。"""
+    path = ctx.baseline_path
+    if not path.is_file():
+        raise SetupError(f"{BASELINE_NAME} not found in golden dir: {ctx.golden_dir}")
+    if verify_md5:
+        digest = md5_of(path)
+        if digest != BASELINE_MD5:
+            raise CheckFailure(
+                f"{BASELINE_NAME} md5 {digest} != registered baseline {BASELINE_MD5} "
+                "(convention C C6; baseline is read-only, mismatch means roll back, "
+                "never edit expectations)"
+            )
+    document = check_top_level(load_json(path))
+    cases = document["cases"]
+    check_case_counts(cases)
+    check_seeds(cases)
+    check_prob_bits(cases)
+    check_error_codes(cases)
+    return document
+
+
+# --------------------------------------------------------------------------- #
+# 诊断 CLI 调用
+# --------------------------------------------------------------------------- #
+
+
+def resolve_binary(raw: str | None) -> Path:
+    """返回诊断二进制路径：flag > env > 默认候选（main.exe 优先）。"""
+    if raw is not None:
+        candidate = Path(raw)
+        source = "--binary"
+        if not candidate.is_file():
+            raise SetupError(f"diagnostic binary not found (source: {source}): {candidate}")
+        return candidate.expanduser().resolve()
+
+    env_value = os.environ.get(BINARY_ENV, "").strip()
+    if env_value:
+        candidate = Path(env_value)
+        if not candidate.is_file():
+            raise SetupError(
+                f"diagnostic binary not found (source: ${BINARY_ENV}): {candidate}"
+            )
+        return candidate.expanduser().resolve()
+
+    existing = [path for path in DEFAULT_BINARY_CANDIDATES if path.is_file()]
+    if not existing:
+        tried = ", ".join(str(path) for path in DEFAULT_BINARY_CANDIDATES)
+        raise SetupError(
+            "diagnostic binary not built; run `moon build --target native` first "
+            f"(tried: {tried})"
+        )
+    return existing[0].resolve()
+
+
+def require_native(ctx: Context, mode: str) -> None:
+    """产品模式只在本机 native 运行；其余目标在 Task 11 回补。"""
+    if ctx.target != "native":
+        raise SetupError(
+            f"{mode}: target {ctx.target!r} is not executable in this environment "
+            "(only native is available; js / wasm-gc / native-other are Task 11)"
+        )
+
+
+class Diagnostic:
+    """逐案例调用诊断 CLI，并按 (case id, seed) 缓存结果。"""
+
+    def __init__(self, binary: Path, timeout: float) -> None:
+        self.binary = binary
+        self.timeout = timeout
+        self._cache: dict[tuple[str, int | None], dict[str, Any]] = {}
+
+    def run(self, payload: dict[str, Any]) -> dict[str, Any]:
+        line = json.dumps(payload, ensure_ascii=False)
+        try:
+            proc = subprocess.run(
+                [str(self.binary), line],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=self.timeout,
+                check=False,
+            )
+        except OSError as exc:
+            raise SetupError(f"cannot execute diagnostic binary: {exc}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise CheckFailure(
+                f"diagnostic binary timed out after {self.timeout}s "
+                f"for mode {payload.get('mode')!r}"
+            ) from exc
+        if proc.returncode != 0:
+            raise CheckFailure(
+                f"diagnostic binary exited {proc.returncode} "
+                f"(mode {payload.get('mode')!r}); stderr={proc.stderr.strip()[:400]!r}"
+            )
+        lines = [row for row in proc.stdout.splitlines() if row.strip()]
+        if len(lines) != 1:
+            raise CheckFailure(
+                f"diagnostic binary must print exactly one JSON line, "
+                f"got {len(lines)}: {proc.stdout.strip()[:400]!r}"
+            )
+        try:
+            result = json.loads(lines[0])
+        except json.JSONDecodeError as exc:
+            raise CheckFailure(
+                f"diagnostic output is not JSON: {lines[0][:400]!r}"
+            ) from exc
+        if not isinstance(result, dict):
+            raise CheckFailure("diagnostic output must be a JSON object")
+        if result.get("mode") != payload.get("mode"):
+            raise CheckFailure(
+                f"diagnostic output mode {result.get('mode')!r} != "
+                f"requested {payload.get('mode')!r}"
+            )
+        return result
+
+    def case(self, case: dict[str, Any], mode: str = "langs") -> dict[str, Any]:
+        key = (case["id"], case["seed"])
+        if key not in self._cache:
+            self._cache[key] = self.run(
+                {
+                    "mode": mode,
+                    "text": case["text"],
+                    "seed": case["seed"],
+                }
+            )
+        return self._cache[key]
+
+
+# --------------------------------------------------------------------------- #
+# 结果比较辅助
+# --------------------------------------------------------------------------- #
+
+
+def lang_pairs(entries: Any, label: str) -> list[tuple[str, str]]:
+    """把 detect_langs / langs 列表规约为 (lang, prob_bits) 序列。"""
+    if not isinstance(entries, list):
+        raise CheckFailure(f"{label}: expected a JSON array, got {type(entries).__name__}")
+    pairs: list[tuple[str, str]] = []
+    for index, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            raise CheckFailure(f"{label} entry {index}: must be a JSON object")
+        lang = entry.get("lang")
+        bits = entry.get("prob_bits")
+        if not isinstance(lang, str):
+            raise CheckFailure(f"{label} entry {index}: lang must be a string")
+        if not isinstance(bits, str) or PROB_BITS_RE.fullmatch(bits) is None:
+            raise CheckFailure(
+                f"{label} entry {index}: prob_bits {bits!r} is not 16 lowercase hex"
+            )
+        pairs.append((lang, bits))
+    return pairs
+
+
+def observed_lang_pairs(result: dict[str, Any], label: str) -> list[tuple[str, str]]:
+    return lang_pairs(result.get("langs"), label)
+
+
+def expected_lang_pairs(case: dict[str, Any]) -> list[tuple[str, str]]:
+    return lang_pairs(case.get("detect_langs"), f"expected {case['id']}")
+
+
+def top_lang(result: dict[str, Any], label: str) -> str:
+    pairs = observed_lang_pairs(result, label)
+    if not pairs:
+        raise CheckFailure(f"{label}: result has no languages")
+    return pairs[0][0]
+
+
+def aggregate(failures: list[str], limit: int = 12) -> str:
+    head = failures[:limit]
+    suffix = ""
+    if len(failures) > limit:
+        suffix = f" (+{len(failures) - limit} more)"
+    return "; ".join(head) + suffix
+
+
+def diff_text(text: str) -> str:
+    """Repr 便于在日志中看到空白/控制字符。"""
+    return repr(text)
+
+
+# --------------------------------------------------------------------------- #
+# 模式实现：基准自检
 # --------------------------------------------------------------------------- #
 
 
 def run_self_check(ctx: Context) -> int:
     """--self-check：校验基准自身完整性（C1-C6 + 顶层结构）。"""
-    path = ctx.baseline_path
-    if not path.is_file():
-        raise SetupError(f"{BASELINE_NAME} not found in golden dir: {ctx.golden_dir}")
-
-    digest = md5_of(path)
-    if digest != BASELINE_MD5:
-        raise CheckFailure(
-            f"{BASELINE_NAME} md5 {digest} != registered baseline {BASELINE_MD5} "
-            "(convention C C6; baseline is read-only, mismatch means roll back, "
-            "never edit expectations)"
-        )
-
-    document = check_top_level(load_json(path))
+    document = load_baseline(ctx)
     cases = document["cases"]
     with_prob, with_error = check_case_counts(cases)
-    check_seeds(cases)
-    check_prob_bits(cases)
-    check_error_codes(cases)
-
-    print(f"ok {len(cases)}={with_prob}+{with_error}")
+    total_entries = check_prob_bits(cases)
+    print(
+        f"ok {len(cases)}={with_prob}+{with_error} "
+        f"(prob_entries={total_entries}, seeds=0/42)"
+    )
     return EXIT_OK
 
 
-def run_not_implemented(ctx: Context) -> int:
-    """十二个产品比对模式：Task 10 交付，当前显式 exit 3。"""
-    # 占位分支：显式 exit 3（不得静默返回 0）。Task 10 Step 0 以
-    # `grep -c 'exit 3' tools/compare_golden.py == 0` 作为本占位已移除的判据。
-    print(
-        f"mode not implemented: {ctx.mode} "
-        "(Task 10; this task delivers --self-check only)",
-        file=sys.stderr,
-    )
-    return EXIT_NOT_IMPLEMENTED
+# --------------------------------------------------------------------------- #
+# 模式实现：prob_bits（C1/C5，native 位级）
+# --------------------------------------------------------------------------- #
 
+
+def run_prob_bits(ctx: Context) -> int:
+    require_native(ctx, "prob_bits")
+    if ctx.seed is None:
+        raise SetupError("mode prob_bits requires --seed {0,42}")
+    document = load_baseline(ctx)
+    cases = [
+        case
+        for case in document["cases"]
+        if case.get("detect_langs") and case["seed"] == ctx.seed
+    ]
+    if not cases:
+        raise CheckFailure(f"no probability cases for seed {ctx.seed}")
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+    failures: list[str] = []
+    entry_count = 0
+    for case in cases:
+        try:
+            result = diagnostic.case(case)
+            observed = observed_lang_pairs(result, case["id"])
+            expected = expected_lang_pairs(case)
+            if observed != expected:
+                failures.append(
+                    f"{case['id']}: expected {expected!r}, observed {observed!r}"
+                )
+            entry_count += len(expected)
+        except CheckFailure as exc:
+            failures.append(f"{case['id']}: {exc}")
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(
+        f"ok prob_bits target=native seed={ctx.seed} "
+        f"cases={len(cases)}/{len(cases)} entries={entry_count} bitwise=identical"
+    )
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- #
+# 模式实现：failures / forensics（C4 + spec §5.8 四字段）
+# --------------------------------------------------------------------------- #
+
+
+def check_error_cases(
+    ctx: Context,
+    detail: bool,
+) -> tuple[int, list[str]]:
+    document = load_baseline(ctx)
+    error_cases = [case for case in document["cases"] if "error" in case]
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+    failures: list[str] = []
+    matched = 0
+    for case in error_cases:
+        text = case["text"]
+        expected = case["error"]
+        expected_len = len(text)
+        expected_prefix = text[:32]
+        try:
+            result = diagnostic.case(case)
+            if "langs" in result:
+                failures.append(f"{case['id']}: expected error, observed langs")
+                continue
+            error = result.get("error")
+            if not isinstance(error, dict):
+                failures.append(f"{case['id']}: missing 'error' object")
+                continue
+            problems: list[str] = []
+            if error.get("code") != expected.get("code"):
+                problems.append(
+                    f"code {error.get('code')!r} != {expected.get('code')!r}"
+                )
+            if error.get("message") != expected.get("message"):
+                problems.append(
+                    f"message {error.get('message')!r} != {expected.get('message')!r}"
+                )
+            if error.get("input_len") != expected_len:
+                problems.append(
+                    f"input_len {error.get('input_len')!r} != {expected_len}"
+                )
+            if error.get("input_prefix") != expected_prefix:
+                problems.append(
+                    f"input_prefix {error.get('input_prefix')!r} != "
+                    f"{expected_prefix!r}"
+                )
+            if detail:
+                print(
+                    f"forensics {case['id']}: code={error.get('code')} "
+                    f"message={error.get('message')!r} "
+                    f"input_len={error.get('input_len')} "
+                    f"input_prefix={diff_text(str(error.get('input_prefix')))} "
+                    f"expected_len={expected_len} "
+                    f"expected_prefix={diff_text(expected_prefix)}"
+                )
+            if problems:
+                failures.append(f"{case['id']}: " + ", ".join(problems))
+            else:
+                matched += 1
+        except CheckFailure as exc:
+            failures.append(f"{case['id']}: {exc}")
+    if detail:
+        print(
+            f"forensics: expected.json carries code/message/type only; "
+            f"input_len/input_prefix derived from case text (spec §5.8)"
+        )
+    return matched, failures
+
+
+def run_failures(ctx: Context) -> int:
+    require_native(ctx, "failures")
+    matched, failures = check_error_cases(ctx, detail=False)
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(
+        f"ok failures target=native cases={matched}/{matched} "
+        "code/message/input_len/input_prefix matched; failure_set=[]"
+    )
+    return EXIT_OK
+
+
+def run_forensics(ctx: Context) -> int:
+    require_native(ctx, "forensics")
+    matched, failures = check_error_cases(ctx, detail=True)
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(
+        f"ok forensics target=native cases={matched}/{matched} "
+        "four_fields=code/message/input_len/input_prefix"
+    )
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- #
+# 模式实现：seed 语义（repeatability / seed_diff / unseeded_runs）
+# --------------------------------------------------------------------------- #
+
+
+def check_repeatability(
+    document: dict[str, Any],
+    diagnostic: Diagnostic,
+) -> tuple[int, int, list[str]]:
+    cases_by_id = {case["id"]: case for case in document["cases"] if case["seed"] == 0}
+    groups = document["repeatability"]
+    failures: list[str] = []
+    checked_runs = 0
+    groups_ok = 0
+    for group in groups:
+        case = cases_by_id.get(group["id"])
+        if case is None:
+            failures.append(f"{group['id']}/seed{group['seed']}: no seed-0 case")
+            continue
+        expected = lang_pairs(
+            group["sample"].get("detect_langs"),
+            f"expected repeatability {group['id']}/seed{group['seed']}",
+        )
+        observed_runs: list[list[tuple[str, str]]] = []
+        for _ in range(group["runs"]):
+            result = diagnostic.run(
+                {"mode": "langs", "text": case["text"], "seed": group["seed"]}
+            )
+            observed_runs.append(
+                observed_lang_pairs(result, f"{group['id']}/seed{group['seed']}")
+            )
+            checked_runs += 1
+        if any(pairs != expected for pairs in observed_runs):
+            failures.append(
+                f"{group['id']}/seed{group['seed']}: runs differ from expected sample"
+            )
+        elif len({tuple(pairs) for pairs in observed_runs}) != 1:
+            failures.append(
+                f"{group['id']}/seed{group['seed']}: same-seed runs are not identical"
+            )
+        else:
+            groups_ok += 1
+    return groups_ok, checked_runs, failures
+
+
+def run_repeatability(ctx: Context) -> int:
+    require_native(ctx, "repeatability")
+    document = load_baseline(ctx)
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+    groups_ok, checked_runs, failures = check_repeatability(document, diagnostic)
+    groups = len(document["repeatability"])
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(
+        f"ok repeatability target=native groups={groups_ok}/{groups} "
+        f"runs={checked_runs} identical=yes"
+    )
+    return EXIT_OK
+
+
+def check_seed_diff(
+    document: dict[str, Any],
+    diagnostic: Diagnostic,
+) -> tuple[int, list[str]]:
+    cases_by_id = {case["id"]: case for case in document["cases"] if case["seed"] == 0}
+    entries = document["seed_diff"]
+    failures: list[str] = []
+    checked = 0
+    for entry in entries:
+        case = cases_by_id.get(entry["id"])
+        if case is None:
+            failures.append(f"{entry['id']}: no seed-0 case")
+            continue
+        result0 = diagnostic.run(
+            {"mode": "langs", "text": case["text"], "seed": 0}
+        )
+        result42 = diagnostic.run(
+            {"mode": "langs", "text": case["text"], "seed": 42}
+        )
+        observed0 = observed_lang_pairs(result0, f"{entry['id']}/seed0")
+        observed42 = observed_lang_pairs(result42, f"{entry['id']}/seed42")
+        expected0 = lang_pairs(entry.get("seed0_langs"), f"{entry['id']}/seed0 expected")
+        expected42 = lang_pairs(entry.get("seed42_langs"), f"{entry['id']}/seed42 expected")
+        problems: list[str] = []
+        if observed0 != expected0:
+            problems.append("seed0 differs from expected")
+        if observed42 != expected42:
+            problems.append("seed42 differs from expected")
+        if observed0 == observed42:
+            problems.append("seed0 and seed42 are identical (expected a difference)")
+        observed_same_detect = (
+            bool(observed0) and bool(observed42) and observed0[0][0] == observed42[0][0]
+        )
+        if observed_same_detect != bool(entry.get("same_detect")):
+            problems.append(
+                f"same_detect {observed_same_detect} != {entry.get('same_detect')}"
+            )
+        if problems:
+            failures.append(f"{entry['id']}: " + ", ".join(problems))
+        else:
+            checked += 1
+    return checked, failures
+
+
+def check_unseeded(
+    document: dict[str, Any],
+    diagnostic: Diagnostic,
+) -> tuple[int, int, list[str]]:
+    failures: list[str] = []
+    total_runs = 0
+    texts_ok = 0
+    for entry in document["unseeded_runs"]:
+        text = entry["text"]
+        signatures: set[tuple[tuple[str, str], ...]] = set()
+        tops: set[str] = set()
+        text_failed = False
+        for _ in range(10):
+            result = diagnostic.run({"mode": "langs", "text": text, "seed": None})
+            total_runs += 1
+            if "error" in result:
+                failures.append(
+                    f"unseeded text_len={len(text)}: unexpected error "
+                    f"{result['error'].get('code')}: {result['error'].get('message')}"
+                )
+                text_failed = True
+                break
+            pairs = observed_lang_pairs(result, "unseeded")
+            if not pairs:
+                failures.append(
+                    f"unseeded text_len={len(text)}: empty language list"
+                )
+                text_failed = True
+                break
+            signatures.add(tuple(pairs))
+            tops.add(pairs[0][0])
+        if not text_failed:
+            texts_ok += 1
+            print(
+                f"unseeded text_len={len(text)} runs=10 "
+                f"distinct_results={len(signatures)} "
+                f"distinct_top_langs={sorted(tops)}"
+            )
+    return texts_ok, total_runs, failures
+
+
+def run_seed_semantics(ctx: Context) -> int:
+    require_native(ctx, "seed_semantics")
+    document = load_baseline(ctx)
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+
+    groups_ok, checked_runs, failures = check_repeatability(document, diagnostic)
+    groups = len(document["repeatability"])
+    if groups_ok != groups:
+        raise CheckFailure("repeatability: " + aggregate(failures))
+
+    diff_ok, diff_failures = check_seed_diff(document, diagnostic)
+    failures.extend(diff_failures)
+    diff_total = len(document["seed_diff"])
+
+    texts_ok, unseeded_runs, unseeded_failures = check_unseeded(document, diagnostic)
+    failures.extend(unseeded_failures)
+    unseeded_total = len(document["unseeded_runs"])
+
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(
+        f"ok seed_semantics target=native "
+        f"repeatability={groups_ok}/{groups} groups x5 runs ({checked_runs} runs), "
+        f"seed_diff={diff_ok}/{diff_total} (0 vs 42 differ as recorded), "
+        f"unseeded={texts_ok}/{unseeded_total} texts x10 runs "
+        f"({unseeded_runs} runs, no exceptions; RNG variation recorded only)"
+    )
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- #
+# 模式实现：top1 / lang_list_len / entry_total / profile_counts
+# --------------------------------------------------------------------------- #
+
+
+def run_top1(ctx: Context) -> int:
+    require_native(ctx, "top1")
+    document = load_baseline(ctx)
+    cases = [case for case in document["cases"] if case.get("detect_langs")]
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+    failures: list[str] = []
+    matched = 0
+    for case in cases:
+        try:
+            result = diagnostic.case(case)
+            observed = top_lang(result, case["id"])
+            expected = case["detect"]
+            if observed != expected:
+                failures.append(f"{case['id']}: top {observed!r} != detect {expected!r}")
+            else:
+                matched += 1
+        except CheckFailure as exc:
+            failures.append(f"{case['id']}: {exc}")
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(f"ok top1 target=native cases={matched}/{len(cases)} top_lang=detect")
+    return EXIT_OK
+
+
+def run_meta(ctx: Context, mode: str) -> dict[str, Any]:
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+    result = diagnostic.run({"mode": "meta"})
+    if "error" in result:
+        raise CheckFailure(f"meta: {result['error']}")
+    return result
+
+
+def run_lang_list_len(ctx: Context) -> int:
+    require_native(ctx, "lang_list_len")
+    document = load_baseline(ctx)
+    result = run_meta(ctx, "lang_list_len")
+    lang_list = result.get("lang_list")
+    expected_list = document["meta"].get("langlist")
+    problems: list[str] = []
+    if result.get("lang_list_len") != EXPECTED_LANG_LIST_LEN:
+        problems.append(
+            f"lang_list_len {result.get('lang_list_len')!r} != {EXPECTED_LANG_LIST_LEN}"
+        )
+    if not isinstance(lang_list, list) or len(lang_list) != EXPECTED_LANG_LIST_LEN:
+        problems.append(f"lang_list length {len(lang_list) if isinstance(lang_list, list) else None}")
+    if lang_list != expected_list:
+        problems.append("lang_list differs from expected.json meta.langlist")
+    if problems:
+        raise CheckFailure("; ".join(problems))
+    print(
+        f"ok lang_list_len target=native len={EXPECTED_LANG_LIST_LEN} "
+        f"order=expected.json/meta.langlist"
+    )
+    return EXIT_OK
+
+
+def run_entry_total(ctx: Context) -> int:
+    require_native(ctx, "entry_total")
+    load_baseline(ctx)
+    result = run_meta(ctx, "entry_total")
+    observed = result.get("entry_total")
+    if observed != EXPECTED_ENTRY_TOTAL:
+        raise CheckFailure(f"entry_total {observed!r} != {EXPECTED_ENTRY_TOTAL}")
+    print(f"ok entry_total target=native total={EXPECTED_ENTRY_TOTAL}")
+    return EXIT_OK
+
+
+def run_profile_counts(ctx: Context) -> int:
+    require_native(ctx, "profile_counts")
+    load_baseline(ctx)
+    result = run_meta(ctx, "profile_counts")
+    problems: list[str] = []
+    if result.get("lang_list_len") != EXPECTED_LANG_LIST_LEN:
+        problems.append(f"lang_list_len {result.get('lang_list_len')!r}")
+    if result.get("entry_total") != EXPECTED_ENTRY_TOTAL:
+        problems.append(f"entry_total {result.get('entry_total')!r}")
+    if result.get("vector_len") != EXPECTED_VECTOR_LEN:
+        problems.append(f"vector_len {result.get('vector_len')!r}")
+    if problems:
+        raise CheckFailure(
+            "profile_counts: "
+            + ", ".join(problems)
+            + f" (expected {EXPECTED_LANG_LIST_LEN}/{EXPECTED_ENTRY_TOTAL}/{EXPECTED_VECTOR_LEN})"
+        )
+    print(
+        f"ok profile_counts target=native lang_list_len={EXPECTED_LANG_LIST_LEN} "
+        f"entry_total={EXPECTED_ENTRY_TOTAL} vector_len={EXPECTED_VECTOR_LEN} "
+        f"u06_parse_ms={result.get('parse_ms')} u06_load_ms={result.get('load_ms')}"
+    )
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- #
+# 模式实现：cleaning（V-40…V-43）
+# --------------------------------------------------------------------------- #
+
+# (标签, 输入, 期望 append+cleaning_text 之后的文本)
+CLEANING_CASES = (
+    (
+        "V-40-url-followed-by-text",
+        {"text": "see http://a.com/x then TEXT-more"},
+        "see then TEXT-more",
+    ),
+    (
+        "V-40-url-trailing-space",
+        {"text": "hello https://example.com/abc"},
+        "hello ",
+    ),
+    (
+        "V-41-mail-address",
+        {"text": "mail me at john.doe@example.com please"},
+        "mail me at please",
+    ),
+    (
+        "V-42-consecutive-spaces",
+        {"text": "a  b\t\tc"},
+        "a b\t\tc",
+    ),
+    (
+        "V-43-max-length-5",
+        {"text": "abcdefghij", "max_length": 5},
+        "abcde",
+    ),
+    (
+        "V-43-max-length-3",
+        {"text": "aaabbb", "max_length": 3},
+        "aaa",
+    ),
+)
+
+
+def run_cleaning(ctx: Context) -> int:
+    require_native(ctx, "cleaning")
+    load_baseline(ctx)
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+    failures: list[str] = []
+    matched = 0
+    for label, fields, expected in CLEANING_CASES:
+        payload = {"mode": "cleaning", "seed": 0}
+        payload.update(fields)
+        result = diagnostic.run(payload)
+        if "error" in result:
+            failures.append(f"{label}: {result['error']}")
+            continue
+        observed = result.get("text")
+        if observed != expected:
+            failures.append(
+                f"{label}: observed {diff_text(str(observed))} != "
+                f"expected {diff_text(expected)}"
+            )
+        else:
+            matched += 1
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(f"ok cleaning target=native cases={matched}/{len(CLEANING_CASES)} V-40..V-43")
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- #
+# 模式实现：features_cache（V-46 / V-47）
+# --------------------------------------------------------------------------- #
+
+FEATURES_TEXT = "USA NASA FBI"
+FEATURES_EXPECTED = (
+    "U",
+    " U",
+    "A ",
+    "SA ",
+    "N",
+    " N",
+    "A ",
+    "SA ",
+    "F",
+    " F",
+)
+
+
+def run_features_cache(ctx: Context) -> int:
+    require_native(ctx, "features_cache")
+    document = load_baseline(ctx)
+    diagnostic = Diagnostic(ctx.binary, ctx.timeout)
+    failures: list[str] = []
+    matched = 0
+
+    result = diagnostic.run({"mode": "features", "text": FEATURES_TEXT, "seed": 0})
+    observed_grams = result.get("grams")
+    if result.get("mode") != "features" or "error" in result:
+        failures.append(f"V-46: {result.get('error')}")
+    elif observed_grams != list(FEATURES_EXPECTED):
+        failures.append(
+            f"V-46: grams {observed_grams!r} != {list(FEATURES_EXPECTED)!r}"
+        )
+    else:
+        matched += 1
+
+    case = next(
+        (
+            item
+            for item in document["cases"]
+            if item["id"] == "short-en" and item["seed"] == 0
+        ),
+        None,
+    )
+    if case is None:
+        failures.append("V-47: baseline is missing short-en/seed0")
+    else:
+        cache = diagnostic.run(
+            {
+                "mode": "cache",
+                "text": case["text"],
+                "text2": "Ein, zwei, drei, vier",
+                "seed": 0,
+            }
+        )
+        if "error" in cache:
+            failures.append(f"V-47: {cache['error']}")
+        else:
+            probs1 = lang_pairs(cache.get("probs1"), "cache probs1")
+            probs2 = lang_pairs(cache.get("probs2"), "cache probs2")
+            expected = expected_lang_pairs(case)
+            if probs1 != probs2:
+                failures.append("V-47: probs1 != probs2 after second append")
+            elif probs1 != expected:
+                failures.append("V-47: probs1 != short-en/seed0 expected")
+            else:
+                matched += 1
+
+    if failures:
+        raise CheckFailure(aggregate(failures))
+    print(
+        f"ok features_cache target=native checks={matched}/2 "
+        "V-46 raw grams exact; V-47 probs1==probs2"
+    )
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- #
+# 模式实现：prob_tolerance（C5 分档记录）
+# --------------------------------------------------------------------------- #
+
+
+def run_prob_tolerance(ctx: Context) -> int:
+    if ctx.target == "native":
+        print(
+            "ok prob_tolerance target=native: bitwise-only, tolerance not applicable "
+            "(convention C C1/C5; native compares prob_bits)"
+        )
+        return EXIT_OK
+    print(
+        f"prob_tolerance target={ctx.target}: [LOCAL_DEAD_LINK] "
+        "(tolerance values not registered; js / wasm-gc / native-other deferred to Task 11)"
+    )
+    return EXIT_OK
+
+
+# --------------------------------------------------------------------------- #
+# 模式派发
+# --------------------------------------------------------------------------- #
 
 MODE_HANDLERS: dict[str, Handler] = {
-    mode: (run_self_check if mode == MODE_SELF_CHECK else run_not_implemented)
-    for mode in MODE_NAMES
+    MODE_SELF_CHECK: run_self_check,
+    "prob_bits": run_prob_bits,
+    "seed_semantics": run_seed_semantics,
+    "failures": run_failures,
+    "forensics": run_forensics,
+    "cleaning": run_cleaning,
+    "features_cache": run_features_cache,
+    "profile_counts": run_profile_counts,
+    "repeatability": run_repeatability,
+    "top1": run_top1,
+    "lang_list_len": run_lang_list_len,
+    "entry_total": run_entry_total,
+    "prob_tolerance": run_prob_tolerance,
 }
 
 # 派发完整性守卫：13 个 --mode 选项必须各有处理函数。
@@ -359,23 +1123,27 @@ def build_parser() -> argparse.ArgumentParser:
         prog="compare_golden.py",
         allow_abbrev=False,
         description=(
-            "Self-check the langdetect golden baseline (docs/port/golden/expected.json). "
-            "Task 2 delivers --self-check only; the twelve product comparison modes are "
-            "deferred to Task 10 and exit 3 until then."
+            "Compare the MoonBit port against the langdetect golden baseline "
+            "(docs/port/golden/expected.json). Native product modes drive the "
+            "src/core/cmd/golden diagnostic CLI and judge prob_bits bitwise."
         ),
         epilog=(
             "Golden dir resolution (first match wins):\n"
             "  1. --golden-dir\n"
             "  2. $LANGDETECT_GOLDEN_DIR\n"
             "  3. <repo-root>/docs/port/golden   (repo root = parent of this script's dir)\n"
+            "\n"
+            "Diagnostic binary resolution (first match wins):\n"
+            "  1. --binary\n"
+            "  2. $LANGDETECT_GOLDEN_BIN\n"
+            "  3. _build/native/debug/build/src/core/cmd/golden/main.exe\n"
+            "  4. _build/native/debug/build/src/core/cmd/golden/golden.exe\n"
             "Relative paths are resolved against the current working directory.\n"
             "\n"
             "Exit codes:\n"
-            "  0  mode succeeded (--self-check prints 'ok 268=250+18')\n"
-            "  1  baseline violates the contract (md5 / structure / counts / seeds / "
-            "prob_bits / error code)\n"
-            "  2  invalid arguments, or golden dir / expected.json missing or unreadable\n"
-            "  3  product comparison mode not implemented yet (Task 10)\n"
+            "  0  mode succeeded and all judgements hold\n"
+            "  1  baseline or product output violates the contract\n"
+            "  2  invalid arguments, or golden dir / baseline / diagnostic binary missing\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -390,14 +1158,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         choices=SEED_CHOICES,
         default=None,
-        help="RNG seed for product modes (default: none; ignored by self-check)",
+        help="RNG seed for prob_bits (0 or 42); other modes use the baseline seeds",
     )
     parser.add_argument(
         "--mode",
         choices=MODE_NAMES,
         default=None,
-        help="mode to run (default: self-check); the twelve product modes exit 3 "
-        "until Task 10",
+        help="mode to run (default: self-check)",
     )
     parser.add_argument(
         "--self-check",
@@ -410,6 +1177,21 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="golden baseline directory (default: <repo-root>/docs/port/golden, "
         "overridable via $LANGDETECT_GOLDEN_DIR)",
+    )
+    parser.add_argument(
+        "--binary",
+        default=None,
+        metavar="PATH",
+        help="diagnostic CLI executable (default: "
+        "_build/native/debug/build/src/core/cmd/golden/main.exe, "
+        "falling back to golden.exe; overridable via $LANGDETECT_GOLDEN_BIN)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT_SECONDS,
+        metavar="SECONDS",
+        help=f"per-invocation timeout (default: {DEFAULT_TIMEOUT_SECONDS:g})",
     )
     return parser
 
@@ -425,7 +1207,7 @@ def resolve_mode(parser: argparse.ArgumentParser, args: argparse.Namespace) -> s
         return MODE_SELF_CHECK
     if args.mode is not None:
         return args.mode
-    # 两者都未给出时的安全默认：只读自检，绝不臆造产品比对结论。
+    # 两者都未给出时的安全默认：只读自检。
     return MODE_SELF_CHECK
 
 
@@ -459,13 +1241,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return EXIT_USAGE
 
-    ctx = Context(
-        mode=mode,
-        target=args.target,
-        seed=args.seed,
-        golden_dir=golden_dir,
-    )
     try:
+        # 自检只读基准，不依赖诊断二进制；产品模式必须先解析二进制。
+        if mode == MODE_SELF_CHECK:
+            binary = DEFAULT_BINARY_CANDIDATES[0]
+        else:
+            binary = resolve_binary(args.binary)
+        ctx = Context(
+            mode=mode,
+            target=args.target,
+            seed=args.seed,
+            golden_dir=golden_dir,
+            binary=binary,
+            timeout=args.timeout,
+        )
         return MODE_HANDLERS[mode](ctx)
     except SetupError as exc:
         print(f"error: {mode}: {exc}", file=sys.stderr)
