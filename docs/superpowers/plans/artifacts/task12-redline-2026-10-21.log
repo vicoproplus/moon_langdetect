@@ -1,0 +1,173 @@
+# Task 12 证据日志 — 方言红线 + spec §10.6 全量复跑 + `moon package`
+
+- 任务：Task 12（`task-12-brief.md`）
+- 计划：`docs/superpowers/plans/2026-10-21-moon-langdetect-语种检测.md`（v5.1）
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`（未切换；`main` 未触碰）
+- HEAD：`2215243719a7335e4d66582a2e146add199f4e4a`（`2215243`，提交时间 2026-10-23 04:15:09 +0800）
+- 执行日期：2026-10-23（日志撰写时间 2026-10-23 +0800）
+- 工具链环境：`moon 0.1.20261012` / `moonc v0.10.15+943464bfa` / `GNU grep 3.0` / `GNU bash 5.3.15` / `Python 3.12.10`（与 Task 0 基线环境一致，未更换）
+- **破坏性重跑说明**：本任务第一步即销毁既有 `_build` 并重建，本日志内所有绿均产生于**空 `_build` 之后的干净构建**，不存在旧产物假绿。
+
+## §1 破坏性快照与 `_build` 移除（首步）
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| 快照前确认 | `ls -d _build` | 存在（`_build`，142 M） |
+| 复制 | `cp -r _build /tmp/_build.bak-20261021` | 成功 |
+| 副本确认 | `test -d /tmp/_build.bak-20261021 && du -sh /tmp/_build.bak-20261021` | `/tmp/_build.bak-20261021` 存在，**142M** |
+| 文件数一致性 | `find /tmp/_build.bak-20261021 -type f \| wc -l` / `find _build -type f \| wc -l` | 448 / 448（副本与源逐文件数相同） |
+| 删除 | `rm -rf _build` | 成功 |
+| 删除确认 | `test ! -d _build` | 成立（`_build` 已不存在） |
+
+`_build` 删除后，本日志 §2 / §3 / §4 的所有构建、测试、`moon package` 全部在空 `_build` 上重新生成。
+
+## §2 `moon check` / 三目标 build / `moon test --target native`
+
+均在 `_build` 已删除的状态下执行（`_build` 由本次执行重新生成）。
+
+| 门禁 | 命令 | rc | 关键输出 |
+|---|---|---|---|
+| 类型检查 | `moon check` | **0** | stderr 末行：`Finished. moon: ran 12 tasks, now up to date (5 warnings, 0 errors)`（5 个 warning 均为 `src/data/profiles.mbt` 的长字符串字面量 [0033]，既有基线现象） |
+| native 构建 | `moon build --target native` | **0** | stderr 末行：`Finished. moon: ran 16 tasks, now up to date (6 warnings, 0 errors)`；6 个 warning = 5×[0033] + `src/math_seam/moon.pkg:2` 的 unused_package `moonbitlang/core/math`（既有基线现象） |
+| js 构建 | `moon build --target js` | **0** | stderr 末行：`Finished. moon: ran 8 tasks, now up to date (5 warnings, 0 errors)` |
+| wasm-gc 构建 | `moon build --target wasm-gc` | **0** | stderr 末行：`Finished. moon: ran 8 tasks, now up to date (5 warnings, 0 errors)` |
+| 根测试 | `moon test --target native` | **0** | `Total tests: 116, passed: 116, failed: 0.` |
+
+### §2.1 单条 `&&` 串联的验收链（brief Output 原文）
+
+```bash
+moon check && moon build --target native && moon build --target js && moon build --target wasm-gc && moon test --target native && moon package
+```
+
+- **rc = 0**（`CHAIN_EXIT=0`）
+- 串联输出（逐段末行）：`Finished. moon: ran 2 tasks, now up to date (5 warnings, 0 errors)` → `Finished. moon: no work to do`（native）→ `no work to do`（js）→ `no work to do`（wasm-gc）→ `Total tests: 116, passed: 116, failed: 0.` → `Package to F:\moonbit比赛\moon_langdetect\_build\publish\vicoproplus-langdetect-0.1.0.zip`
+- 该链只用 `&&`，无 `;`、无 `|| true`（R5 / R16）。
+
+## §3 spec §10.6 命令 1-30 逐条复跑
+
+- 命令来源：`.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/spec-10.6-commands.md`（`NN<TAB>command`，30 行）。
+- 执行方式：每条命令**单独**执行（`env -u SHELLOPTS bash --noprofile --norc <单条脚本>`，stdout / stderr / rc 分落 `/tmp/run106/cNN/`）；未用 `;` 串联，未用 `|| true`。
+- 命令 20 / 21 / 29 的 `<NL>` 字面 token 已重新拆分为真实换行（脚本 `printf '%s' "$cmd" | sed 's/<NL>/\n/g'`），三条均为多行命令且均成功执行（rc 见下表）。
+- 基线对照：`docs/superpowers/plans/artifacts/baseline-2026-10-21.md` §4 + `task0-baseline-2026-10-21.log`。
+- 「空集态 vs 实跑态」：Task 0 基线为 B-03 空集态（0 个产品 `.mbt`，命令 1-14 的 rc=1 是空集假绿）；本轮 `src/` 树含 30+ 个产品 `.mbt`、`moon check` / 三目标 build / 116 测试实跑通过，故本轮 rc=1 是**实跑态**零命中，不是空集假绿（计划 v5.1「执行期易错点」）。
+
+| N | 命令（逐字，`<NL>` 已拆行） | rc | 基线 rc | rc 比对 | 关键输出（命中/摘要） | 新失败 | 基线漂移 |
+|---|---|---|---|---|---|---|---|
+| 1 | `grep -rnE '^[[:space:]]*#(cfg\|if)[[:space:]]*[(]' --include=*.mbt src/core` | 1 | 1 | 匹配 | 0 行 / 0 字节（无 `#cfg` / `#if`） | 无 | 无（基线为空集态 0 行，本轮实跑态 0 行） |
+| 2 | `grep -rnE '(^\|[^[:alnum:]_])(is_wasm\|target_name)[[:space:]]*[(]' --include=*.mbt src/core` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 3 | `grep -rn -e 'vicoproplus/langdetect/src/core' --include=moon.pkg src/data src/unicode src/math_seam` | 1 | 1 | 匹配 | 0 行 / 0 字节（无反向 import） | 无 | 无 |
+| 4 | `grep -rnE '(^\|[^@[:alnum:]_])(data\|math\|fs)\.[a-z_]+[(]' --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 5 | `grep -rn '@math\.sqrt' --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 6 | `grep -rnE 'extern "C" fn c_(cos\|sin)' --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 7 | `grep -rn 'is_ascii_uppercase' --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 8 | `grep -rn -e unicode-data -e 'moonbitlang/x' --include=moon.pkg src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 9 | `grep -rn '"moonbitlang/core/fs"' --include=moon.pkg src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 10 | `grep -rn 'derive(Show)' --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 11 | `grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam \| grep -vE '[\\/]cmd[\\/]'` | 1 | 1 | 匹配 | 0 行 / 0 字节。原始（不豁免 `cmd`）计数 = 1，唯一命中 = `src/core/cmd/golden/main.mbt:330: println(output.stringify())`，即 NE1  sanction 的诊断输出行（见 §3.1） | 无 | 无 |
+| 12 | `grep -rn -e http -e socket -e write_file -e log_write --include=*.mbt src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 13 | `grep -rn 'read_file' src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 14 | `grep -rn -e moonbit-community -e 'moonbitlang/x' --include=moon.pkg src` | 1 | 1 | 匹配 | 0 行 / 0 字节 | 无 | 无 |
+| 15 | `test "$(md5sum docs/port/golden/expected.json \| awk '{print $1}')" = "219519ee19d7cc10d404ddbdab3acd87"` | 0 | 0 | 匹配 | 断言成立，stdout 0 字节 / rc=0（md5 一致，基准未被覆写） | 无 | 无 |
+| 16 | `.venv/Scripts/python.exe -c "…assert (len(c),…)==(268,250,18);print('ok')"` | 0 | 0 | 匹配 | `ok`（268 cases = 250 detect_langs + 18 error） | 无 | 无 |
+| 17 | `.venv/Scripts/python.exe -c "…assert sorted({x['seed'] for x in c})==[0,42];print('ok')"` | 0 | 0 | 匹配 | `ok` | 无 | 无 |
+| 18 | `.venv/Scripts/python.exe -c "…assert {x['error']['code'] …}=={5};print('ok')"` | 0 | 0 | 匹配 | `ok` | 无 | 无 |
+| 19 | `.venv/Scripts/python.exe -c "…assert not bad;print('ok')"` | 0 | 0 | 匹配 | `ok`（全部 `prob_bits` 为 16 位 hex） | 无 | 无 |
+| 20 | `.venv/Scripts/python.exe -c "exec('import sys,unicodedata<NL>…assert len(iv)==651<NL>print(\'ok 1951 cps / 651 intervals\')')"` | 0 | 0 | 匹配 | `ok 1951 cps / 651 intervals` | 无 | 无 |
+| 21 | `test -d src \|\| exit 2` <NL> `test "$(grep -rl -e 'moonbitlang/x' -e unicode-data src \| wc -l)" = "0"` | 0 | 0 | 匹配 | `src` 存在（未走 rc=2 分支），第三方 Unicode 文件数 = 0，stdout 0 字节 / rc=0 | 无 | 无 |
+| 22 | `.venv/Scripts/python.exe -c "…sys.exit(0 if …['mode']=='flat' else 1)"` | 0 | 0 | 匹配 | `mode=flat`（stdout 0 字节，rc=0） | 无 | 无 |
+| 23 | `head -1 probes/embed-probe/lib/data/data.mbt \| grep -q '勿手改'` | 0 | 0 | 匹配 | 首行含「勿手改」（stdout 0 字节） | 无 | 无 |
+| 24 | `test "$(wc -c < probes/embed-probe/lib/data/data.mbt \| awk '{print $1}')" = "2205308"` | 0 | 0 | 匹配 | 2205308 字节（stdout 0 字节） | 无 | 无 |
+| 25 | `test "$(grep -c 'Map::from_array' probes/embed-probe/lib/data/data.mbt)" = "0"` | 0 | 0 | 匹配 | 0 命中（stdout 0 字节） | 无 | 无 |
+| 26 | `awk '/^### 10\.[1-4]/,/^### 10\.5/' docs/superpowers/specs/…-spec.md \| grep -cE '^\| \*{0,2}(C-\|DR)'` | 0 | 0 | 匹配 | `25`（门禁表行数派生，与基线一致） | 无 | 无 |
+| 27 | `grep -rn '^pub fn' --include=*.mbt src` | **0** | **1** | **符合预期（B-02 关闭）** | **51 行 / 3994 字节**，产品公开符号已存在（`src/core/api.mbt:63 detect`、`:88 detect_langs`、`:109 get_lang_list`、`:128 debug_vector_len`；`src/core/cleaning.mbt`、`confidence.mbt`、`detector.mbt`、`detect_block.mbt`、`factory.mbt`；`src/math_seam/math_seam.mbt`；`src/unicode/unicode.mbt` 等） | 无 | 基线 rc=1（B-02，0 个 `pub fn`）→ 本轮 rc=0 / 51 行。**这是计划的预期推进**（Brief：「命令 27 现应为 rc=0」），不是回归 |
+| 28 | `tr -d '\r' < moon.mod \| grep -q '^name = "vicoproplus/langdetect"$'` | 0 | 0 | 匹配 | name 字面一致（stdout 0 字节） | 无 | 无 |
+| 29 | `test -x ./_build/native/debug/build/src/core/cmd/main/main.exe \|\| exit 2` <NL> `./_build/…/main.exe >/tmp/o.txt 2>/tmp/e.txt \|\| exit 1` <NL> `test ! -s /tmp/o.txt && test ! -s /tmp/e.txt` | 0 | 0 | 匹配 | 二进制存在（未走 rc=2），运行未走 rc=1，stdout 与 stderr 均 **0 字节** | 无 | 无 |
+| 30 | `grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg` | 0 | 0 | 匹配 | 匹配（stdout 0 字节） | 无 | 无 |
+
+**期望分割核验**：命令 1-14 rc=1、15-26 rc=0、27 rc=0、28-30 rc=0 —— **全部符合预期**，无 rc 偏离。
+
+### §3.1 NE1 静态门：命令 11 / 11b 与本轮新增的「spec 形态 11b」
+
+Task 12 brief 已知事项：命令 11（未豁免）的唯一命中在 `src/core/cmd/golden/main.mbt`，是**受 sanction 的 NE1 诊断输出行**。本轮除 spec 命令 11 外，另跑两条 NE1 变体并记录 rc：
+
+| 形态 | 过滤式 | rc | 命中 | 判定 |
+|---|---|---|---|---|
+| spec 命令 11 | `grep -vE '[\\/]cmd[\\/]'` | 1 | 0 行（原始计数 1，命中在 `cmd/golden` 内被豁免） | 期望 rc=1，符合 |
+| 计划命令 11b（只豁免 `cmd/main`） | `grep -vE '[\\/]cmd[\\/]main[\\/]'` | **0** | 1 行：`src/core/cmd/golden/main.mbt:330:  println(output.stringify())` | 计划 v5.1 的 11b 期望 rc=1；本轮 rc=0 的原因见下 |
+| spec 修订形态（同时豁免 `cmd/main` 与 `cmd/golden`） | `grep -vE '[\\/]cmd[\\/](main\|golden)[\\/]'` | **1** | 0 行 | 符合 spec §9.4 NE1 行的最新表述 |
+
+归因与说明（D1 顺序：① 判据 → ② 归属 → ③ 处置）：
+
+1. **判据层**：`src/core/cmd/golden/main.mbt:330` 的 `println(output.stringify())` 是 golden 诊断 CLI 的**契约输出行**（每调用输出一行 JSON，供 `tools/compare_golden.py --mode prob_bits` 消费），不是库侧的 stdout 副作用。
+2. **归属层**：责任文件 = `src/core/cmd/golden/main.mbt`，责任 Task = **Task 10**（`src/core/cmd/golden/**` 的唯一授权变更范围）。这不是新引入的缺陷：Task 10 日志 §6.1-6.2 已登记同一命中行并判定为「诊断输出例外，不判红」。
+3. **规范层**：现行 spec（`docs/superpowers/specs/202610202129-moon-langdetect-语种检测-spec.md:423,424,756`）已按 2026-10-22 用户裁决把 NE1 的 cmd 例外表述为「排除 `cmd/main/` 与 `cmd/golden/` 路径段」并把静态门命令改为 `grep -vE '[\\/]cmd[\\/](main\|golden)[\\/]'`；计划 v5.1 的 11b 文本（只豁免 `cmd/main`）尚未跟上该修订，故 11b 的 rc=0 是**规范文本滞后**，不是产品代码违反当前 spec。
+4. **处置**：本任务按 brief 第 5 条执行——**不修改产品代码、不放宽、不豁免**，只记录。用**当前 spec 口径**的 NE1 静态门判定：rc=1 / 0 命中，通过。计划 11b 文本的滞后归属为 plan 侧文档问题（Task 12 无 plan/spec 修改授权），报 controller 决策。
+5. 库侧与 `cmd/main` 侧零命中：`src/core`（非 `cmd/` 部分）、`src/data`、`src/unicode`、`src/math_seam` 中无任何 `println` / `print(` / `eprintln` / `@stdio`（spec 形态 11b rc=1 / 0 行为证）。R4 的静默要求未被违反。
+
+## §4 `moon package`（U-03：不执行真实发布）
+
+- 命令：`moon package`（单独执行，捕获 rc；**未执行 `moon publish`**）
+- rc = **0**
+- 关键输出（尾部）：
+  ```text
+  Warning: 'readme' field is not set or empty in module manifest
+  Warning: 'repository' field is not set or empty in module manifest
+  Warning: 'license' field is not set or empty in module manifest
+  Running moon check ...
+  Check passed
+  Package to F:\moonbit比赛\moon_langdetect\_build\publish\vicoproplus-langdetect-0.1.0.zip
+  ```
+- 未要求 token、未提示认证、无交互（未触发任何登录路径）。
+- 产物路径：`_build/publish/vicoproplus-langdetect-0.1.0.zip`
+- 字节数：**7212092** 字节（`stat -c %s` = 7212092）
+- 文件数：**360**（`unzip -l` 汇总行 `360 files`）
+- 包内容顶层分布（`unzip -Z1 … | awk -F/ '{print $1}' | sort | uniq -c`）：
+
+  ```text
+  175 probes
+  79  langdetect
+  49  docs
+  37  src
+  12  tools
+   4  analysis
+   1  申报书-moon_langdetect-语种检测.md
+   1  moon.mod
+   1  LICENSE
+   1  2026-10-22-183213-empty-conversation.txt
+  ```
+
+  > 说明：`moon package` 打入了仓库内**未**被 `.gitignore` / `.git/info/exclude` 隐藏的全部内容（`probes/`、`langdetect/`、`docs/`、`tools/`、`analysis/` 等），因为本仓库的 exclude 只影响 git 可见性、不影响打包。这是 moonc 打包语义的观察事实，按原样记录，未作处置（U-03 只管「不真实发布」，不管收窄包内容）。360 个文件中含 `src/**` 的 37 个产品源文件。
+- `moon publish` **未执行**（U-03），本任务不产生任何上传动作。
+
+## §5 快照清理
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| 删除快照 | `rm -rf /tmp/_build.bak-20261021` | 成功 |
+| 删除确认 | `ls -d /tmp/_build.bak-20261021`（应不存在） | 已不存在，清理完成 |
+
+快照未进入任何交付物（交付物只有 §「交付清单」中的两个文件）。
+
+## §6 资源上限与保留策略
+
+| 项 | 上限 | 本轮实际 |
+|---|---|---|
+| 时长上限 | 90 分钟 | 约 8 分钟（快照 ~30 s + 干净构建 ~40 s + 30 条命令 ~10 s + package ~4 s + `&&` 链 ~12 s；均在单次会话内连续完成，无中断） |
+| 外部调用轮次上限 | 15 | **3**（`moon package` 的 `moon check` 前置、`&&` 链内的 `moon check`/`moon package`；本任务无网络调用、无 `moon publish`、无 HTTP 交互；30 条 §10.6 命令与本地 Python 均为本地执行，不计外部调用） |
+
+- 保留策略：本证据日志保留 **90 天**（自 2026-10-23 起）。
+- 本轮无红灯命中（§3 全部 rc 符合预期；§3.1 的 11b rc=0 已归因为规范文本滞后且当前 spec 口径判定通过），因此未触发 Fix Loop 修复轮、未回退到步骤 2 重跑。
+
+## 交付清单
+
+| 文件 | 说明 |
+|---|---|
+| `docs/superpowers/plans/artifacts/task12-redline-2026-10-21.log` | 本日志（唯一新增交付物） |
+| `.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/task-12-report.md` | Task 12 报告（SDD 工作区） |
+
+未修改：产品代码、spec、plan、`docs/port/`、`langdetect/`、`probes/`、`tools/`、`moon.mod`。`_build/` 为本机构建产物（既存隐藏项），非源码改动。
+
+## RESULT: PASS
+
+（命令 1-14 rc=1、15-26 rc=0、27 rc=0、28-30 rc=0，与预期分割完全一致；`moon check` + 三目标 build + `moon test --target native` + `moon package` 在干净 `_build` 上 rc=0；116/116 测试通过；无红线命中。）
