@@ -305,3 +305,203 @@ rc=0
 - 保留策略：本日志保留 90 天。
 
 RESULT: PASS
+
+---
+
+# Fix round 1（2026-10-23，review 结论：Needs fixes → 4 项 Important）
+
+- 复核提交：`1b3e1ca1d9c0cdcc5d008028820f307ff67c450c`（Phase A）、`af9ca0a7cfe8123e98ac8cb6f5b438f4286c6387`（Phase B）
+- 复核起点 HEAD：`af9ca0a7cfe8123e98ac8cb6f5b438f4286c6387`
+- 改动文件：`tools/c6_zero_network.sh`、`tools/compare_golden.py`（`tools/compare_lowconf.py` **未改** —— 本轮 4 项发现均不涉及低置信比对）
+- 辅助脚本位置：`.superpowers/sdd/2026-10-21-moon-langdetect-语种检测/scratch-task10/`（不在仓库根，且该目录已被 gitignore）
+
+## I1 — netstat 不可用时零网络断言「不可能失败」
+
+**问题**：`netstat -ano 2>/dev/null | awk … | wc -l` 在 netstat 缺失 / 失败时输出 0，`HITS=0` 恒成立 → rc=0 假绿。复现确认：netstat 缺失 PATH 下运行 socket 持有进程得 `HITS=0 SAMPLES=1 rc=0`。
+
+**改动**（`tools/c6_zero_network.sh:155-166`，首次采样之后）：新增 netstat 可用性**正控**。
+
+```sh
+NETSTAT_ROWS=$(netstat -ano 2>/dev/null | wc -l | tr -d ' \t')
+if [ "${NETSTAT_ROWS:-0}" -le 1 ]; then
+  printf 'c6: netstat unavailable (netstat -ano produced %s line(s); HITS=0 would be a vacuous pass)\n' "${NETSTAT_ROWS:-0}" >&2
+  ... kill / wait / cleanup_snap / exit 2
+fi
+```
+
+阈值 `<= 1`：正常 `netstat -ano` 至少输出表头两行（`Active Connections` + `Proto Local Address ... PID`）；本机实测 361 行。netstat 缺失或 shim 退出 127 时输出 0 行 → 拒绝判定。
+
+**新观测**（F：netstat 不在 PATH；G：netstat shim `exit 127`）：
+
+```text
+$ PATH="/tmp/minbin" /usr/bin/sh.exe tools/c6_zero_network.sh <slow5.sh>
+c6: netstat unavailable (netstat -ano produced 0 line(s); HITS=0 would be a vacuous pass)
+F_rc=2
+
+$ PATH="<scratch>/bin_badnet:$PATH" sh tools/c6_zero_network.sh <slow5.sh>
+c6: netstat unavailable (netstat -ano produced 0 line(s); HITS=0 would be a vacuous pass)
+G_rc=2
+```
+
+（`/tmp/minbin` 只放 `sh/ps/sleep/date/awk/wc/tr/mktemp/comm/sort/kill`，**不含** netstat。）
+
+## I2 — 「20 × 50 ms」映射预算实测 ~3.1 s，且 Cygwin PID 回退造成结构性 HITS=0
+
+**问题**：每次 `ps -W` 自身约 150 ms，20 次迭代实际 ~3.1 s；存活 ~2 s 的子进程在循环中途退出，走进「已退出」分支 `WINPID=$CHILD` 并 rc=0；而 Cygwin PID 永不出现在 `netstat -ano` 的 PID 列，`HITS` 结构性恒为 0。
+
+**改动**（`tools/c6_zero_network.sh:77-141`）：按 reviewer 裁决的三路 + 拒绝判定实现。
+
+1. 尝试计数改为**墙钟截止时间**：`MAP_BUDGET_MS=2000`，`START_MS=$(now_ms)`，`DEADLINE_MS=$((START_MS + MAP_BUDGET_MS))`；`now_ms()` 读 `date +%s%N`，不可用时返回空串并回退到 40 次尝试的兜底预算（不改变语义）。
+2. 新增 `OBSERVED_ALIVE`：循环内每次 `kill -0 "$CHILD"` 成功即置 1（记录「**曾经**存活」）。
+3. 分派（原 `if [ -z "$WINPID" ]` 单分支）：
+   - (a) `WINPID` 非空 → 正常判 HITS；
+   - (b) 空且**仍存活** → `c6: WINPID unmapped while child is still alive; refusing to judge` + `exit 2`（守卫生效，态 ⑥）；
+   - (c) 空、已退出、`OBSERVED_ALIVE=0` → 合法瞬时进程，`WINPID=$CHILD` 判 HITS（保留态 ④ rc=0）；
+   - (d) 空、已退出、`OBSERVED_ALIVE=1` → `c6: WINPID unmapped while child was alive; refusing to judge` + `exit 2`。
+
+**新观测**（H：`ps -W` 不可用 + 约 2 s 存活子进程，即 I2 (d) 分支）：
+
+```text
+$ PATH="<scratch>/bin_nops:$PATH" sh tools/c6_zero_network.sh <slow2.sh>   # ps -> exit 1, 子进程 sleep 2
+c6: WINPID unmapped while child was alive; refusing to judge
+H_rc=2
+real 0m2.310s
+```
+
+修复前同一输入走「已退出」回退分支得 `HITS=0 rc=0`（假绿）。
+
+**附带清理**（同文件 Minor，reviewer 同批指出）：
+- 头注释第 6 条补 `HITS` 语义：**per-sample 行数累加和，不是连接条数**（同一条连接会在多帧采样中被重复计入）。
+- `mktemp -d` 失败时 `SNAP_DIR=""` 并**整段跳过**辅助快照（不再回退到 `.`），辅助 diff 缺失时打印 `aux_netstat_diff skipped (mktemp -d unavailable)`。
+
+## I3 — `check_unseeded` 只记录 `distinct_count`，从不断言
+
+**问题**：原实现读取 `unseeded_runs` 却从不与 `distinct_count` / `distinct_langs` 比较；unseeded RNG 退化为定种（`distinct_results=1`）的实现仍然通过。
+
+**改动**（`tools/compare_golden.py:761-862`）：按 reviewer 裁决实现低 flake 确定规则。
+
+1. **严格**：每次运行的 top 必须属于 `unseeded_allowed_tops(document, entry)` = 基准 `distinct_langs` ∪ 同文本 seed-0 / seed-42 `detect`。集合外 → 判红。
+2. **变异**：基准 `distinct_count > 1` 时要求 ≥ 2 个不同签名；单批（10 次）退化为单例时最多补跑至 **3 批（30 次）**，**只有全部批次单调**才判红。
+3. 常量：`UNSEEDED_BATCH_RUNS = 10`、`UNSEEDED_MAX_BATCHES = 3`。
+4. 每文本输出行新增 `batches=` / `allowed_top_langs=`；模式汇总行改为 `unseeded=7/7 texts (70 runs; top in baseline distinct_langs, RNG variation required where baseline distinct_count > 1)`。
+
+残余误红概率与上游 split（写入 docstring）：本机实测 `'Otec matka syn.'` 10 次运行 = `fi 6 / pl 4`（单次 0.6/0.4）；`P(单批单调) = 0.6^10 + 0.4^10 ≈ 6.2e-3`，`P(连续 3 批单调) ≈ 2.4e-7`；按 reviewer 最保守模型（每次 0.85）计 `0.85^30 ≈ 7.6e-3`。
+
+**规则自测**（桩 `Diagnostic`，注入固定输出，不依赖真实二进制）：
+
+```text
+monotone   -> ok=0 runs=30 FAILS: ['unseeded text_len=15: no RNG variation across 30 runs (distinct_results=1, baseline distinct_count=2)']
+third-lang -> ok=0 runs=1  FAILS: ["unseeded text_len=15: top 'de' not in baseline distinct_langs ['fi', 'pl']"]
+varying    -> ok=1 runs=10 FAILS: []
+```
+
+**产品复跑**（`--target native --seed 0 --mode seed_semantics`，rc=0）：
+
+```text
+unseeded text_len=15 runs=10 batches=1 distinct_results=10 distinct_top_langs=['fi', 'pl'] allowed_top_langs=['fi', 'pl']
+unseeded text_len=21 runs=10 batches=1 distinct_results=10 distinct_top_langs=['de'] allowed_top_langs=['de']
+unseeded text_len=2  runs=10 batches=1 distinct_results=10 distinct_top_langs=['sw'] allowed_top_langs=['sw']
+unseeded text_len=5  runs=10 batches=1 distinct_results=10 distinct_top_langs=['ca'] allowed_top_langs=['ca']
+unseeded text_len=26 runs=10 batches=1 distinct_results=10 distinct_top_langs=['en'] allowed_top_langs=['en']
+unseeded text_len=41 runs=10 batches=1 distinct_results=10 distinct_top_langs=['en'] allowed_top_langs=['en']
+unseeded text_len=60 runs=10 batches=1 distinct_results=10 distinct_top_langs=['en'] allowed_top_langs=['en']
+ok seed_semantics target=native repeatability=14/14 groups x5 runs (70 runs), seed_diff=125/125 (0 vs 42 differ as recorded), unseeded=7/7 texts (70 runs; top in baseline distinct_langs, RNG variation required where baseline distinct_count > 1)
+```
+
+（变异的 `text_len=15` 单批即出现 10 个签名，未触发补跑；其余 6 条 `distinct_count=1`，只查严格 top。）
+
+## I4 — 计划的 dry-run 未执行；`--dry-run` 模式缺失
+
+**问题**：计划 Task 10 Step 7 要求「dry-run：输出行数 = 268」，此前未执行却按 rubric 通过。
+
+**改动**（`tools/compare_golden.py`）：新增 `--dry-run` 模式（`MODE_DRY_RUN`、`run_dry_run`、`MODE_HANDLERS` 注册、`--dry-run` flag、`resolve_mode` 双别名冲突检测、`main` 中 dry-run 不解析诊断二进制、docstring 用法段）。每案例打印 `<id>\t<seed>\t<tags>`，并断言 `lines == 268`。
+
+**观测**：
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --dry-run | wc -l
+268
+$ head -2 / tail -2
+long-af	0	long,per-language
+long-ar	0	long,per-language
+extra-with-url@seed42	42	extra
+extra-with-url-and-mail@seed42	42	extra
+stderr: ok dry-run lines=268 expected=268 (250 probability + 18 error cases)
+rc=0
+```
+
+`--dry-run` 与 `--mode dry-run` 等价；`--dry-run --mode prob_bits` → argparse error（rc=2），不与 `--self-check` 同用。
+
+## Fix round 1 复跑（受影响面全量）
+
+### A. C6 零网络断言 —— 六态 + 两个新守卫生效态
+
+被测辅助脚本：`scratch-task10/{slow5.sh, slow2.sh, instant.sh, reader2.sh, holder2.py}`；`bin_nops/ps` = `#!/bin/sh` + `exit 1`；`bin_badnet/netstat` = `#!/bin/sh` + `exit 127`。
+
+| 态 | 命令（简写） | 输出 | rc |
+|---|---|---|---|
+| ① 真实二进制 | `c6.sh golden.exe cases.jsonl` | `HITS=0 SAMPLES=2 WINPID=34484 child_rc=0` | **0** |
+| ③ 缺失 `main.exe` | `c6.sh .../cmd/golden/main.exe cases.jsonl` | （无输出，`test -x` 失败） | **2** |
+| ② 持有 TCP 连接 | `c6.sh <python> holder2.py` | `HITS=36 SAMPLES=13 WINPID=32772 child_rc=0` | **1** |
+| ④ 瞬时退出 | `c6.sh instant.sh` | `HITS=0 SAMPLES=1 WINPID=27188 child_rc=0` | **0** |
+| ⑤ stdin 契约 | `c6.sh reader2.sh in.txt` | `HITS=0 SAMPLES=2 WINPID=34500 child_rc=0`；被测进程写出 `got:hello` | **0** |
+| ⑥ `ps -W` 不可用 + 存活 5s | `PATH=bin_nops:$PATH c6.sh slow5.sh` | `c6: WINPID unmapped while child is still alive; refusing to judge` | **2** |
+| **I1** netstat 不在 PATH | `PATH=/tmp/minbin sh.exe c6.sh slow5.sh` | `c6: netstat unavailable (netstat -ano produced 0 line(s); HITS=0 would be a vacuous pass)` | **2** |
+| **I1** netstat shim `exit 127` | `PATH=bin_badnet:$PATH c6.sh slow5.sh` | 同上（0 line(s)） | **2** |
+| **I2(d)** ~2s 子进程 + `ps -W` 不可用 | `PATH=bin_nops:$PATH c6.sh slow2.sh` | `c6: WINPID unmapped while child was alive; refusing to judge` | **2** |
+| 辅助 无 socket 慢进程 | `c6.sh slow5.sh` | `HITS=0 SAMPLES=22 WINPID=12060 child_rc=0` | **0** |
+
+`sh -n tools/c6_zero_network.sh` 通过；脚本内无机器绝对路径。
+
+### B. 产品模式与回归（I3 / I4 触面 + 全量复跑）
+
+```text
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode seed_semantics
+... unseeded=7/7 texts (70 runs; top in baseline distinct_langs, RNG variation required where baseline distinct_count > 1)
+rc=0
+
+$ .venv/Scripts/python.exe tools/compare_golden.py --dry-run | wc -l
+268      (rc=0; stderr: ok dry-run lines=268 expected=268)
+
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0  --mode prob_bits
+ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical
+rc=0
+
+$ .venv/Scripts/python.exe tools/compare_golden.py --target native --seed 42 --mode prob_bits
+ok prob_bits target=native seed=42 cases=125/125 entries=136 bitwise=identical
+rc=0
+
+$ .venv/Scripts/python.exe tools/compare_lowconf.py --short 55 --long 55 --baseline 268
+ok lowconf seed=0 short=55/55 (<50 LowConfidence), long=55/55 (>=50 Detected, top in golden candidates), baseline=268
+rc=0
+
+$ moon test --target native
+Total tests: 116, passed: 116, failed: 0.
+rc=0
+
+$ moon build --target native && moon build --target js && moon build --target wasm-gc
+Finished. moon: no work to do  (x3)
+builds_rc=0
+```
+
+### C. 静态红线复跑
+
+```text
+$ grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\/]cmd[\/]' | wc -l
+0
+
+spec §10.6 命令 1-14 逐条执行：CMD1..CMD14 全部 rc=1（无 RED）
+```
+
+`grep -c 'exit 3' tools/compare_golden.py` = 0。
+
+## Fix round 1 结论
+
+- I1 netstat 不可用 → 现在 **rc=2**（正控生效），不再假绿。
+- I2 映射预算改为 2 s 墙钟 + `OBSERVED_ALIVE` 三路分派；~2 s 子进程场景现在 **rc=2**（拒绝判定），态 ④（瞬时）仍 rc=0。
+- I3 unseeded 现在同时断言「top ∈ 基线语言集合」与「RNG 变异」；规则自测覆盖单调 / 第三语言 / 正常变异三种输入。
+- I4 `--dry-run` 落地并实跑，**268 行**，与基准案例总数一致。
+- 六态全部复跑：① 0 / ② 1 / ③ 2 / ④ 0 / ⑤ 0 / ⑥ 2，另加两个新守卫生效态 rc=2。
+- `tools/compare_lowconf.py` 本轮未修改。
+
+RESULT: PASS

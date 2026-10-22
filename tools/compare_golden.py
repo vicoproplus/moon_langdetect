@@ -8,6 +8,9 @@
 模式
 - ``--self-check``：校验基准自身完整性（C1-C6 + 顶层结构），输出
   ``ok 268=250+18``。
+- ``--dry-run``：逐案例打印 ``<id>\\t<seed>\\t<tags>`` 一行，并断言行数 =
+  268（计划 Task 10 Step 7 的「dry-run：输出行数 = 268」）。只读基准，
+  不调用诊断二进制，任何目标平台均可运行。
 - 十二个产品比对模式：``prob_bits`` / ``seed_semantics`` / ``failures`` /
   ``forensics`` / ``cleaning`` / ``features_cache`` / ``profile_counts`` /
   ``repeatability`` / ``top1`` / ``lang_list_len`` / ``entry_total`` /
@@ -129,7 +132,8 @@ PRODUCT_MODES = (
     "entry_total",
     "prob_tolerance",
 )
-MODE_NAMES = (MODE_SELF_CHECK,) + PRODUCT_MODES
+MODE_DRY_RUN = "dry-run"
+MODE_NAMES = (MODE_SELF_CHECK, MODE_DRY_RUN) + PRODUCT_MODES
 
 EXIT_OK = 0
 EXIT_CHECK_FAILED = 1
@@ -520,6 +524,37 @@ def run_self_check(ctx: Context) -> int:
     return EXIT_OK
 
 
+# 计划 Task 10 Step 7 的 dry-run：输出行数必须等于基准案例总数（268）。
+DRY_RUN_EXPECTED_LINES = EXPECTED_CASE_COUNTS[0]
+
+
+def run_dry_run(ctx: Context) -> int:
+    """--dry-run：逐案例打印一行，并断言行数 = 268（计划 Step 7）。
+
+    行格式：`<id>\\t<seed>\\t<tags>`（tags 以逗号连接，空则 `-`）。
+    只读基准，不调用诊断二进制，因此目标平台无关。
+    """
+    document = load_baseline(ctx)
+    cases = document["cases"]
+    lines = 0
+    for case in cases:
+        tags = case.get("tags") or []
+        tag_text = ",".join(str(tag) for tag in tags) if tags else "-"
+        print(f"{case['id']}\t{case['seed']}\t{tag_text}")
+        lines += 1
+    if lines != DRY_RUN_EXPECTED_LINES:
+        raise CheckFailure(
+            f"dry-run: printed {lines} lines, expected {DRY_RUN_EXPECTED_LINES} "
+            "(one per baseline case)"
+        )
+    print(
+        f"ok dry-run lines={lines} expected={DRY_RUN_EXPECTED_LINES} "
+        f"(250 probability + 18 error cases)",
+        file=sys.stderr,
+    )
+    return EXIT_OK
+
+
 # --------------------------------------------------------------------------- #
 # 模式实现：prob_bits（C1/C5，native 位级）
 # --------------------------------------------------------------------------- #
@@ -758,44 +793,107 @@ def check_seed_diff(
     return checked, failures
 
 
+# unseeded 批大小与最大批数（I3）：单批 10 次在变异文本上会误红，故允许补跑。
+UNSEEDED_BATCH_RUNS = 10
+UNSEEDED_MAX_BATCHES = 3
+
+
+def unseeded_allowed_tops(
+    document: dict[str, Any], entry: dict[str, Any]
+) -> set[str]:
+    """该文本允许出现的 top language 集合。
+
+    判据来源（从严）：基准 `distinct_langs` ∪ 同文本 seed-0 / seed-42 的
+    `detect`（基准里若登记了该文本的定种结果）。任何集合外的 top 都判红——
+    上游 `detect()` 在 unseeded 路径上仍取 `max(prob)`，随机只应改变两个
+    候选的相对次序，不应换成第三种语言。
+    """
+    allowed = {str(lang) for lang in (entry.get("distinct_langs") or [])}
+    text = entry.get("text")
+    for case in document["cases"]:
+        if case.get("text") == text and case.get("detect"):
+            allowed.add(str(case["detect"]))
+    return allowed
+
+
 def check_unseeded(
     document: dict[str, Any],
     diagnostic: Diagnostic,
 ) -> tuple[int, int, list[str]]:
+    """比对 unseeded 路径：top 语言严格 + RNG 变异（I3）。
+
+    判据
+    1. 严格（每次运行）：观测 top 必须属于 `unseeded_allowed_tops(...)`。
+       这能抓住「实现换成了第三种语言」或「top 选择逻辑坏了」。
+    2. 变异（基准 `distinct_count > 1` 时）：至少出现两个不同的签名
+       `((lang, prob_bits), ...)`。实现若把 unseeded 退化成定种（
+       `distinct_results=1`），单批 10 次会漏判；故单批退化为单例时最多补
+       跑至 3 批（30 次），**只有全部批次都单调**才判红。
+
+    残余误红概率（本机实测上游 split 为 fi 6 / pl 4，即单次 0.6/0.4）：
+    - 以实测 split 计：P(单批单调) = 0.6^10 + 0.4^10 ≈ 6.2e-3，
+      P(连续 3 批单调) ≈ 2.4e-7；
+    - 以最保守的「每次运行 0.85 概率落在同一侧」模型计（reviewer 口径）：
+      P(全部 30 次单调) ≈ 0.85^30 ≈ 7.6e-3。
+    两种口径都不影响正常实现（正常实现单批几乎必然出现两个签名）。
+    """
     failures: list[str] = []
     total_runs = 0
     texts_ok = 0
     for entry in document["unseeded_runs"]:
         text = entry["text"]
+        label = f"unseeded text_len={len(text)}"
+        allowed = unseeded_allowed_tops(document, entry)
+        baseline_distinct = int(entry.get("distinct_count") or 0)
+        want_variation = baseline_distinct > 1
         signatures: set[tuple[tuple[str, str], ...]] = set()
         tops: set[str] = set()
         text_failed = False
-        for _ in range(10):
-            result = diagnostic.run({"mode": "langs", "text": text, "seed": None})
-            total_runs += 1
-            if "error" in result:
-                failures.append(
-                    f"unseeded text_len={len(text)}: unexpected error "
-                    f"{result['error'].get('code')}: {result['error'].get('message')}"
-                )
-                text_failed = True
+        batches = 0
+        while batches < UNSEEDED_MAX_BATCHES:
+            batches += 1
+            for _ in range(UNSEEDED_BATCH_RUNS):
+                result = diagnostic.run({"mode": "langs", "text": text, "seed": None})
+                total_runs += 1
+                if "error" in result:
+                    failures.append(
+                        f"{label}: unexpected error "
+                        f"{result['error'].get('code')}: {result['error'].get('message')}"
+                    )
+                    text_failed = True
+                    break
+                pairs = observed_lang_pairs(result, "unseeded")
+                if not pairs:
+                    failures.append(f"{label}: empty language list")
+                    text_failed = True
+                    break
+                top = pairs[0][0]
+                tops.add(top)
+                if top not in allowed:
+                    failures.append(
+                        f"{label}: top {top!r} not in baseline distinct_langs "
+                        f"{sorted(allowed)}"
+                    )
+                    text_failed = True
+                    break
+                signatures.add(tuple(pairs))
+            if text_failed or not want_variation or len(signatures) >= 2:
                 break
-            pairs = observed_lang_pairs(result, "unseeded")
-            if not pairs:
-                failures.append(
-                    f"unseeded text_len={len(text)}: empty language list"
-                )
-                text_failed = True
-                break
-            signatures.add(tuple(pairs))
-            tops.add(pairs[0][0])
-        if not text_failed:
-            texts_ok += 1
-            print(
-                f"unseeded text_len={len(text)} runs=10 "
-                f"distinct_results={len(signatures)} "
-                f"distinct_top_langs={sorted(tops)}"
+        if text_failed:
+            continue
+        if want_variation and len(signatures) < 2:
+            failures.append(
+                f"{label}: no RNG variation across {batches * UNSEEDED_BATCH_RUNS} "
+                f"runs (distinct_results=1, baseline distinct_count={baseline_distinct})"
             )
+            continue
+        texts_ok += 1
+        print(
+            f"unseeded text_len={len(text)} runs={batches * UNSEEDED_BATCH_RUNS} "
+            f"batches={batches} distinct_results={len(signatures)} "
+            f"distinct_top_langs={sorted(tops)} "
+            f"allowed_top_langs={sorted(allowed)}"
+        )
     return texts_ok, total_runs, failures
 
 
@@ -823,8 +921,9 @@ def run_seed_semantics(ctx: Context) -> int:
         f"ok seed_semantics target=native "
         f"repeatability={groups_ok}/{groups} groups x5 runs ({checked_runs} runs), "
         f"seed_diff={diff_ok}/{diff_total} (0 vs 42 differ as recorded), "
-        f"unseeded={texts_ok}/{unseeded_total} texts x10 runs "
-        f"({unseeded_runs} runs, no exceptions; RNG variation recorded only)"
+        f"unseeded={texts_ok}/{unseeded_total} texts "
+        f"({unseeded_runs} runs; top in baseline distinct_langs, RNG variation "
+        f"required where baseline distinct_count > 1)"
     )
     return EXIT_OK
 
@@ -1095,6 +1194,7 @@ def run_prob_tolerance(ctx: Context) -> int:
 
 MODE_HANDLERS: dict[str, Handler] = {
     MODE_SELF_CHECK: run_self_check,
+    MODE_DRY_RUN: run_dry_run,
     "prob_bits": run_prob_bits,
     "seed_semantics": run_seed_semantics,
     "failures": run_failures,
@@ -1109,7 +1209,7 @@ MODE_HANDLERS: dict[str, Handler] = {
     "prob_tolerance": run_prob_tolerance,
 }
 
-# 派发完整性守卫：13 个 --mode 选项必须各有处理函数。
+# 派发完整性守卫：每个 --mode 选项必须各有处理函数。
 assert set(MODE_HANDLERS) == set(MODE_NAMES), "mode dispatch table is incomplete"
 
 
@@ -1172,6 +1272,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="alias for --mode self-check; conflicts with any other --mode",
     )
     parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="alias for --mode dry-run; prints one line per case and asserts 268",
+    )
+    parser.add_argument(
         "--golden-dir",
         default=None,
         metavar="PATH",
@@ -1197,14 +1302,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def resolve_mode(parser: argparse.ArgumentParser, args: argparse.Namespace) -> str:
-    """--self-check 与 --mode 的合并规则（不允许静默忽略 --self-check）。"""
+    """--self-check / --dry-run 与 --mode 的合并规则（不允许静默忽略别名）。"""
+    if args.self_check and args.dry_run:
+        parser.error("--self-check and --dry-run conflict; run them separately")
+    alias_mode = None
+    alias_flag = ""
     if args.self_check:
-        if args.mode not in (None, MODE_SELF_CHECK):
+        alias_mode, alias_flag = MODE_SELF_CHECK, "--self-check"
+    elif args.dry_run:
+        alias_mode, alias_flag = MODE_DRY_RUN, "--dry-run"
+    if alias_mode is not None:
+        if args.mode not in (None, alias_mode):
             parser.error(
-                f"--self-check conflicts with --mode {args.mode!r}; "
+                f"{alias_flag} conflicts with --mode {args.mode!r}; "
                 "run them separately"
             )
-        return MODE_SELF_CHECK
+        return alias_mode
     if args.mode is not None:
         return args.mode
     # 两者都未给出时的安全默认：只读自检。
@@ -1242,8 +1355,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return EXIT_USAGE
 
     try:
-        # 自检只读基准，不依赖诊断二进制；产品模式必须先解析二进制。
-        if mode == MODE_SELF_CHECK:
+        # 自检与 dry-run 只读基准，不依赖诊断二进制；其余模式先解析二进制。
+        if mode in (MODE_SELF_CHECK, MODE_DRY_RUN):
             binary = DEFAULT_BINARY_CANDIDATES[0]
         else:
             binary = resolve_binary(args.binary)
