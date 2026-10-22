@@ -1,0 +1,169 @@
+# Task 9 静默 CLI（`src/core/cmd/main`，NE1）— 原始日志（2026-10-22）
+
+- 仓库：`F:\moonbit比赛\moon_langdetect`
+- 分支：`sdd/moon-langdetect-2026-10-21`
+- HEAD（执行前）：`e16ca5f`（`fix: validate profile fields before add`）
+- 交付物（提交清单，3 个路径）：`src/core/cmd/main/main.mbt`、`src/core/cmd/main/moon.pkg`、本日志
+- 工具链：`moon 0.1.20261012 (748b63c 2026-10-12)`；native = win32 x64；Bash = Git Bash
+- 执行窗口：证据侧最早时间戳 2026-10-22 15:12:05（+0800，`main.mbt` 落盘）→ 15:14（本日志落盘）；含 brief / spec 回读的整段会话约 8 分钟（起点约 15:07，估算），**远低于 45 分钟上限**
+- 外部调用轮次：**0 / 10**（无网络 / LLM / 外部服务；全部为本地 shell / grep / sha256sum / moon）
+- 结论：**PASS** —— 命令 30 rc=0；命令 29 rc=0 且 stdout / stderr 均 **0 字节**；命令 11 与 **11b** 均 rc=1 / 0 命中；C5 / FR-13 空目录绝对路径运行 rc=0 且 0 / 0 字节；三目标 build rc=0；回归 `moon test --target native` 116/116、`moon check` rc=0。
+
+## 1. 实现（改动面 = 2 个文件）
+
+`src/core/cmd/main/main.mbt`（873 字节，`sha256 a123a725299ed0889ba6c09d936c446dd72bfe249f0f135de241a17628e26928`）：
+
+```moonbit
+fn main {
+  try {
+    let _ = @core.detect("The quick brown fox jumps over the lazy dog.")
+  } catch {
+    _ => ()
+  }
+}
+```
+
+- 唯一一次 `@core.detect(...)` 调用，固定内置文本（44 码点），返回值 `let _ = …` 丢弃。
+- 全部包在 `try / catch { _ => () }` 内：`detect` 的 `raise LangDetectError` 在成功与失败两条路径上都不打印、不中止，静默契约对错误分支同样成立。
+- 0 个打印调用、0 个文件 / 网络 / 存储访问、0 个调试输出；无 `#cfg`、无平台判断、无 `@math` / `@fs` / `@stdio`。
+
+`src/core/cmd/main/moon.pkg`（77 字节，`sha256 e833730e0f2f8ab6efebe9cacfc9c636fa365695d476ec703557388f27f8a2b7`）：
+
+```text
+import {
+  "vicoproplus/langdetect/src/core",
+}
+
+pkgtype(kind: "executable")
+```
+
+- `pkgtype(kind: "executable")` 逐字保留；仅新增 `src/core` 导入（`@core` 别名）。
+- 两文件同批落盘（原子标记）：`main.mbt` 若不调用 `@core` 会使导入成为未使用告警但不影响可执行形态；`main.mbt` 若单独存在而无 `pkgtype` 则命令 29 退化为 rc=2，两者已同时提交。
+
+## 2. 命令 30（pkgtype 形态）— 期望 rc=0
+
+```text
+$ grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg
+rc=0
+```
+
+## 3. 命令 29（NE1 运行时静默）— 期望 rc=0
+
+spec §10.6 逐字形态（含 `test -x` 缺失 → 2、运行失败 → 1 的守卫）：
+
+```text
+$ test -x ./_build/native/debug/build/src/core/cmd/main/main.exe || exit 2
+$ ./_build/native/debug/build/src/core/cmd/main/main.exe >/tmp/o.txt 2>/tmp/e.txt || exit 1
+$ test ! -s /tmp/o.txt && test ! -s /tmp/e.txt
+rc=0
+out_bytes=0  err_bytes=0
+```
+
+字节计数形态（不经命令替换，避免尾部换行被吃掉，见 spec §10.6 N-19）：
+
+```text
+$ ./_build/native/debug/build/src/core/cmd/main/main.exe > run-o.txt 2> run-e.txt
+rc=0  stdout_bytes=0  stderr_bytes=0
+```
+
+二进制：
+
+| 项 | 值 |
+|---|---|
+| 路径 | `_build/native/debug/build/src/core/cmd/main/main.exe` |
+| 字节 | **4 126 208** |
+| sha256 | `fa7c0929527bffd4b731311f3fec39eeeb2a1bd024a9fd04aaddd10d1d217ec8` |
+| 构建命令 | `moon build --target native` |
+
+「`detect` 确实被执行」的旁证（不引入任何打印）：
+
+| 证据 | 结果 |
+|---|---|
+| 二进制内固定文本（UTF-16-LE，MoonBit native 字符串字面量编码） | `quick brown fox jumps over the lazy dog` **1 次命中**（UTF-8 0 次） |
+| 二进制内语言码 `zh-tw`（UTF-16-LE，嵌入档案） | 2 次命中 |
+| 三次运行耗时 | 465 ms / 590 ms / 456 ms |
+| 对照：空包 native 测试可执行（≈200 KB，Runtime 启动底噪） | 205 ms / 229 ms / 208 ms |
+
+即运行时比启动底噪多 ≈250–390 ms，与 Task 8 记录的「单次 `detect` ≈355–392 ms（含 55 档案解析与概率表重建）」同量级；空 `fn main {}` 不可能产生该耗时。
+
+## 4. C5 / FR-13 空目录可检测（B-01）
+
+```text
+$ ABS="$(pwd)/_build/native/debug/build/src/core/cmd/main/main.exe"   # /f/moonbit比赛/moon_langdetect/...
+$ d=$(mktemp -d)                                                     # /tmp/tmp.8USSR9Z0Kt
+$ ( cd "$d" && "$ABS" > "$S/empty-o.txt" 2> "$S/empty-e.txt" )
+rc=0  stdout_bytes=0  stderr_bytes=0  files_in_tmp=0
+```
+
+- 以**绝对路径**运行，工作目录为空临时目录（`ls -A "$d"` = 0 项），运行后该目录**仍为 0 项**（未读、未写 cwd 数据文件）。
+- 证明 55 个档案来自 `src/data` 的内嵌扁平字符串，不依赖 cwd 下的任何文件。
+
+## 5. 命令 11 与 11b（NE1 静态）— 期望 rc=1 / 0 命中
+
+```text
+$ grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/]'
+rc=1  hits=0            # 命令 11（宽豁免，spec 原文）
+
+$ grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/]main[\\/]'
+rc=1  hits=0            # 命令 11b（仅豁免 cmd/main；cmd/golden 不在豁免内）
+```
+
+- 扫描面非空：`src/core`（20 个 `.mbt`）/ `src/data` / `src/unicode` / `src/math_seam` 合计 **30** 个 `.mbt`（含新增的 `src/core/cmd/main/main.mbt`）；11b 的豁免更窄，故「将来 `cmd/golden` 不被白名单放过」由同一条命令覆盖。
+- `src/core/cmd/main/main.mbt` 自身对同一组模式 + `@fs` / `read_file` / `http` / `socket` / `#cfg` / `derive(Show)` / `@math` 的检索：**0 命中**。
+
+## 6. brief Output 三段串联验收（C4 + C5 + NE1b）
+
+```text
+$ moon build --target native && ./…/main.exe >/tmp/o.txt 2>/tmp/e.txt \
+  && test ! -s /tmp/o.txt && test ! -s /tmp/e.txt \
+  && d=$(mktemp -d) && ( cd "$d" && "$OLDPWD/_build/native/debug/build/src/core/cmd/main/main.exe" >/tmp/o2.txt 2>/tmp/e2.txt ) \
+  && test ! -s /tmp/o2.txt && test ! -s /tmp/e2.txt \
+  && test "$(grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/]main[\\/]' | wc -l)" = "0"
+rc=0  o=0 e=0 o2=0 e2=0
+```
+
+## 7. 三目标构建（js / wasm-gc 仅构建，不运行）
+
+```text
+$ moon build --target native   # rc=0  "Finished. moon: no work to do"
+$ moon build --target js       # rc=0  "Finished. moon: ran 6 tasks, now up to date (5 warnings, 0 errors)"
+$ moon build --target wasm-gc  # rc=0  "Finished. moon: ran 6 tasks, now up to date (5 warnings, 0 errors)"
+```
+
+产物：`_build/native/debug/build/src/core/cmd/main/main.exe`（4 126 208 B）、`_build/js/debug/build/src/core/cmd/main/main.js`（2 551 690 B）、`_build/wasm-gc/debug/build/src/core/cmd/main/main.wasm`（3 281 044 B）。
+
+告警账（非本 Task 引入）：
+
+- `[0033]` × 5，均位于 `src/data/profiles.mbt`（行 20 / 44 / 83 / 86 / 89），既有。
+- `unused_package` × 1：`src/math_seam/moon.pkg:2` 的 `"moonbitlang/core/math"` 在 native 下未被使用（`ln_for_gauss` 的 native 分支走 libm `log`，`@math` 仅用于 js / wasm-gc 降级分支）。该包文件本 Task 未改动（`git status` 对 `src/math_seam` 为空）；此告警仅在 `math_seam` 重新编译时出现，本次 native 全量重建使其显形。
+
+## 8. 回归
+
+```text
+$ moon test --target native
+Total tests: 116, passed: 116, failed: 0.        # rc=0
+$ moon check
+Finished. moon: ran 4 tasks, now up to date (5 warnings, 0 errors)   # rc=0
+```
+
+- 新增可执行包不参与 `moon test`（无 `_test.mbt`），测试总数与 Task 8 收尾一致（116）。
+
+## 9. 提交
+
+- 显式路径暂存（不使用 `git add -A`、不暂存目录、无删除）：
+  `src/core/cmd/main/main.mbt`、`src/core/cmd/main/moon.pkg`、`docs/superpowers/plans/artifacts/task9-cli-2026-10-21.log`
+- 提交信息：`feat: add silent detect CLI`；新提交、未 amend。
+- 提交后 `git show --stat`：3 files changed；未含 `src/core/cmd/golden/**`、`tools/**`、`docs/port/**`、spec / plan / `.venv`；`docs/port/golden/` 未被触碰。
+- SHA 见 `task-9-report.md` 与 `git log -1`。
+
+## 10. 上限与保留
+
+- 时长上限 45 分钟：证据窗口 2026-10-22 15:12:05–15:14（+0800），整段会话约 8 分钟，**未超限**。
+- 外部调用轮次上限 10：**0 / 10**。
+- 证据保留 90 天：保留至 **2027-01-20**（自执行日 2026-10-22 起算）。
+
+## 11. 备注 / 保留意见
+
+- 固定文本 44 码点 ≫ 特征阶段阈值；`detect` 返回值被丢弃，CLI 不作任何断言——本 Task 的验收面是「静默 + 可执行形态 + 空目录可运行」，检测正确性由 Task 8 的 116 条测试与 Task 10 的 golden 比对承担。
+- 错误分支（`raise LangDetectError`）在本机不可达（嵌入档案恒可加载、固定文本恒有特征）；`catch { _ => () }` 是其静默保证的静态证据，不做运行期构造。
+- js / wasm-gc 仅验证 build（U-01 / U-02：本机无 node / wasm 运行器）；运行期证据属 Task 11 异地回补。
