@@ -1014,7 +1014,7 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
 | `create` | `langdetect/langdetect/detector_factory.py:98:DetectorFactory.create` | `alpha? : Double`，裸值传参 | **功能等价（声明差异）** —— 空工厂上的错误时点：上游在 `create` 即抛码 4，本移植返回空 `Detector` 并把码 4 推迟到检测时；见 spec §5.5 D5 |
 | `set_seed` | `langdetect/langdetect/detector_factory.py:110:DetectorFactory.set_seed` | 上游是**类属性**（同文件 29 行）→ 模块级单例可复现；本移植为实例方法，只影响该工厂后续新建实例 | **功能等价（声明差异）** —— 本移植无类属性（`constants.mbt` 的 `pub let seed` 为惰性占位），私有单例不可达，故模块级 `detect` / `detect_langs` 恒为未设 seed、不可复现；需要复现请自建工厂并 `set_seed`。见 spec §5.9b D4 |
 | `get_lang_list` | `langdetect/langdetect/detector_factory.py:113:DetectorFactory.get_lang_list` | 返回浅拷贝、加载序 | ✅ 一致 |
-| `clear` | `langdetect/langdetect/detector_factory.py:94:DetectorFactory.clear` | 清空 `langlist` / `word_lang_prob_map` | ✅ 一致 |
+| `clear` | `langdetect/langdetect/detector_factory.py:94:DetectorFactory.clear` | **重新绑定**两个容器（非就地清空）；已建实例保留旧容器并继续检测 | ✅ 一致（2026-10-23 对齐，`b7d4b0e`） |
 | `PROFILES_DIRECTORY` | `langdetect/langdetect/detector_factory.py:117:PROFILES_DIRECTORY` | 内嵌档案替代目录读取 | ✅ 一致（承载方式按 ADR D 行） |
 | `append` | `langdetect/langdetect/detector.py:99:Detector.append` | 追加不清缓存（V-47 / V-54） | ✅ 一致 |
 | `cleaning_text` | `langdetect/langdetect/detector.py:114:Detector.cleaning_text` | 就地改写、幂等；URL / 邮箱清洗；LEA 恒不生效 | ✅ 一致 |

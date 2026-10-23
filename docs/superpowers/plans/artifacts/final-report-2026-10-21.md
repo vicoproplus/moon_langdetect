@@ -235,10 +235,11 @@ RESULT: DONE — 产品代码观测面全绿（30 命令 / 三目标构建 / 116
 
 ## 十一、功能等价差异清单（审计补登记，2026-10-23）
 
-独立审计新发现 9 项未登记 / 误登记的差异（3 Important + 6 Minor），按 2026-10-23 用户裁决「功能等价迁移，不需要完整迁移」全部以**声明**方式落档（不改产品代码）；对应 plan Authority Alignment Table 中原本声称「✅ 一致」的行已改为「功能等价（声明差异）」。
+独立审计新发现 10 项未登记 / 误登记的差异（1 Critical + 3 Important + 6 Minor）：**D1 已在代码侧修复**（`b7d4b0e`），其余 9 项按 2026-10-23 用户裁决「功能等价迁移，不需要完整迁移」全部以**声明**方式落档（不改产品代码）；对应 plan Authority Alignment Table 中原本声称「✅ 一致」的行已改为「功能等价（声明差异）」。
 
 | # | 项 | 声明位置 | 计划行处置 |
 |---|---|---|---|
+| **D1（Critical，已修）** | `DetectorFactory.clear` 就地清空 → 已建实例抛码 4 | 上游重新绑定容器，已建实例继续检测 | `b7d4b0e`：字段改 `mut`，`clear` 重新赋值；测试改为上游平价断言（116/116、双 seed 位级一致、lowconf 55/55+55/55） |
 | D2 | `load_profile` 重复加载：本移植清空后整体重建（恒 55）；上游追加语义 → 码 1 + 部分状态 | spec §5.9b（D2 行） | plan `load_profile` 行 → 功能等价（声明差异） |
 | D3 | `add_profile` 去掉 `index` / `langsize` 并预校验四形态（空 name / 任一 `n_words` 合计 0 / 负计数 → 码 1；重复 → 码 3），**严于上游** | spec §4.1 DT4 + §5.9b（D3 行） | plan `add_profile` 行 → 功能等价（声明差异）；「除零」措辞已更正（上游只在出现该键长时才除法） |
 | D4 | 模块级 `detect` / `detect_langs` 不可设 seed（上游类属性 `DetectorFactory.seed` 不移植，单例私有） | spec §5.5 + §5.9b（D4 行）+ §9.3 `seed` 行 | plan `set_seed` 行 → 功能等价（声明差异） |
@@ -249,6 +250,6 @@ RESULT: DONE — 产品代码观测面全绿（30 命令 / 三目标构建 / 116
 | D9 | `Language.__repr__` 不移植 | spec §4.3 D9 行；G-18 已加注 | plan `Language` 行 → 功能等价（声明差异） |
 | D10 | `Detector.set_alpha` 不存在；alpha 仅经 `create(alpha=…)` 传入 | spec G-14 已加注 | plan `set_alpha` 行 → 功能等价（声明差异）（原「内部保留 ✅ 一致」为误述） |
 
-同时更正 spec §9.3 两行与 §9.1 L1-A4：上游 `clear` 是**重新绑定容器**，已建实例仍持旧容器、可继续检测（原「清空后已建实例可见空列表」「清空后特征命中率归零」描述的是本移植旧行为，非上游事实）。`clear` 的代码对齐由另一 worker 执行，本节不为其登记差异声明。
+同时更正 spec §9.3 两行与 §9.1 L1-A4：上游 `clear` 是**重新绑定容器**，已建实例仍持旧容器、可继续检测（原「清空后已建实例可见空列表」「清空后特征命中率归零」描述的是本移植旧行为，非上游事实）。该行为已由 `b7d4b0e` 在代码侧对齐，故 `clear` 无需差异声明，plan 的 `clear` 行保持 `✅ 一致` 并把结论改为「重新绑定两个容器」。
 
 落档提交：`docs: declare the remaining functional-equivalence divergences`（2026-10-23，`main` 分支，未 push）。

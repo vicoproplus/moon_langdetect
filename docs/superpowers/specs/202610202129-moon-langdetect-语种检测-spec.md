@@ -794,11 +794,11 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | `langlist` | 同上 | 同上 | `get_lang_list` | `detector_factory.py:113` | 返回值顺序 |
 | `langlist` | 同上 | 同上 | `_init_probability` | `detector.py:180` | 初始概率长度 |
 | `langlist` | 同上 | 同上 | **已建 `Detector` 通过别名读取** | `detector.py:58`（构造时赋值） | **别名共享**（V-52）：工厂后续变更对已建实例可见 |
-| `langlist` | 工厂 `clear` | `detector_factory.py:95` | 同上三处 + 已建实例 | 同上 | **上游 `clear` 重新绑定容器**（`detector_factory.py:94-96`）：已建实例**仍持有旧容器并可继续检测**，看不到清空效果；本移植（另一 worker 正在对齐）同口径 |
+| `langlist` | 工厂 `clear` | `detector_factory.py:95` | 同上三处 + 已建实例 | 同上 | **`clear` 重新绑定容器**（`detector_factory.py:94-96`）：已建实例**仍持有旧容器并可继续检测**，看不到清空效果；本移植同口径（`src/core/factory.mbt` 的 `clear` 重新赋值两个容器，`b7d4b0e`） |
 | `word_lang_prob_map` | 工厂 `add_profile` | `detector_factory.py:87-92` | 特征抽取（字典命中） | `detector.py:197` | 键集合决定哪些 n-gram 是特征 |
 | `word_lang_prob_map` | 同上 | 同上 | 概率更新 | `detector.py:206` | 词向量取值 |
 | `word_lang_prob_map` | 同上 | 同上 | **已建 `Detector` 通过别名读取** | `detector.py:57` | 别名共享（V-52） |
-| `word_lang_prob_map` | 工厂 `clear` | `detector_factory.py:96` | 同上三处 + 已建实例 | 同上 | **上游 `clear` 重新绑定容器**：已建实例仍持有旧映射，特征命中率**不归零**、可继续检测；只有清空后新建的实例看到空表 |
+| `word_lang_prob_map` | 工厂 `clear` | `detector_factory.py:96` | 同上三处 + 已建实例 | 同上 | **`clear` 重新绑定容器**：已建实例仍持有旧映射，特征命中率**不归零**、可继续检测；只有清空后新建的实例看到空表。本移植同口径（`b7d4b0e`） |
 | `seed` | 工厂 `set_seed` / 类属性 | `detector_factory.py:29,110-111` | `Detector.__init__` 复制 | `detector.py:59` | 只在构造时读一次。**已声明差异（D4）**：上游 `seed` 是**类属性**（模块级单例也可被赋值复现）；本移植无类属性，`DetectorFactory::set_seed` 只写实例字段，模块级入口不可复现（§5.9b） |
 | `langprob`（实例） | `_detect_block` | `detector.py:152,169` | `detect` | `detector.py:136` | 缓存复用（V-47） |
 | `langprob`（实例） | 同上 | 同上 | `get_probabilities` | `detector.py:142-144` | 同上 |
