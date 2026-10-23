@@ -239,7 +239,7 @@ RESULT: DONE — 产品代码观测面全绿（30 命令 / 三目标构建 / 116
 
 | # | 项 | 声明位置 | 计划行处置 |
 |---|---|---|---|
-| **D1（Critical，已修）** | `DetectorFactory.clear` 就地清空 → 已建实例抛码 4 | 上游重新绑定容器，已建实例继续检测 | `b7d4b0e`：字段改 `mut`，`clear` 重新赋值；测试改为上游平价断言（116/116、双 seed 位级一致、lowconf 55/55+55/55） |
+| **D1（Critical，已修）** | `DetectorFactory.clear` 就地清空 → 已建实例抛码 4（上游重新绑定容器，已建实例继续检测） | 无需声明：已在代码侧对齐。spec §9.3 两行 + §9.1 L1-A4 已更正为上游事实 | 代码修复 `b7d4b0e`（字段改 `mut`，`clear` 重新赋值，测试改为上游平价断言）；plan `clear` 行保持 `✅ 一致` 并改写结论为「重新绑定两个容器」；验证 116/116、双 seed 位级一致、lowconf 55/55+55/55 |
 | D2 | `load_profile` 重复加载：本移植清空后整体重建（恒 55）；上游追加语义 → 码 1 + 部分状态 | spec §5.9b（D2 行） | plan `load_profile` 行 → 功能等价（声明差异） |
 | D3 | `add_profile` 去掉 `index` / `langsize` 并预校验四形态（空 name / 任一 `n_words` 合计 0 / 负计数 → 码 1；重复 → 码 3），**严于上游** | spec §4.1 DT4 + §5.9b（D3 行） | plan `add_profile` 行 → 功能等价（声明差异）；「除零」措辞已更正（上游只在出现该键长时才除法） |
 | D4 | 模块级 `detect` / `detect_langs` 不可设 seed（上游类属性 `DetectorFactory.seed` 不移植，单例私有） | spec §5.5 + §5.9b（D4 行）+ §9.3 `seed` 行 | plan `set_seed` 行 → 功能等价（声明差异） |
