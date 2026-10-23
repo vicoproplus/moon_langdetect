@@ -389,4 +389,38 @@ moon check && moon build --target native && moon build --target js && moon build
 
 ---
 
-**文档结束**
+## §10 修复波（2026-10-23）— 终审发现与关闭状态
+
+本节追加于终审（whole-branch review，`192ce0e..58eb9cb`，26 commits / 60 files，判定 **Approved with fixes**：1 Critical + 5 Important + 9 minors）之后的修复波完成时，用于纠正上文 §8 中已过期的「3 个开放项（B-1 / B-2 / B-3）」表述。
+
+### 10.1 修复提交清单
+
+| 提交 | 主题 | 对应发现 |
+|---|---|---|
+| `fa90bbb` | chore: commit module manifest and reference inputs so the branch is self-contained | Critical：分支不自包含（`moon.mod` 未跟踪且被 `.git/info/exclude` 排除） |
+| `680f744` | chore: add moonignore so the published package excludes reference inputs | Important：`moon package` 打包含用户私密会话记录（B-2） |
+| `a0259aa` | fix: remove always-green comparator paths and dead parameters | Important：`prob_tolerance` 恒绿 / `compare_lowconf --target` 被忽略 / `Diagnostic.case` 缓存键 / `-O` 守卫 |
+| `252f372` | fix: abort on out-of-range codepoint in char_of | Minor：`char_of` 静默回落空格 |
+| `a29cb4e` | perf: truncate append output without materialising the full array | Important：`append` 截断前物化整数组 |
+| `1395186` | chore: commit goldens and probe generators referenced by tracked docs | Critical 收尾：6 个被 tracked `docs/` 引用的生成器脚本（1854 行） |
+
+### 10.2 逐条结果
+
+- **Critical — 分支不自包含**：`fa90bbb` 提交 `moon.mod` 与 317 个参考输入，`1395186` 补齐 6 个生成器脚本。干净树验证：`git archive` 解包 → `moon check` rc=0、`moon test --target native` 116/116、三目标 build rc=0、golden 双 seed 位级一致。
+- **B-2 — `moon package` 越界（已关闭）**：`680f744` 在仓库根新增 `.moonignore`（13 行）。修复前 7 212 092 B / 360 文件 / 解压 25 744 994 B、非产品占 89.72 %；修复后干净树重打包 **1 119 652 B / 46 文件 / 2 765 426 B**，违禁条目 `grep -cE '^(probes|langdetect|docs|analysis|\.superpowers)/|empty-conversation'` = **0**。A/B：带 `.moonignore` 52 文件 / 2 841 785 B vs 移除后 362 文件 / 6 799 286 B。`moon publish` 仍未执行。
+- **Important — 比对器 always-green**：`a0259aa` 后 `compare_golden.py --target js --mode prob_tolerance` → **rc=2**、`compare_lowconf.py --target js` → **rc=2**、`Diagnostic.case` 缓存键按 mode 分区、`-O` 下守卫改为显式 `SystemExit`（`python -O ... --mode prob_bits` 仍 rc=0 且位级一致）。
+- **Minor — `char_of`**：`252f372` 改为 `abort`；116/116 不变。
+- **Important — `append`**：`a29cb4e` 单趟截断；116/116 与双 seed 位级一致均不变（否则回滚）。
+
+### 10.3 仍开放 / parked
+
+| 项 | 状态 | 说明 |
+|---|---|---|
+| B-1（U-06 spec 行） | **未关闭** | 需用户 spec 编辑授权；`spec.md:614` 仍读「未验证」 |
+| B-3（11b 与 spec 423/424） | **未关闭** | 需 controller / 用户裁决；本轮按 spec 行 756 判绿 |
+| B-4（spec §2A 23→116 映射） | **未关闭** | 文档缺口，不影响产品行为 |
+| `set_prior_map` 失败后状态 | **parked 用户决策** | 上游抛错前装入全零向量，后续检测触发未捕获 `ZeroDivisionError`；本移植保持 `prior_map = None` 安静降级，两个测试锁定现状。两种修法均需 spec 修订（纳入 `ZeroDivisionError` 或 §5.6 显式声明差异），本会话无授权，故 `plan:1025` 的「✅ 一致」行按此裁定即为不准确 |
+
+### 10.4 合并结果
+
+`sdd/moon-langdetect-2026-10-21` 以 **fast-forward** 合入 `main`（`192ce0e` → `1395186`），合并后全链复跑 `MERGED_CHAIN_RC=0`（`moon check` / 三目标 build / 116-116 / 双 seed 位级 / 低置信 55-55 & 55-55）；feature 分支已用 `git branch -d` 删除（拒绝强删）。`moon publish` 全程未执行。
