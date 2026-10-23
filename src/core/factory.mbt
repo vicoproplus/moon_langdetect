@@ -9,11 +9,11 @@
 
 ///| `word_lang_prob_map` (n-gram to per-language probability vectors).
 
-///| They are never rebound: `load_profile`, `add_profile` and `clear`
-
-///| mutate them in place, so an already created `Detector` observes the
-
-///| change (V-52 / L1-A4, spec §9.3).
+///| They are updated **in place** by `load_profile` and `add_profile`, so an
+///| already created `Detector` observes the change (V-52 / L1-A4, spec
+///| §9.3). `clear`, by contrast, **rebinds** both fields to fresh empty
+///| containers, exactly as upstream does, so detectors created before the
+///| clear keep their aliases and keep working.
 ///
 
 ///| `seed` is copied into each detector at `create` time; calling
@@ -23,8 +23,8 @@
 ///|
 /// (spec §5.5, `detector_factory.py:29,110-111`).
 pub struct DetectorFactory {
-  langlist : Array[String]
-  word_lang_prob_map : Map[String, Array[Double]]
+  mut langlist : Array[String]
+  mut word_lang_prob_map : Map[String, Array[Double]]
   mut seed : Int64?
 }
 
@@ -210,17 +210,17 @@ pub fn DetectorFactory::add_profile(
   }
 }
 
-///| Reset both shared containers in place (upstream
-
-///| `detector_factory.py:94-96`). `seed` is retained, as upstream does.
-
-///| Existing detectors observe the empty containers (spec §9.3) and then
-
-///|
-/// raise code 4 on detection.
+///| Reset the factory by rebinding both shared containers to fresh empty
+///| ones (upstream `detector_factory.py:94-96`: `self.langlist = []`,
+///| `self.word_lang_prob_map = {}`). This is a rebinding, not an in-place
+///| clear: a `Detector` created before the call keeps its alias to the old
+///| containers and therefore keeps detecting, which matches upstream
+///| (`d.langlist is f.langlist` is `False` after `f.clear()`, yet
+///| `d.detect()` still returns a language). `seed` is retained, as upstream
+///| does.
 pub fn DetectorFactory::clear(self : DetectorFactory) -> Unit {
-  self.langlist.clear()
-  self.word_lang_prob_map.clear()
+  self.langlist = []
+  self.word_lang_prob_map = Map([])
 }
 
 ///| Language codes in load order, as a shallow copy: mutating the returned

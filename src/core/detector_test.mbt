@@ -796,11 +796,10 @@ test "tied_probabilities_keep_load_order" {
 }
 
 ///| V-52 / L1-A4: factory and instance share the same containers; adding
-
 ///| through the factory is visible to an already created detector, and so
-
-///|
-/// is `load_profile` and `clear`.
+///| is `load_profile`. `clear` instead **rebinds** both containers
+///| (upstream `detector_factory.py:94-96`), so a detector created before the
+///| clear keeps its own containers and keeps detecting.
 test "factory_instance_alias_sharing" {
   let factory = @core.DetectorFactory::new()
   must(() => {
@@ -837,15 +836,21 @@ test "factory_instance_alias_sharing" {
   assert_true(
     physical_equal(created_before_load.langlist, loaded_factory.langlist),
   )
-  // clear updates the shared containers in place.
+  // Upstream parity for `clear` (`detector_factory.py:94-96`): the factory
+  // rebinds `langlist = []` and `word_lang_prob_map = {}`, so the detector
+  // created earlier keeps the containers it captured and still detects.
+  detector.append("a b c d e")
+  let before_clear = must(() => detector.detect())
   factory.clear()
-  assert_eq(detector.langlist.length(), 0)
-  assert_eq(detector.word_lang_prob_map.length(), 0)
-  let (code, message, _, _) = capture(() => {
-    let _ = detector.detect()
-  })
-  assert_eq(code, @core.ERROR_NEED_LOAD_PROFILE)
-  assert_eq(message, "Need to load profiles.")
+  assert_eq(factory.langlist.length(), 0)
+  assert_eq(factory.word_lang_prob_map.length(), 0)
+  assert_eq(detector.langlist.length(), 2)
+  assert_eq(detector.word_lang_prob_map.at("a").length(), 2)
+  assert_false(physical_equal(detector.langlist, factory.langlist))
+  assert_false(
+    physical_equal(detector.word_lang_prob_map, factory.word_lang_prob_map),
+  )
+  assert_eq(must(() => detector.detect()), before_clear)
 }
 
 ///| V-53: probability vector rows have one slot per language; embedded
