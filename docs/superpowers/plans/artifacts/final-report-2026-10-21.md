@@ -230,3 +230,25 @@ RESULT: DONE — 产品代码观测面全绿（30 命令 / 三目标构建 / 116
 | `set_prior_map` 失败后状态 | spec §5.6「已声明差异」表行 + 段末说明；`src/core/detector.mbt` 的 `set_prior_map` 文档注释；plan Authority Alignment Table 判定格 `功能等价（声明差异）` |
 
 落档提交：`docs: adopt the functional-equivalence ruling for the pending decisions`（2026-10-23，`main` 分支，未 push）。
+
+---
+
+## 十一、功能等价差异清单（审计补登记，2026-10-23）
+
+独立审计新发现 9 项未登记 / 误登记的差异（3 Important + 6 Minor），按 2026-10-23 用户裁决「功能等价迁移，不需要完整迁移」全部以**声明**方式落档（不改产品代码）；对应 plan Authority Alignment Table 中原本声称「✅ 一致」的行已改为「功能等价（声明差异）」。
+
+| # | 项 | 声明位置 | 计划行处置 |
+|---|---|---|---|
+| D2 | `load_profile` 重复加载：本移植清空后整体重建（恒 55）；上游追加语义 → 码 1 + 部分状态 | spec §5.9b（D2 行） | plan `load_profile` 行 → 功能等价（声明差异） |
+| D3 | `add_profile` 去掉 `index` / `langsize` 并预校验四形态（空 name / 任一 `n_words` 合计 0 / 负计数 → 码 1；重复 → 码 3），**严于上游** | spec §4.1 DT4 + §5.9b（D3 行） | plan `add_profile` 行 → 功能等价（声明差异）；「除零」措辞已更正（上游只在出现该键长时才除法） |
+| D4 | 模块级 `detect` / `detect_langs` 不可设 seed（上游类属性 `DetectorFactory.seed` 不移植，单例私有） | spec §5.5 + §5.9b（D4 行）+ §9.3 `seed` 行 | plan `set_seed` 行 → 功能等价（声明差异） |
+| D5 | 空工厂 `create`：上游 `create` 即抛码 4，本移植推迟到检测时 | spec §5.5（D5 行）；G-06 已加注 | plan `create` 行 → 功能等价（声明差异） |
+| D6 | 四个 `[EXT]` 入口未登记：模块级 `get_lang_list()` / `Detector::new()` / `Detector::set_seed` / `set_raw_probabilities` | spec §5.4 + §5.5 + §5.9 接缝 `[EXT]` 登记 | （非对齐项，无计划行需改） |
+| D7 | `n_trial` 只读（上游 `d.n_trial = 1` 可写） | spec §9.3 新增 `n_trial` 行 | （非计划 Authority 表行） |
+| D8 | 低置信阈值是编译期常量 50，**不可运行时配置**（撤回 PRD「阈值可配置」承诺） | spec §5.3 阈值行 + PRD §9.2 风险行 | （无计划行声称可配置） |
+| D9 | `Language.__repr__` 不移植 | spec §4.3 D9 行；G-18 已加注 | plan `Language` 行 → 功能等价（声明差异） |
+| D10 | `Detector.set_alpha` 不存在；alpha 仅经 `create(alpha=…)` 传入 | spec G-14 已加注 | plan `set_alpha` 行 → 功能等价（声明差异）（原「内部保留 ✅ 一致」为误述） |
+
+同时更正 spec §9.3 两行与 §9.1 L1-A4：上游 `clear` 是**重新绑定容器**，已建实例仍持旧容器、可继续检测（原「清空后已建实例可见空列表」「清空后特征命中率归零」描述的是本移植旧行为，非上游事实）。`clear` 的代码对齐由另一 worker 执行，本节不为其登记差异声明。
+
+落档提交：`docs: declare the remaining functional-equivalence divergences`（2026-10-23，`main` 分支，未 push）。

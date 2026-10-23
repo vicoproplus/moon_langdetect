@@ -249,9 +249,9 @@ grep -rn '^pub fn\|^pub struct\|^pub enum\|^pub suberror' --include=*.mbt . | gr
 | G-01 | 包级入口 `detect(text) -> str` | `langdetect/langdetect/detector_factory.py:126-130` | missing | `[ALIGN]` |
 | G-02 | 包级入口 `detect_langs(text) -> list[Language]` | `langdetect/langdetect/detector_factory.py:133-137` | missing | `[ALIGN]` |
 | G-03 | 惰性单例 `init_factory()` + 模块级 `_factory` | `langdetect/langdetect/detector_factory.py:118-124` | missing | `[ALIGN]` |
-| G-04 | `DetectorFactory.load_profile(dir)` | `langdetect/langdetect/detector_factory.py:35-64` | missing | `[ALIGN]` |
-| G-05 | `DetectorFactory.add_profile(profile, index, langsize)` | `langdetect/langdetect/detector_factory.py:80-92` | missing | `[ALIGN]` |
-| G-06 | `DetectorFactory.create(alpha=None)` | `langdetect/langdetect/detector_factory.py:98-103` | missing | `[ALIGN]` |
+| G-04 | `DetectorFactory.load_profile(dir)` | `langdetect/langdetect/detector_factory.py:35-64` | missing | `[ALIGN]`（**重复加载语义差异，见 §5.9b D2**） |
+| G-05 | `DetectorFactory.add_profile(profile, index, langsize)` | `langdetect/langdetect/detector_factory.py:80-92` | missing | `[ALIGN]`（**签名与校验差异，见 §4.1 DT4 / §5.9b D3**） |
+| G-06 | `DetectorFactory.create(alpha=None)` | `langdetect/langdetect/detector_factory.py:98-103` | missing | `[ALIGN]`（**错误时点差异，见 §5.5 D5**） |
 | G-07 | `DetectorFactory.set_seed(seed)` | `langdetect/langdetect/detector_factory.py:110-111` | missing | `[ALIGN]` |
 | G-08 | `DetectorFactory.get_lang_list()` | `langdetect/langdetect/detector_factory.py:113-114` | missing | `[ALIGN]` |
 | G-09 | `DetectorFactory.clear()` | `langdetect/langdetect/detector_factory.py:94-96` | missing | `[ALIGN]` |
@@ -259,11 +259,11 @@ grep -rn '^pub fn\|^pub struct\|^pub enum\|^pub suberror' --include=*.mbt . | gr
 | G-11 | `Detector.cleaning_text()` | `langdetect/langdetect/detector.py:114-130` | missing | `[ALIGN]` |
 | G-12 | `Detector.detect()` | `langdetect/langdetect/detector.py:132-139` | missing | `[ALIGN]` |
 | G-13 | `Detector.get_probabilities()` | `langdetect/langdetect/detector.py:141-144` | missing | `[ALIGN]` |
-| G-14 | `Detector.set_alpha(alpha)` | `langdetect/langdetect/detector.py:73-74` | missing | `[ALIGN]` |
+| G-14 | `Detector.set_alpha(alpha)` | `langdetect/langdetect/detector.py:73-74` | missing | `[ALIGN]`（**无独立 setter；alpha 仅经 `create(alpha=…)` 传入，见 D10**） |
 | G-15 | `Detector.set_max_text_length(n)` | `langdetect/langdetect/detector.py:93-97` | missing | `[ALIGN]` |
 | G-16 | `Detector.set_prior_map(dict)` | `langdetect/langdetect/detector.py:76-91` | missing | `[ALIGN]` |
 | G-17 | `Detector.set_verbose()` | `langdetect/langdetect/detector.py:70-71` | missing（ADR X 裁决不移植） | `[ALIGN]`（显式不移植） |
-| G-18 | `Language{lang, prob}` + `__repr__` + `__lt__` | `langdetect/langdetect/language.py:7-17` | missing | `[ALIGN]` |
+| G-18 | `Language{lang, prob}` + `__repr__` + `__lt__` | `langdetect/langdetect/language.py:7-17` | missing | `[ALIGN]`（`__repr__` 不移植，已声明，见 §4.3 D9） |
 | G-19 | `LangDetectException{code, message}` + `get_code()` | `langdetect/langdetect/lang_detect_exception.py:16-22` | missing | `[ALIGN]` |
 | G-20 | `ErrorCode` 9 个码值 | `langdetect/langdetect/lang_detect_exception.py:1-11` | missing | `[ALIGN]` |
 | G-21 | 常量 10 项（V-07 断言域） | `detector.py:44-51`、`detector_factory.py:29`、`detector.py:65-66` | missing | `[ALIGN]` |
@@ -383,6 +383,19 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 **DT2（标量类型锁）**：`name` 为字符串；`n_words` 元素与 `freq` 值为整数；不得用浮点承载计数。
 **DT3（容器形态锁）**：`n_words` 必须是长度 3 的定长数组（非列表/映射）；`freq` 必须是字符串到整数的映射。
 
+**DT4（`add_profile` 契约差异，2026-10-23 用户裁决「功能等价迁移，不需要完整迁移」）**
+
+上游签名为 `add_profile(profile, index, langsize)`，向量宽度由调用方传入；上游**接受**空 `name`、负的 `freq` 计数、以及未使用长度的 `n_words` 合计为 0（V-50 的 `[4,0,0]` 夹具即属此列）。本移植去掉 `index` / `langsize`（由现有档案数推导），并在写入前预校验四种形态，命中即抛码 1（消息同上游 `FormatError` 语义）：
+
+| # | 被拒形态 | 结果码 |
+|---|---|---|
+| 1 | `name` 为空串 | 码 1 |
+| 2 | 任一 `n_words` 合计为 0（V-50 的 `[4,0,0]` 在本移植被拒） | 码 1 |
+| 3 | 任一 `freq` 计数为负 | 码 1 |
+| 4 | 语言已存在（重复加载） | 码 3（消息 `Duplicate the same language profile.`） |
+
+即本移植的校验**严于上游**（上游接受前三项）。这是**已声明的功能等价差异**，不是缺陷：上游接受这些形态后并不做除零（空 `name` / 负计数只是落库，未出现该键长时不会触发任何除法），故本移植的提前拒绝在可观察结果上不劣于上游。`index` / `langsize` 为推导值，不构成公开面差异。
+
 ### 4.2 加载后的概率表
 
 | 字段 | 类型 | NULL 性 | 约束 | 权威源 |
@@ -401,6 +414,9 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | `LangProb.prob` | `Double` | 非空 | 出现在返回列表中时**严格大于** `PROB_THRESHOLD` | 本表为摘要（权威＝`docs/port/upstream-behavior-contract.md` §1.4 的 `prob` 与排序口径；口径逐字：字段名为 `prob`，类型为浮点数，条目按概率降序、仅保留严格大于 0.1 者） |
 
 > 结构体名 `LangProb` 由本节定义；§5.2 / §5.3 引用同一名字（v2 修正：v1 只有字段表无类型名）。
+
+> **已声明差异（D9，2026-10-23 用户裁决）**：上游 `language.py:11-14` 的 `Language.__repr__` **不移植**——本移植的 `LangProb` 无自定义 `to_string` / `repr` 面（默认派生形态）。功能等价：`__repr__` 只影响调试打印，不参与检测结果、排序或过滤；依赖 `repr` 字面量的下游代码需自行格式化。
+
 
 ### 4.4 排序与过滤契约（自然语言，非代码）
 
@@ -490,7 +506,7 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | 签名 | `detect_with_confidence(text : String) -> Confidence` |
 | 入参 | 任意 UTF-8 文本 |
 | 出参 | `Confidence` 枚举，二选一：`LowConfidence(char_count~ : Int)` 或 `Detected(lang~ : String, probs~ : Array[LangProb])`（括号标签载荷形态已由 V-57 验证） |
-| 阈值 | 字符数 `< 50` → 低置信；`>= 50` → 正常检测（阈值可配置，默认取 PRD 的 50） |
+| 阈值 | 字符数 `< 50` → 低置信；`>= 50` → 正常检测。**阈值是编译期常量**（`LOW_CONFIDENCE_THRESHOLD : Int = 50`，`src/core/confidence.mbt`），**不提供运行时配置入口**——这是对 PRD 风险行「阈值作为可配置项暴露」的**已声明偏离**（D8，2026-10-23 用户裁决：功能等价；上游无此入口，配置化属 PRD 的额外承诺而非对齐项） |
 | 错误语义 | **不抛**码 5：空输入按 `char_count = 0` 归入低置信（与主 API 的显式差异，见 PRD §5.3 交互矩阵） |
 | 目标可用性 | native ✅（V-24）/ js ⚠（U-02）/ wasm-gc ⚠（U-01） |
 | 回链 | FR-21、FR-22、FR-23；US-04 |
@@ -501,21 +517,24 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 
 | 项 | 内容 |
 |---|---|
-| 签名 | `get_lang_list() -> Array[String]` |
+| 签名 | `get_lang_list() -> Array[String]`（模块级；**`[EXT]`，G-08 的上游对应物是工厂方法 `DetectorFactory.get_lang_list`，模块级同名入口无上游对应物**） |
 | 出参 | 可用语言代码数组，顺序 = 档案加载序（§4.5） |
 | 错误语义 | 无 |
 | 目标可用性 | native ✅（V-24）/ js ⚠（U-02）/ wasm-gc ⚠（U-01） |
 | 回链 | FR-13；US-06 |
 
+> **`[EXT]` 标记（D6）**：`get_lang_list()` 的**模块级**形态是本移植新增（上游只有 `DetectorFactory.get_lang_list`）；`Detector::new()` 的无参形态与 `Detector::set_seed` 同样无上游对应物（上游实例只能经 `DetectorFactory.create` 构造，seed 只经工厂设置）。三者按 `[EXT]` 登记，不计入 `[ALIGN]` 对齐面。
+
 ### 5.5 检测实例（构造 + seed）
 
 | 项 | 内容 |
 |---|---|
-| 签名 | `Detector::new() -> Detector`（关联函数）；`DetectorFactory::create(self : DetectorFactory, alpha? : Double) -> Detector`（**实例方法，含 `self`**；`alpha` 为可选标签参数，**无默认值**） |
+| 签名 | `Detector::new() -> Detector`（关联函数；**`[EXT]`，无上游对应物**——上游实例只经 `DetectorFactory.create` 构造）；`DetectorFactory::create(self : DetectorFactory, alpha? : Double) -> Detector`（**实例方法，含 `self`**；`alpha` 为可选标签参数，**无默认值**） |
 | 调用形态 | `let d = Detector::new()`；`let d = factory.create()` 或 `factory.create(alpha=0.5)`（**不写 `Some(...)`**：可选参数按裸值传，传 `Some(0.5)` 报 `[4080] requires 1 positional arguments, but is given 2`，见 V-58）。`alpha` 不传时取默认 0.5 |
-| seed 默认 | 无值（不可复现，与上游一致，V-08） |
-| seed 设置签名 | `Detector::set_seed(self : Detector, seed : Int64?) -> Unit`（**含 `self`**；缺 `self` 时 `d.set_seed(Some(0L))` 报 `[4014]` + `[4080]`，见 V-58） |
+| seed 默认 | 无值（不可复现，与上游一致，V-08）。**注意（D4）**：模块级 `detect` / `detect_langs` 恒为未设 seed（私有单例不可达、上游的类属性 `DetectorFactory.seed` 不移植）；需要复现时**自建 `DetectorFactory` 并 `set_seed`**。详见 §5.9b |
+| seed 设置签名 | `Detector::set_seed(self : Detector, seed : Int64?) -> Unit`（**`[EXT]`，无上游对应物**；含 `self`，缺 `self` 时 `d.set_seed(Some(0L))` 报 `[4014]` + `[4080]`，见 V-58）；`DetectorFactory::set_seed(self : DetectorFactory, seed : Int64?) -> Unit`（上游为类属性赋值，本移植为实例方法，见 §5.9b D4） |
 | 语义 | seed 在 `Detector` 构造时从工厂读取一次；设置后对**后续新建**的实例生效，对已建实例不追溯 |
+| **已声明差异（D5）** | **空工厂上的 `create`**：上游在 `create` 时即抛码 4（`detector_factory.py:105-108`）；本移植返回一个空 `Detector`，把码 4 **推迟到检测时**（`src/core/factory.mbt:43-44,51-60`）。属已声明的功能等价差异（2026-10-23 用户裁决）：错误**时点**不同，错误**语义与码值**相同，且对「先 create 后 load」的调用序更宽容 |
 | 目标可用性 | native ✅（V-24）/ js ⚠（U-02）/ wasm-gc ⚠（U-01） |
 | 回链 | FR-05、FR-06；US-03 |
 
@@ -561,11 +580,24 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 
 | 项 | 内容 |
 |---|---|
-| 签名 | `ln_for_gauss(x : Double) -> Double`；`is_upper_cp312(cp : Int) -> Bool` |
+| 签名 | `ln_for_gauss(x : Double) -> Double`；`is_upper_cp312(cp : Int) -> Bool`；`Detector::set_raw_probabilities(self : Detector, raw : Array[Double]) -> Unit`（**`[EXT]`，G-29…G-33 之外的第 4 个接缝扩展**，无上游对应物——上游 `langprob` 只能经 `_detect_block` 写入，见 D6） |
 | 语义 | `ln_for_gauss` 在 native 下绑定 libm `log`（1 参，返回自然对数），js / wasm-gc 下走 `@math.ln`；`is_upper_cp312` 查 U3 表（V-36/V-37） |
 | 实现期新增字面 | 降级分支的代码注释必须带标记 `// non-native fallback`（当前仓库该字面 0 命中，属**实现期新增**；GP1 生成点 = `src/math_seam/` 实现时） |
 | 目标可用性 | 两者全目标可用；**数值档位不同**：native = 逐位档（win32 x64），js / wasm-gc = 容差档（§8.4 + EQ1） |
 | 回链 | DESIGN D3、D4；G1 接缝层；G2 XB1 |
+
+> **`[EXT]` 登记（D6）**：本节的三个接缝入口中，`ln_for_gauss` 与 `is_upper_cp312` 分别对应 G-31 与平台分叉点；`set_raw_probabilities` 是本移植新增的**概率数组注入接缝**（`src/core/detector.mbt`，用于 EQ 分叉点与浮点边界档的构造），上游**无对应公开入口**。它此前只出现在代码注释里，现按 `[EXT]` 正式登记；它只写实例 `langprob`，不清 `text`、不触发 `_detect_block`。
+
+### 5.9b 工厂加载语义（`[EXT]` 契约，D2 / D3 / D4 已声明差异）
+
+| 项 | 内容 |
+|---|---|
+| 签名 | `DetectorFactory::load_profile(self : DetectorFactory) -> Unit raise LangDetectError`（无参：档案来自内嵌 flat，不读目录）；`DetectorFactory::add_profile(self : DetectorFactory, profile : LangProfile) -> Unit raise LangDetectError`（无 `index` / `langsize`）；`DetectorFactory::set_seed(self : DetectorFactory, seed : Int64?) -> Unit` |
+| **已声明差异（D2）** | **`load_profile` 为幂等 / 替换语义：重复调用成功且恒为 55**；上游为追加语义（`detector_factory.py:35-64,80-84`），重复加载同一目录触发码 1（`Profile format error in "…\af"`）并留下部分状态。属已声明的功能等价差异（2026-10-23 用户裁决「功能等价迁移，不需要完整迁移」）：重复加载在上游是**错误路径**，本移植把它实现为「清空后整体重建」——重复调用后的可观察结果（55 语言、位级一致）与上游**首次**加载完全一致，不劣于上游的错误路径 |
+| **已声明差异（D3）** | `add_profile` 去掉 `index` / `langsize`（由现有档案数推导），并预校验四种形态（空 `name` / 任一 `n_words` 合计为 0 / 任一 `freq` 计数为负 → 码 1；重复语言 → 码 3），**严于上游**（上游接受前三项）。逐形态见 §4.1 DT4 |
+| **已声明差异（D4）** | 模块级入口恒为**未设 seed**：`DetectorFactory::set_seed` 只写本工厂实例字段，上游的**类属性** `DetectorFactory.seed`（`detector_factory.py:29,59`）**不移植**，而模块级单例为私有不可达，故 `@core.detect` / `detect_langs` 不可复现。需要复现时**自建** `DetectorFactory` 并 `set_seed`（§5.5）。`src/core/constants.mbt` 的 `pub let seed` 仅为常量占位，**不**参与模块级 seed 行为 |
+| 目标可用性 | native ✅（V-24）/ js ⚠（U-02）/ wasm-gc ⚠（U-01） |
+| 回链 | FR-05、FR-06；US-03；G-04 / G-05 / G-07 |
 
 ### 5.10 诊断入口（`[EXT]`，G-33）
 
@@ -746,7 +778,7 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | L1-A1 | 每个入口的「网络 / 存储写入 / 事件 / 日志」四列均为「无」 | 静态：`grep -rnE 'http\|socket\|write_file\|log_write' src` 必须 0 行 |
 | L1-A2 | 全局状态仅两处：单例工厂（首次初始化）与实例字段 | 静态：`grep -rn 'let mut\|global' src` 逐行核对归属 |
 | L1-A3 | `append` 不清 `langprob`；`detect`/`get_probabilities` 首次调用触发检测 | 行为：同实例二次 `detect` 返回首次结果（V-47） |
-| **L1-A4** | **引用别名回填**：`Detector` 与工厂共享 `langlist` 与 `word_lang_prob_map` 同一对象；`load_profile`/`clear` 后已建实例可见变化（V-52） | 行为：`load_profile` → `create` → 再 `add_profile` → 断言 `len(detector.langlist)` 与 `len(factory.langlist)` 同步增加（**不用 `get_lang_list()`：该方法是工厂的方法，`Detector` 无此方法**，N-05）；另断言 `detector.langlist is factory.langlist` 为 True |
+| **L1-A4** | **引用别名回填**：`Detector` 与工厂共享 `langlist` 与 `word_lang_prob_map` 同一对象；`load_profile` 后已建实例可见变化（V-52）。**`clear` 例外**：上游 `clear` 重新绑定容器（`detector_factory.py:94-96`），已建实例仍持有旧容器、**看不到清空效果且可继续检测** | 行为：`load_profile` → `create` → 再 `add_profile` → 断言 `len(detector.langlist)` 与 `len(factory.langlist)` 同步增加（**不用 `get_lang_list()`：该方法是工厂的方法，`Detector` 无此方法**，N-05）；另断言 `detector.langlist is factory.langlist` 为 True；`clear` 后断言已建实例的 `langlist` **长度不变** |
 
 > **表内 `\|` 仅为 Markdown 转义**；L1-A1…L1-A4 的可执行命令见 §10.6 命令 11–14，执行时从代码块复制（review-findings N-02）。
 
@@ -762,17 +794,18 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | `langlist` | 同上 | 同上 | `get_lang_list` | `detector_factory.py:113` | 返回值顺序 |
 | `langlist` | 同上 | 同上 | `_init_probability` | `detector.py:180` | 初始概率长度 |
 | `langlist` | 同上 | 同上 | **已建 `Detector` 通过别名读取** | `detector.py:58`（构造时赋值） | **别名共享**（V-52）：工厂后续变更对已建实例可见 |
-| `langlist` | 工厂 `clear` | `detector_factory.py:95` | 同上三处 + 已建实例 | 同上 | 清空后已建实例可见空列表 |
+| `langlist` | 工厂 `clear` | `detector_factory.py:95` | 同上三处 + 已建实例 | 同上 | **上游 `clear` 重新绑定容器**（`detector_factory.py:94-96`）：已建实例**仍持有旧容器并可继续检测**，看不到清空效果；本移植（另一 worker 正在对齐）同口径 |
 | `word_lang_prob_map` | 工厂 `add_profile` | `detector_factory.py:87-92` | 特征抽取（字典命中） | `detector.py:197` | 键集合决定哪些 n-gram 是特征 |
 | `word_lang_prob_map` | 同上 | 同上 | 概率更新 | `detector.py:206` | 词向量取值 |
 | `word_lang_prob_map` | 同上 | 同上 | **已建 `Detector` 通过别名读取** | `detector.py:57` | 别名共享（V-52） |
-| `word_lang_prob_map` | 工厂 `clear` | `detector_factory.py:96` | 同上三处 + 已建实例 | 同上 | 清空后特征命中率归零 |
-| `seed` | 工厂 `set_seed` / 类属性 | `detector_factory.py:29,110-111` | `Detector.__init__` 复制 | `detector.py:59` | 只在构造时读一次 |
+| `word_lang_prob_map` | 工厂 `clear` | `detector_factory.py:96` | 同上三处 + 已建实例 | 同上 | **上游 `clear` 重新绑定容器**：已建实例仍持有旧映射，特征命中率**不归零**、可继续检测；只有清空后新建的实例看到空表 |
+| `seed` | 工厂 `set_seed` / 类属性 | `detector_factory.py:29,110-111` | `Detector.__init__` 复制 | `detector.py:59` | 只在构造时读一次。**已声明差异（D4）**：上游 `seed` 是**类属性**（模块级单例也可被赋值复现）；本移植无类属性，`DetectorFactory::set_seed` 只写实例字段，模块级入口不可复现（§5.9b） |
 | `langprob`（实例） | `_detect_block` | `detector.py:152,169` | `detect` | `detector.py:136` | 缓存复用（V-47） |
 | `langprob`（实例） | 同上 | 同上 | `get_probabilities` | `detector.py:142-144` | 同上 |
 | `text`（实例） | `append`（追加）/ `cleaning_text`（就地改写，幂等） | `detector.py:111,130` | `_extract_ngrams` | `detector.py:148` | `append` **追加**而非覆盖；`cleaning_text` 幂等（V-54） |
 | `prior_map`（实例） | `set_prior_map` | `detector.py:78-91` | `_init_probability` | `detector.py:177-178` | 归一化后和恒为 1；NaN 例外见 V-51 |
 | `Verbose`（实例） | `set_verbose` | `detector.py:71` | 多处打印 | `detector.py:165,170,207` | ADR X 裁决不移植 → 本库无此键 |
+| `n_trial`（实例） | 无（构造后只读） | `detector.py:65`（上游可写） | `_detect_block` 循环次数 | `detector.py:158` | **已声明差异（D7）**：本移植 `n_trial` 只读（非 `mut`），**不移植写入面**；上游 `d.n_trial = 1` 可直接改迭代次数 |
 
 ### 9.4 负向轴
 

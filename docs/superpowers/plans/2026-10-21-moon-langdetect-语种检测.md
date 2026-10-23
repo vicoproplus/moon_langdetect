@@ -1009,10 +1009,10 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
 | 包级 `detect` | `langdetect/langdetect/detector_factory.py:126:detect` | 惰性单例 → 新建实例 → append → detect | ✅ 一致 |
 | 包级 `detect_langs` | `langdetect/langdetect/detector_factory.py:133:detect_langs` | 返回 `Array[LangProb]`，过滤 + 稳定排序 | ✅ 一致 |
 | 惰性单例 | `langdetect/langdetect/detector_factory.py:120:init_factory` | 首次调用初始化，后续复用 | ✅ 一致 |
-| `load_profile` | `langdetect/langdetect/detector_factory.py:35:DetectorFactory.load_profile` | 目录列举序；`langsize = len(list_files)`（同文件 40 行） | ✅ 一致 |
-| `add_profile` | `langdetect/langdetect/detector_factory.py:80:DetectorFactory.add_profile` | 码 3 重复；键长 > 3 不写概率仍建零向量 | ✅ 一致 |
-| `create` | `langdetect/langdetect/detector_factory.py:98:DetectorFactory.create` | `alpha? : Double`，裸值传参 | ✅ 一致 |
-| `set_seed` | `langdetect/langdetect/detector_factory.py:110:DetectorFactory.set_seed` | 类属性（同文件 29 行）；只影响新建实例 | ✅ 一致 |
+| `load_profile` | `langdetect/langdetect/detector_factory.py:35:DetectorFactory.load_profile` | 目录列举序；`langsize = len(list_files)`（同文件 40 行） | **功能等价（声明差异）** —— 重复加载：上游追加语义触发码 1 且留部分状态，本移植清空后整体重建、恒为 55；见 spec §5.9b D2 + 用户裁决 2026-10-23 |
+| `add_profile` | `langdetect/langdetect/detector_factory.py:80:DetectorFactory.add_profile` | 码 3 重复；键长 > 3 不写概率仍建零向量 | **功能等价（声明差异）** —— 本移植去掉 `index` / `langsize`（推导）并预校验空 name / 任一 `n_words` 合计 0 / 负计数 → 码 1（**严于上游**，上游接受这三者，如 V-50 的 `[4,0,0]`）；不存在「除零」——上游只在出现该键长时才做除法；见 spec §4.1 DT4 / §5.9b D3 |
+| `create` | `langdetect/langdetect/detector_factory.py:98:DetectorFactory.create` | `alpha? : Double`，裸值传参 | **功能等价（声明差异）** —— 空工厂上的错误时点：上游在 `create` 即抛码 4，本移植返回空 `Detector` 并把码 4 推迟到检测时；见 spec §5.5 D5 |
+| `set_seed` | `langdetect/langdetect/detector_factory.py:110:DetectorFactory.set_seed` | 上游是**类属性**（同文件 29 行）→ 模块级单例可复现；本移植为实例方法，只影响该工厂后续新建实例 | **功能等价（声明差异）** —— 本移植无类属性（`constants.mbt` 的 `pub let seed` 为惰性占位），私有单例不可达，故模块级 `detect` / `detect_langs` 恒为未设 seed、不可复现；需要复现请自建工厂并 `set_seed`。见 spec §5.9b D4 |
 | `get_lang_list` | `langdetect/langdetect/detector_factory.py:113:DetectorFactory.get_lang_list` | 返回浅拷贝、加载序 | ✅ 一致 |
 | `clear` | `langdetect/langdetect/detector_factory.py:94:DetectorFactory.clear` | 清空 `langlist` / `word_lang_prob_map` | ✅ 一致 |
 | `PROFILES_DIRECTORY` | `langdetect/langdetect/detector_factory.py:117:PROFILES_DIRECTORY` | 内嵌档案替代目录读取 | ✅ 一致（承载方式按 ADR D 行） |
@@ -1020,11 +1020,11 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
 | `cleaning_text` | `langdetect/langdetect/detector.py:114:Detector.cleaning_text` | 就地改写、幂等；URL / 邮箱清洗；LEA 恒不生效 | ✅ 一致 |
 | `Detector.detect` | `langdetect/langdetect/detector.py:132:Detector.detect` | 首个 > 阈值；空则 `unknown`（NaN 例外） | ✅ 一致 |
 | `get_probabilities` | `langdetect/langdetect/detector.py:141:Detector.get_probabilities` | 惰性触发 `_detect_block` | ✅ 一致 |
-| `set_alpha` | `langdetect/langdetect/detector.py:73:Detector.set_alpha` | 内部保留（非主路径） | ✅ 一致 |
+| `set_alpha` | `langdetect/langdetect/detector.py:73:Detector.set_alpha` | 无独立 setter；alpha 仅经 `create(alpha=…)` 传入（上游有公开 setter） | **功能等价（声明差异）—— 无独立 setter；alpha 仅经 create(alpha=…) 传入** |
 | `set_max_text_length` | `langdetect/langdetect/detector.py:93:Detector.set_max_text_length` | 清洗后码点数截断（V-43） | ✅ 一致 |
 | `set_prior_map` | `langdetect/langdetect/detector.py:76:Detector.set_prior_map` | 仅取可用语言；负 / 和 ≤ 0 走码 8；NaN 例外 | **功能等价（声明差异）** —— 失败后 `prior_map` 保持 `None`（上游留零向量，下次检测抛未捕获 `ZeroDivisionError`），见 spec §5.6「已声明差异」+ 用户裁决 2026-10-23 |
 | `set_verbose` | `langdetect/langdetect/detector.py:70:Detector.set_verbose` | 不移植（ADR X 行） | ✅ 一致（显式不移植） |
-| `Language` | `langdetect/langdetect/language.py:7:Language` | `lang` / `prob`；无 `__eq__` | ✅ 一致 |
+| `Language` | `langdetect/langdetect/language.py:7:Language` | `lang` / `prob`；无 `__eq__`；`__repr__` 不移植 | **功能等价（声明差异）** —— 上游 `__repr__`（`language.py:11-14`）不移植，只影响调试打印；见 spec §4.3 D9 |
 | 异常与 9 码 | `langdetect/langdetect/lang_detect_exception.py:1:LangDetectException` / `:16` | 9 码 + 消息原文；四字段为扩展 | ✅ 一致 |
 | 常量 10 项 | `detector.py:44-51`、`detector_factory.py:29`、`detector.py:65-66` | V-07 值逐项照抄 | ✅ 一致 |
 | `NGram.normalize` | `langdetect/langdetect/utils/ngram.py:64:NGram.normalize` | 12 块常量 / 11 判定臂 | ✅ 一致 |
