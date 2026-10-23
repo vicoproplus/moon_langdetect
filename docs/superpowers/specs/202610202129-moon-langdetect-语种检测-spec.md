@@ -294,6 +294,26 @@ grep -rn '^pub fn\|^pub struct\|^pub enum\|^pub suberror' --include=*.mbt . | gr
 
 用例数由 `grep -c "def test_" <file>` 派生（2026-10-21 实测：6 / 2 / 7 / 7 / 1）。
 
+**23 源用例 → 116 目标测试：组级映射（2026-10-23 用户裁决「功能等价迁移，不需要完整迁移」）**
+
+上表 23 个源用例（6 + 2 + 7 + 7 + 1）对应到 **10** 个 `src/**/*_test.mbt` 文件，按**组粒度**登记；**不要求逐用例一对一映射**：
+
+| 目标测试文件 | 测试数 |
+|---|---:|
+| `src/core/cleaning_test.mbt` | 6 |
+| `src/core/detect_block_test.mbt` | 12 |
+| `src/core/detector_test.mbt` | 41 |
+| `src/core/language_test.mbt` | 2 |
+| `src/core/ngram_test.mbt` | 13 |
+| `src/core/rng_test.mbt` | 28 |
+| `src/data/profile_test.mbt` | 6 |
+| `src/math_seam/math_seam_test.mbt` | 3 |
+| `src/unicode/block_test.mbt` | 2 |
+| `src/unicode/unicode_test.mbt` | 3 |
+| **合计** | **116** |
+
+计数口径：`grep -c '^test ' <file>`（2026-10-23 实测；`moon test --target native` 输出 `Total tests: 116, passed: 116`）。目标侧测试数多于源侧，是因为除源侧 23 用例的对应组外，还覆盖 §1.11 的 V-* 实测样本与 §8.5 的 EQ 分叉点；组内不要求与源用例一一对应。
+
 ---
 
 ## 3. PRD 回链表
@@ -420,8 +440,8 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | `src/core/ngram_tables.mbt` | **ngram 表产物**（12 块 / 11 臂 / 126 组 / 6667 键；首行「勿手改」） | 构建前 | 产品 | `python tools/gen_core_tables.py` | `--verify` 四元组 + 首行「勿手改」；覆盖行为 = 整文件重建 |
 | `src/core/cmd/main/moon.pkg` | 静默性验证用可执行包的清单（须含 `pkgtype(kind: "executable")`） | 实现期 | 产品 | —（随包一次写入） | `grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg` |
 | `src/core/cmd/main/main.mbt` | 可执行入口。**当前内容为空 `fn main { }`（脚手架占位，仅验证可执行包形态）；「调用一次 `detect` 且不打印」是实现期目标，尚未实现** | 实现期 | 产品 | — | `C:/Users/Administrator/.moon/bin/moon.exe build --target native` 后检查 `_build/native/debug/build/src/core/cmd/main/main.exe` 存在 |
-| `src/core/cmd/golden/moon.pkg` | golden 比对诊断可执行包的清单（不属公开 API；NE1 静态门仅豁免 `cmd/main/`） | 实现期 | 产品 | — | 命令 11b 对库/cmd/main 零命中（cmd/golden 诊断输出例外，2026-10-22 用户裁决）+ `compare_golden --mode prob_bits` |
-| `src/core/cmd/golden/main.mbt` | golden 比对诊断入口（读一行 JSON、写一行 JSON；`main` 仍静默） | 实现期 | 产品 | — | 命令 11b 对库/cmd/main 零命中（cmd/golden 诊断输出例外，2026-10-22 用户裁决）+ `compare_golden --mode prob_bits` |
+| `src/core/cmd/golden/moon.pkg` | golden 比对诊断可执行包的清单（不属公开 API；NE1 静态门豁免 `cmd/main/` 与 `cmd/golden/` 两段，见 §9.4 NE1） | 实现期 | 产品 | — | 命令 11b（`grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`）对库与 `cmd/main` 零命中 / rc=1（`cmd/golden` 为诊断输出例外，2026-10-22 用户裁决）+ `compare_golden --mode prob_bits` |
+| `src/core/cmd/golden/main.mbt` | golden 比对诊断入口（读一行 JSON、写一行 JSON；`main` 仍静默） | 实现期 | 产品 | — | 命令 11b（`grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`）对库与 `cmd/main` 零命中 / rc=1（`cmd/golden` 为诊断输出例外，2026-10-22 用户裁决）+ `compare_golden --mode prob_bits` |
 | `_build/native/debug/build/src/core/cmd/main/main.exe` | 静默性验证用可执行产物 | 构建期 | 产品 | `C:/Users/Administrator/.moon/bin/moon.exe build --target native` | `./_build/native/debug/build/src/core/cmd/main/main.exe > /tmp/o.txt 2> /tmp/e.txt; wc -c /tmp/o.txt /tmp/e.txt` 两者均 0（NE1 运行时半句的载体） |
 | `tools/compare_golden.py` | `约定 C` 的位级比对器（消费 `expected.json` 的 `prob_bits`） | **实现期（当前不存在，属实现期产物）** | 产品 | `—（实现期由产品实现者创建；本表登记其必须提供的调用形态）` | `约定 C：golden 基准消费契约` §3 全部命令 + §8.2 / §8.4 验收行。**状态：未验证（实现期产物；回补触发 = 脚本落地）** —— 按 §14 定义，`[LOCAL_DEAD_LINK]` 仅用于本机环境不可达项，不用于「实现期还没写的脚本」 |
 | `tools/compare_lowconf.py` | 低置信入口分组比对器 | **实现期（当前不存在，属实现期产物）** | 产品 | `—（同上）` | §8.2 低置信入口行。**状态：未验证（实现期产物；回补触发 = 脚本落地）** |
@@ -507,6 +527,11 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | 语义 | 只取可用语言中出现的键；负值 → 码 8（消息 `Prior probability must be non-negative.`）；总和 ≤ 0 → 码 8（消息 `More one of prior probability must be non-zero.`）；否则归一化为和 1。**NaN 值不触发码 8**（上游 `p < 0` 对 NaN 为假），归一化后全为 NaN，检测返回 `'unknown'`（V-51）——该行为按上游照抄并在 §8.2 验收 |
 | 目标可用性 | native ✅（V-24）/ js ⚠（U-02）/ wasm-gc ⚠（U-01） |
 | 回链 | FR-07、FR-08、FR-09；US-07 |
+| **已声明差异（2026-10-23 用户裁决）** | **失败后的实例状态**：上游先赋零向量、后校验，抛错后留下全零向量 → 下次检测抛未捕获 `ZeroDivisionError`；本移植只在成功后赋值，抛错后 `prior_map = None` → 下次检测按均匀先验继续（不崩溃）。详见本节末段 |
+
+**已声明差异：`set_prior_map` 失败后的状态（用户 2026-10-23 裁决「功能等价迁移，不需要完整迁移」）**
+
+上游 `langdetect/langdetect/detector.py:78` 在**校验之前**执行 `self.prior_map = [0.0] * len(self.langlist)`；因此抛错的 `set_prior_map` 会留下一个全零向量，随后任一次检测在 `sum = 0.0` 处抛出**未被捕获的 `ZeroDivisionError`**——该异常落在 §6 的 9 码错误契约之外。本移植先在局部构建向量，**只在全部校验通过后**才写入 `self.prior_map`，故抛错后实例保持 `prior_map = None`，后续检测按均匀先验正常返回（不崩溃）。这是**已声明的功能等价差异**，不是缺陷；`src/core/detector_test.mbt` 的 `prior_negative_test` / `prior_zero_sum_test` 锁定该行为。理由：契约之外的崩溃无法在不扩宽公开错误面的前提下忠实复现，而 2026-10-23 裁决（功能等价迁移，不需要完整迁移）不要求扩宽。
 
 ### 5.7 实例配置：长度上限
 
@@ -611,7 +636,7 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 
 | 项目 | 目标环境 | 操作证据（命令 / 入口） | 期望值来源 | 观测输出 | 状态 |
 |---|---|---|---|---|---|
-| 首次调用完成档案加载 | native (win32 x64) | `C:/Users/Administrator/.moon/bin/moon.exe test --target native`（cwd = 仓库根） | `analysis/toolchain-probes.md` §C.1 | — | 未验证（产品实现未落地） |
+| 首次调用完成档案加载 | native (win32 x64) | `C:/Users/Administrator/.moon/bin/moon.exe test --target native`（cwd = 仓库根） | `analysis/toolchain-probes.md` §C.1 | 首次解析 184129 条档案条目 209 ms；首次工厂加载 347 ms；合计 567 ms（N=3 冷进程中位数，见 `docs/superpowers/plans/artifacts/target-report-2026-10-21.md` §8） | 已验证（U-06 回填，2026-10-23 用户授权） |
 | 首次调用完成档案加载 | js | `C:/Users/Administrator/.moon/bin/moon.exe test --target js`（PATH 前置 `probes/bin`） | `probes/logs/target-js-02-test.log` | — | 未验证（替代运行时，U-02） |
 | 首次调用完成档案加载 | wasm-gc | `C:/Users/Administrator/.moon/bin/moon.exe build --target wasm-gc` | `probes/logs/target-wasm-gc-01-build.log` | — | `[LOCAL_DEAD_LINK]`（test 不可达，U-01） |
 | 空目录下可检测 | native (win32 x64) | `cd <空临时目录> && /f/moonbit比赛/moon_langdetect/_build/native/debug/build/src/core/cmd/main/main.exe`（**当前该入口为空 `fn main { }`，尚未调用 `detect`**；detect 链路待实现） | PRD FR-13 | — | 未验证（实现期产物；回补触发 = `main.mbt` 填入 detect 调用；填入前不计已验证） |

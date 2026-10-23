@@ -120,6 +120,18 @@ pub fn Detector::set_max_text_length(self : Detector, n : Int) -> Unit {
 
 ///|
 /// out, and `detect` returns `"unknown"` (V-51).
+
+///| **Declared functional-equivalence divergence** (spec §5.6 「已声明差异」,
+///
+///| user ruling 2026-10-23: 功能等价迁移，不需要完整迁移): the vector is built
+///
+///| locally and assigned only after every check passes, so a raising call
+///
+///| leaves `prior_map = None` and the next detection proceeds with a uniform
+///
+///| prior. Upstream (`detector.py:78`) installs a zero vector before
+///
+///| validating, so its next detection raises an uncaught `ZeroDivisionError`.
 pub fn Detector::set_prior_map(self : Detector, prior : Map[String, Double]) -> Unit raise LangDetectError {
   let langsize = self.langlist.length()
   let vector : Array[Double] = Array::make(langsize, 0.0)

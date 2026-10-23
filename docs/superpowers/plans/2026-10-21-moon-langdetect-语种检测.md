@@ -173,7 +173,7 @@
 
 ## Slice Checkpoint Gate Declaration (MANDATORY)
 - **S0 门禁挂载到切片**: 三条门禁的执行点（命令 + 期望退出状态 + 日志路径）写入每个切片 Task 的 Output，不只写在 Task 13；里程碑 / 批末 / 终验挂载视为未挂载。
-- **S1 静态门（适用）**: 检索式 = spec §10.6 命令 1-14（DR1-DR11 + NE1 / L1-A1 / NE4-2 / NE4-4）**加本计划增补的命令 11b**（命令 11b 的 rc=1 与命令 1-14 同判；Task 0 基线表需另记 11b 一行，见 Task 0 Step 3），期望 0 行 / rc=1；命令 15-19 为基准校验，期望 rc=0。命令 11b = `… | grep -vE '[\\/]cmd[\\/]main[\\/]'`（只豁免 `cmd/main`，使 `cmd/golden` 仍在静默检查范围内；spec 命令 11 豁免整个 `cmd/` 子树，会漏检诊断包的 `println` —— B-04）。切片合并前置 = 对切片改动范围零命中；静态门零命中是编译门前置。新缺陷类灭绝后必须把模式追加进检索式。
+- **S1 静态门（适用）**: 检索式 = spec §10.6 命令 1-14（DR1-DR11 + NE1 / L1-A1 / NE4-2 / NE4-4）**加本计划增补的命令 11b**（命令 11b 的 rc=1 与命令 1-14 同判；Task 0 基线表需另记 11b 一行，见 Task 0 Step 3），期望 0 行 / rc=1；命令 15-19 为基准校验，期望 rc=0。命令 11b = `… | grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`（豁免 `cmd/main` 与 `cmd/golden` 两段，期望 rc=1 / 0 hits；`cmd/golden` 为诊断输出例外，2026-10-22 用户裁决 / spec §9.4 NE1 行 756；spec 命令 11 豁免整个 `cmd/` 子树，会漏检诊断包的 `println` —— B-04）。切片合并前置 = 对切片改动范围零命中；静态门零命中是编译门前置。新缺陷类灭绝后必须把模式追加进检索式。
 - **S2 编译门（适用）**: `moon check && moon build --target native && moon build --target js && moon build --target wasm-gc` 零错误，是进入走查与合入的硬前置；共享代码切片（Task 3 / 4 / 5 / 6 / 7）合入前必须由其消费方（Task 7 / 8）通过一次成功构建。
 - **S3 走查门（适用，库等价物）**: 固定核心链路清单（计划期冻结，触链即重走）：
   - **C1** 入口 = 加载 55 档案 → 关键操作 = `detect` 长文本 55 条 → 可观察结果 = 主语言与 `golden:expected.json` 一致（55/55）。
@@ -328,16 +328,16 @@ grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg
 # rc=0
 ```
 
-**命令 11b（本计划增补，非 spec §10.6；B-04 修补）**——为保持上方 30 条与 spec §10.6 逐字一致，单独列出：
+**命令 11b（本计划增补，非 spec §10.6；B-04 修补，2026-10-22 NE1 修订版）**——为保持上方 30 条与 spec §10.6 逐字一致，单独列出。本块文本已按 spec §9.4 NE1 行 756（2026-10-22 用户授权的 NE1 修订）改写：豁免范围由「仅 `cmd/main`」扩为「`cmd/main` + `cmd/golden`」，期望值由「rc=1 / 0 行」改为「rc=1 / 0 hits」；此变更是 2026-10-22 NE1 修订从 spec 带入本计划文本的结果（B-3 文本对齐，2026-10-23）。
 
 ```bash
-# 命令 11b（**本计划增补，非 spec §10.6**，用于修补 B-04 的 cmd/ 白名单盲区）—— 期望 0 行 / rc=1
-# 与命令 11 的差异：只豁免 `cmd/main` 一个目录，不豁免整个 `cmd/`；因此 `cmd/golden` 等诊断包仍在静默检查范围内。
-grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/]main[\\/]'
-# rc=1
+# 命令 11b（**本计划增补，非 spec §10.6**，用于修补 B-04 的 cmd/ 白名单盲区；2026-10-22 NE1 修订版）—— 期望 0 hits / rc=1
+# 与命令 11 的差异：豁免 `cmd/main/` 与 `cmd/golden/` 两个路径段，不豁免整个 `cmd/`；`cmd/golden` 是诊断输出例外（2026-10-22 用户裁决，spec §9.4 NE1 行 756），因此本条的绿只要求「库与 `cmd/main` 零命中」。
+grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'
+# rc=1（0 hits）；2026-10-23 复测仍为 rc=1 / 0 行
 # T2 对照（2026-10-21 实测，样本 = 临时目录 ne1v2/）：
-#   样本 A：cmd/golden/main.mbt 含 println("x") → 命令 11（旧过滤 '[\/]cmd[\/]'）rc=1（0 行，**假绿/漏检**）；命令 11b（新过滤 '[\/]cmd[\/]main[\/]'）rc=0（命中 1 行，**正确拦截**）
-#   样本 B：仅 cmd/main/main.mbt 含 println("y") → 命令 11b rc=1（0 行，**正确豁免**）
+#   样本 A：cmd/golden/main.mbt 含 println("x") → 命令 11（旧过滤 '[\/]cmd[\/]'）rc=1（0 行，**假绿/漏检**）；命令 11b（新过滤 '[\/]cmd[\/](main|golden)[\/]'）rc=0（命中 1 行，**正确拦截**）
+#   样本 B：仅 cmd/main/main.mbt 含 println("y") → 命令 11b rc=1（0 hits，**正确豁免**）
 ```
 
 补充构建 / 测试命令（非 §10.6，属本计划门禁，用 `&&` 串联）：
@@ -465,13 +465,13 @@ spec §10.6 命令 11（NE1 静态门，本文件「命令 11」块）以 `grep 
 命令 11 单独跑**永远是绿的**（0 行 / rc=1）。rc=1 正是期望值，于是「静态门通过」的结论看起来成立，实际上 `cmd/golden` 从未被检查。这不是偶发失败，而是白名单过宽导致的**结构性漏检**（review-findings B-04）。
 
 **正确做法**
-命令 11 与**命令 11b**（本文件「命令 11b」块，`... | grep -vE '[\\/]cmd[\\/]main[\\/]'`，只豁免 `cmd/main/`）**必须同时跑**，两条都 rc=1（0 行）才算 NE1 静态门通过：
+命令 11 与**命令 11b**（本文件「命令 11b」块，`... | grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`，豁免 `cmd/main/` 与 `cmd/golden/` 两段）**必须同时跑**，两条都 rc=1（0 hits）才算 NE1 静态门通过：
 ```bash
 # 两条各自独立取 rc，禁止用 `;` 或 `|| true` 吞掉其中一条
 grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/]'
 echo "cmd11_rc=$?"      # 期望 1
-grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/]main[\\/]'
-echo "cmd11b_rc=$?"     # 期望 1；若为 0，说明 cmd/main 之外（含 cmd/golden）有输出调用
+grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'
+echo "cmd11b_rc=$?"     # 期望 1 / 0 hits；若为 0，说明 cmd/main 与 cmd/golden 之外有输出调用
 ```
 命令 11b 是**本计划增补**、不在 spec §10.6 的 30 条之内；Task 0 Step 3 基线表、Task 6 Step 6、Task 9 Step 3 / Output 三串链均已登记该条，执行时不得只跑命令 11。
 
@@ -523,7 +523,7 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
    **当前 spec 实测（2026-10-21）**：`unicode_block=0 cmd/golden=0 gen_core_tables=0 c6_zero_network=0` → `gate_rc=1`（**正确阻塞**）。这说明执行 Task 0 前必须先回 brainstorming 修订 spec 三处：§0A D2 行 46 补 `unicode_block`、§4A GP1 补 `cmd/golden`、`gen_core_tables`（及 `ngram_tables.mbt` 产物行）与 `c6_zero_network.sh`。**禁止在 gate 未绿时继续执行 Task 1 及之后的任务**。
 1. `command -v moon || exit 2`；`moon --version`；`moonc --version`；`.venv/Scripts/python.exe -V`；逐行记录。
 2. 计算代码版本标识：`moon.mod` 全文 + `find src tools -type f | sort` 的 sha256 清单，写入基线 md。
-3. 逐条执行 spec §10.6 命令 1-30（单条执行，禁止 `;` 串联）；记录 rc 与 stdout/stderr 摘要；**另执行命令 11b**（只豁免 `cmd/main` 的 NE1 变体，期望 0 行 / rc=1），作为基线表的第 31 行（编号 11b，不占用 1…30 的编号）。
+3. 逐条执行 spec §10.6 命令 1-30（单条执行，禁止 `;` 串联）；记录 rc 与 stdout/stderr 摘要；**另执行命令 11b**（豁免 `cmd/main` 与 `cmd/golden` 的 NE1 变体，期望 0 hits / rc=1），作为基线表的第 31 行（编号 11b，不占用 1…30 的编号）。
 4. 执行 `moon check`；记录 rc。
 5. 执行根 `moon test --target native`；记录 rc 与测试计数。
 6. 执行 `probes/embed-probe` 下 `moon test --target native`；记录 56/56（spec V-24）。
@@ -841,7 +841,7 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
 ### Steps
 1. 回读 spec §4A 行 419-421、§9.4 NE1、§10.6 命令 29 / 30。
 2. 实现 `main`（单次 detect）；不引入任何打印或 I/O。
-3. `moon build --target native`；运行命令 30（pkgtype）与命令 29（静默，rc=0）；确认命令 11 **与命令 11b** 均 rc=1（11b 确保将来 `cmd/golden` 不被白名单放过）。
+3. `moon build --target native`；运行命令 30（pkgtype）与命令 29（静默，rc=0）；确认命令 11 **与命令 11b** 均 rc=1（11b 按 spec §9.4 NE1 行 756 的 2026-10-22 修订，豁免 `cmd/main` 与 `cmd/golden` 两段，对库与 `cmd/main` 要求 0 hits）。
 4. 记录二进制路径、字节数、stdout / stderr 字节数（0 / 0）。
 5. 三目标 build（js / wasm-gc 仅构建）。
 6. **FR-13 空目录可检测（B-01）**：`d=$(mktemp -d) && cd "$d"` 后以**绝对路径**运行 `main.exe`，断言 rc=0 且 stdout/stderr 仍为 0 字节（证明内嵌档案不依赖 cwd 数据文件）。
@@ -850,9 +850,9 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
 ### Output
 - 验收命令（C4 + C5 + NE1b 三段串联）：
   ```
-  moon build --target native && ./_build/native/debug/build/src/core/cmd/main/main.exe >/tmp/o.txt 2>/tmp/e.txt && test ! -s /tmp/o.txt && test ! -s /tmp/e.txt && d=$(mktemp -d) && ( cd "$d" && "$OLDPWD/_build/native/debug/build/src/core/cmd/main/main.exe" >/tmp/o2.txt 2>/tmp/e2.txt ) && test ! -s /tmp/o2.txt && test ! -s /tmp/e2.txt && test "$(grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/]main[\\/]' | wc -l)" = "0"
+  moon build --target native && ./_build/native/debug/build/src/core/cmd/main/main.exe >/tmp/o.txt 2>/tmp/e.txt && test ! -s /tmp/o.txt && test ! -s /tmp/e.txt && d=$(mktemp -d) && ( cd "$d" && "$OLDPWD/_build/native/debug/build/src/core/cmd/main/main.exe" >/tmp/o2.txt 2>/tmp/e2.txt ) && test ! -s /tmp/o2.txt && test ! -s /tmp/e2.txt && test "$(grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/](main|golden)[\\/]' | wc -l)" = "0"
   ```
-- 三段判据：① 命令 29 静默（stdout/stderr 均 0 字节）；② **C5 / FR-13**：空 cwd 下以绝对路径运行仍 rc=0 且静默；③ **命令 11b**：`cmd/main` 以外的任何路径（含 `cmd/golden`）不得出现 stdout/stderr 写调用。
+- 三段判据：① 命令 29 静默（stdout/stderr 均 0 字节）；② **C5 / FR-13**：空 cwd 下以绝对路径运行仍 rc=0 且静默；③ **命令 11b**：`cmd/main` 与 `cmd/golden` 以外的任何路径不得出现 stdout/stderr 写调用（`cmd/golden` 为诊断输出例外，2026-10-22 用户裁决）。
 - 门禁自证伪（T2 实测 2026-10-21）：空目录命令形态 `d=$(mktemp -d) && cd "$d" && "$ABS" >/tmp/o 2>/tmp/e; rc=$?` → `rc=0`、`assert_rc=0`、`out_bytes=0 err_bytes=0`；若 `main.exe` 缺失 → `rc=127` → 断言 rc=1（必红）。
 - 期望退出码：0。
 - 证据日志：`docs/superpowers/plans/artifacts/task9-cli-2026-10-21.log`。
@@ -1022,7 +1022,7 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
 | `get_probabilities` | `langdetect/langdetect/detector.py:141:Detector.get_probabilities` | 惰性触发 `_detect_block` | ✅ 一致 |
 | `set_alpha` | `langdetect/langdetect/detector.py:73:Detector.set_alpha` | 内部保留（非主路径） | ✅ 一致 |
 | `set_max_text_length` | `langdetect/langdetect/detector.py:93:Detector.set_max_text_length` | 清洗后码点数截断（V-43） | ✅ 一致 |
-| `set_prior_map` | `langdetect/langdetect/detector.py:76:Detector.set_prior_map` | 仅取可用语言；负 / 和 ≤ 0 走码 8；NaN 例外 | ✅ 一致 |
+| `set_prior_map` | `langdetect/langdetect/detector.py:76:Detector.set_prior_map` | 仅取可用语言；负 / 和 ≤ 0 走码 8；NaN 例外 | **功能等价（声明差异）** —— 失败后 `prior_map` 保持 `None`（上游留零向量，下次检测抛未捕获 `ZeroDivisionError`），见 spec §5.6「已声明差异」+ 用户裁决 2026-10-23 |
 | `set_verbose` | `langdetect/langdetect/detector.py:70:Detector.set_verbose` | 不移植（ADR X 行） | ✅ 一致（显式不移植） |
 | `Language` | `langdetect/langdetect/language.py:7:Language` | `lang` / `prob`；无 `__eq__` | ✅ 一致 |
 | 异常与 9 码 | `langdetect/langdetect/lang_detect_exception.py:1:LangDetectException` / `:16` | 9 码 + 消息原文；四字段为扩展 | ✅ 一致 |
@@ -1074,7 +1074,7 @@ spec §7 注（DR9 / DR10 / DR11 的 T1 基线必须是非空包）；本文件�
 |---|---|---|---|---|
 | D-01 | Python 调用方式 | §8.2 / §8.4 的操作证据写作裸 `python` | 统一 `.venv/Scripts/python.exe` | **ALIGN-SPEC**：以 §10.6 EC1 行 862（「必须用 `.venv/Scripts/python.exe`，系统 python 无依赖」）为权威；§8 的裸 `python` 属陈旧写法，不照搬也不静默偏离 |
 | D-02 | `unicode_block` 的归属模块 | §2A 指定测试文件 `src/unicode/block_test.mbt`，但 §0A D2 行 46 的模块职责表只列 `is_upper_cp312` | 实现与测试均落 `src/unicode/` | **修订 spec**（v1 的 `ALIGN-SPEC` 是错的，S-01）：§2A 落点是测试文件位置，不是职责授权。**执行前必须回 brainstorming 修订 spec**：在 §0A D2 行 46 补「+ `unicode_block` 区块表（220 区间）」；未修订前不得把 §2A 当作 D2 的职责依据 |
-| D-03 | golden 比对的可执行载体 | §4A 只登记 `src/core/cmd/main`（必须静默），但 §8.2 / §8.4 要求 `compare_golden` 读取产品输出 | 新增 `src/core/cmd/golden` 诊断可执行包（`cmd/` 路径，NE1 静态命令收窄为只豁免 `cmd/main`，见命令 11b），不进公开 API | **修订 spec**（B-04，用户裁决保留 `cmd/golden` 方案）：**执行前必须回 brainstorming 修订 spec**：① §4A GP1 表补 `src/core/cmd/golden/{moon.pkg,main.mbt}` 两行四要素（生成时点「实现期」、责任单元「产品」、生成命令「—」、校验命令「命令 11b 零命中 + `compare_golden --mode prob_bits`」）；② §9.4 NE1 的 cmd 例外范围由「整个 `cmd/`」收窄为「仅 `cmd/main/`」，与命令 11b 一致。未修订前不得把该包当作已登记载体 |
+| D-03 | golden 比对的可执行载体 | §4A 只登记 `src/core/cmd/main`（必须静默），但 §8.2 / §8.4 要求 `compare_golden` 读取产品输出 | 新增 `src/core/cmd/golden` 诊断可执行包（`cmd/` 路径，NE1 静态命令豁免 `cmd/main` 与 `cmd/golden` 两段，见命令 11b），不进公开 API | **修订 spec**（B-04，用户裁决保留 `cmd/golden` 方案）：**执行前必须回 brainstorming 修订 spec**：① §4A GP1 表补 `src/core/cmd/golden/{moon.pkg,main.mbt}` 两行四要素（生成时点「实现期」、责任单元「产品」、生成命令「—」、校验命令「命令 11b 零命中 + `compare_golden --mode prob_bits`」）；② §9.4 NE1 的 cmd 例外范围为「`cmd/main/` + `cmd/golden/`」，与命令 11b 一致。未修订前不得把该包当作已登记载体 |
 | D-04 | ngram 表生成器 `tools/gen_core_tables.py` 与其产物 `src/core/ngram_tables.mbt` 的 GP1 登记 | §4A GP1 表**未登记**该生成器与产物（`grep -n 'gen_core_tables' spec` → rc=1），而 §4A 要求「每条命令引用的每个路径反查四要素」 | 保留生成器（126 组 / 6667 键手工抄写不可维护且易错），并在 Task 6 以 `--verify` 断言四元组 | **修订 spec**（B-05）：**执行前必须回 brainstorming 修订 spec**：在 §4A GP1 表补一行生成器登记（生成命令 `python tools/gen_core_tables.py`、校验命令 `--verify`（12/11/126/6667）、生成时点「构建前」、责任单元「产品」），并补产物行 `src/core/ngram_tables.mbt`（覆盖行为 = 整文件重建；首行含「勿手改」）。备选方案 = 取消生成器改为手写常量表（不推荐：6667 键手工转录不可验证） |
 | D-05 | `tools/c6_zero_network.sh` 的 GP1 登记 | §4A GP1 表**未登记**该脚本（`grep -c 'c6_zero_network' spec` → 0），而它是 Task 10 的必交付脚本 | 新增并交付该脚本（PID 级零网络断言，Task 10 Output 调用） | **修订 spec**（N-08）：**执行前必须回 brainstorming 修订 spec**：在 §4A GP1 表补一行四要素（生成时点 = 实现期；责任单元 = 产品；生成命令 = —；校验命令 = `sh tools/c6_zero_network.sh <exe> <cases.jsonl>` 四态实测：无 socket → rc=0 / 持 socket → rc=1 / 缺失 → rc=2 / 瞬时退出 → rc=0） |
 

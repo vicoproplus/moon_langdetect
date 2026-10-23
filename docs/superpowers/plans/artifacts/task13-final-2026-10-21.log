@@ -424,3 +424,47 @@ moon check && moon build --target native && moon build --target js && moon build
 ### 10.4 合并结果
 
 `sdd/moon-langdetect-2026-10-21` 以 **fast-forward** 合入 `main`（`192ce0e` → `1395186`），合并后全链复跑 `MERGED_CHAIN_RC=0`（`moon check` / 三目标 build / 116-116 / 双 seed 位级 / 低置信 55-55 & 55-55）；feature 分支已用 `git branch -d` 删除（拒绝强删）。`moon publish` 全程未执行。
+
+## §11 用户裁决（2026-10-23）
+
+用户裁决（verbatim）：「待决定项选择功能等价迁移的方案，不需要完整迁移」→ 本仓库取口径：**功能等价是唯一验收标准；位级 / 完整迁移不要求**。据此对全部原 parked / 未关闭项做「保持现状 + spec 声明」或「文本对齐」处置。
+
+### 11.1 编辑清单（5 个文件，仅限授权面）
+
+| # | 文件 | 编辑 |
+|---|---|---|
+| E1 | spec `202610202129-…-spec.md` | §5.6 实例配置：先验 —— 增「已声明差异」表行 + 段末说明段，声明 `set_prior_map` 失败后 `prior_map = None`（上游留零向量 → 下次检测抛未捕获 `ZeroDivisionError`） |
+| E2 | spec `202610202129-…-spec.md` | §8.1 U-06 native 行回填：观测输出 = 首次解析 184129 条 209 ms / 首次工厂加载 347 ms / 合计 567 ms（N=3 冷进程中位数，见 `target-report-2026-10-21.md` §8）；状态 = 已验证（U-06 回填，2026-10-23 用户授权） |
+| E3 | plan `2026-10-21-…-语种检测.md` | Authority Alignment Table 的 `set_prior_map` 行判定格 `✅ 一致` → `功能等价（声明差异）` + 理由（见 spec §5.6 与用户裁决 2026-10-23） |
+| E4 | plan `2026-10-21-…-语种检测.md` | 命令 11b 文本按 spec §9.4 NE1 行 756（2026-10-22 NE1 修订）改写：`grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`，期望 rc=1 / 0 hits；plan:176 / 468 / 473 / 474 / 526 / 853 / 855 / 844 / 1077 同步 |
+| E5 | spec `202610202129-…-spec.md` | §2A 增组级映射块：23 源用例 → 10 个 `src/**/*_test.mbt`（6/12/41/2/13/28/6/3/2/3 = 116），逐用例不要求 |
+| E6 | src `core/detector.mbt` | `set_prior_map` 文档注释增一段（Declared functional-equivalence divergence，指向 spec §5.6）；**无逻辑变更** |
+| E7 | artifacts `final-report-2026-10-21.md` | §二 标题改为「无未关闭阻塞项」；B-1 / B-3 / B-4 标记关闭（保留历史测量与矛盾记录）；§八 3/4 条、§九 parked 段追加关闭行；`RESULT:` 改为 DONE；新增 §十 用户裁决 |
+
+spec §4A GP1 行 423 / 424 的校验命令列同步改为 `(main|golden)` 形态（E4 的 spec 侧一致性）。
+
+### 11.2 各关闭项现在依赖的落点
+
+| 项 | 关闭依据 | 落点 |
+|---|---|---|
+| B-1（U-06 spec 行） | 用户 2026-10-23 授权 + 已有中位数测量 | spec §8.1 native 行（观测输出 / 状态两格） |
+| B-3（11b 与 spec 423/424 矛盾） | 2026-10-22 NE1 修订带入计划文本 | plan 命令 11b 块 + spec §4A 行 423/424 + spec §9.4 行 781 |
+| B-4（§2A 23→116 映射） | 用户裁决：逐用例不要求 | spec §2A 组级映射块 |
+| `set_prior_map` 失败后状态 | 用户裁决：功能等价 | spec §5.6「已声明差异」段 + `src/core/detector.mbt` 文档注释 + plan Authority 表 `功能等价（声明差异）` |
+
+### 11.3 验证命令与 rc（本节新跑，2026-10-23）
+
+| 命令 | rc | 观测输出 |
+|---|---|---|
+| `moon check` | **0** | `Finished. moon: ran 8 tasks, now up to date (5 warnings, 0 errors)`；5 warnings 均为 `src/data/profiles.mbt` 长字符串 `[0033]`（既有基线），无新增 warning、无 error |
+| `moon test --target native` | **0** | `Total tests: 116, passed: 116, failed: 0.` |
+| `.venv/Scripts/python.exe tools/compare_golden.py --target native --seed 0 --mode prob_bits` | **0** | `ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical` |
+| `.venv/Scripts/python.exe tools/compare_golden.py --target native --seed 42 --mode prob_bits` | **0** | `ok prob_bits target=native seed=42 cases=125/125 entries=136 bitwise=identical` |
+| 串联 gate（`moon check && moon test --target native && seed 0 && seed 42; echo "GATE_RC=$?"`） | **GATE_RC=0** | 逐段 rc = 0 / 0 / 0 / 0 |
+| `rm -rf tools/__pycache__` | 0 | 已清理（`ls tools/__pycache__` → rc=2，不存在） |
+
+机械一致性核对（2026-10-23）：`grep -n 'cmd\[\\\\/\]main\[\\\\/\]' <plan>` → **0 hits**（旧 cmd/main-only 形态在 11b 文本中已消除；`(main|golden)` 形态出现 6 行）；`grep -c '✅ 一致' <plan>` → **30**（改前 **31**，正好少 1，即 `set_prior_map` 行）；spec 中 `未验证（产品实现未落地）` 剩余 **1** 行（§8.4 `log` 位型档，非 U-06 行）。
+
+### 11.4 11b 新形态复测（2026-10-23）
+
+`grep -rn -e println -e 'print(' -e eprintln -e '@stdio' --include=*.mbt src/core src/data src/unicode src/math_seam | grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'` → **0 hits / rc=1**（符合 spec 行 756 期望）；计划 11b 块注释已补记该复测结果。
