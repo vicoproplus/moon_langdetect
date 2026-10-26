@@ -11,3 +11,5 @@
 *.txt
 __pycache__/
 *.pyc
+# Grant application material — repository metadata, not part of the library.
+/申报书-*.md
