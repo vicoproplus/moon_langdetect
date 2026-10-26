@@ -242,7 +242,7 @@ grep -rn '^pub fn\|^pub struct\|^pub enum\|^pub suberror' --include=*.mbt src
 grep -rn '^pub fn\|^pub struct\|^pub enum\|^pub suberror' --include=*.mbt . | grep -v -e _build -e .mooncakes -e probes
 ```
 
-实测（2026-10-21）：前两条见 §1；第三条对 `src/` 输出 **0 行**（产品实现未落地）；第四条同样 **0 行**（`grep -v -e _build -e .mooncakes -e probes` 为显式多模式，避免转义依赖）。
+实测（2026-10-23 重跑）：Python 侧见 §1；第三条对 `src/` 输出 **57 行**（51 个 `pub fn` + 结构/枚举/错误类型），即产品实现已落地；第四条同数（`grep -v -e _build -e .mooncakes -e probes` 为显式多模式，避免转义依赖）。**范围声明**：§5 只把 4 个包级入口与 §5.5–§5.10 的实例/接缝 API 列为**公开契约**；其余 `pub` 符号（如 `extract_ngrams`、`neumaier_sum`、`Mt19937::*`、`parse_profiles`、`profiles_flat`、`detect_block`）是跨包实现面与测试注入面，未经契约承诺、不保证跨版本稳定。
 
 | # | Item | Source side (file:line) | Target side status | Label |
 |---|---|---|---|---|
@@ -286,13 +286,13 @@ grep -rn '^pub fn\|^pub struct\|^pub enum\|^pub suberror' --include=*.mbt . | gr
 
 | 源侧测试文件 | 用例数 | 目标侧测试文件（计划） | 状态 |
 |---|---|---|---|
-| `langdetect/langdetect/tests/test_detector.py` | 6 | `src/core/detector_test.mbt` | 未落地（`[ALIGN]`，对应 G-01/G-02/G-04/G-05/G-08/G-12） |
-| `langdetect/langdetect/tests/test_language.py` | 2 | `src/core/language_test.mbt` | 未落地（`[ALIGN]`，对应 G-18） |
+| `langdetect/langdetect/tests/test_detector.py` | 6 | `src/core/detector_test.mbt`（41 用例） | 已落地（`[ALIGN]`，对应 G-01/G-02/G-04/G-05/G-08/G-12；组级覆盖） |
+| `langdetect/langdetect/tests/test_language.py` | 2 | `src/core/language_test.mbt`（2 用例） | 已落地（`[ALIGN]`，对应 G-18） |
 | `langdetect/langdetect/tests/utils/test_lang_profile.py` | 7 | **无** | **gap 登记**：7 个用例全部覆盖训练期 `add`/`omit_less_freq`（对应 G-27，ADR X 裁决不移植），故不设目标侧对应；`LangProfile` 的字段解析行为改由 `约定 A：档案内嵌数据格式与生成契约` 的 A1/A2 与 `src/data/` 的解析测试覆盖 |
-| `langdetect/langdetect/tests/utils/test_ngram.py` | 7 | `src/core/ngram_test.mbt` | 未落地（`[ALIGN]`，对应 G-22/G-23/G-24） |
-| `langdetect/langdetect/tests/utils/test_unicode_block.py` | 1 | `src/unicode/block_test.mbt` | 未落地（`[ALIGN]`，对应 G-25） |
+| `langdetect/langdetect/tests/utils/test_ngram.py` | 7 | `src/core/ngram_test.mbt`（13 用例） | 已落地（`[ALIGN]`，对应 G-22/G-23/G-24；组级覆盖） |
+| `langdetect/langdetect/tests/utils/test_unicode_block.py` | 1 | `src/unicode/block_test.mbt`（2 用例） | 已落地（`[ALIGN]`，对应 G-25） |
 
-用例数由 `grep -c "def test_" <file>` 派生（2026-10-21 实测：6 / 2 / 7 / 7 / 1）。
+用例数由 `grep -c "def test_" <file>` 派生（2026-10-21 实测：6 / 2 / 7 / 7 / 1）。目标侧计数由 `grep -c '^test ' <file>` 派生（2026-10-23 实测：41 / 2 / 13 / 2）。
 
 **23 源用例 → 116 目标测试：组级映射（2026-10-23 用户裁决「功能等价迁移，不需要完整迁移」）**
 
@@ -434,6 +434,8 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | 概率向量长度 | 每语言概率向量的元素个数 | 由**档案目录条目数**决定，可**大于**可用语言数（V-48、V-53） | 仅经诊断入口 `debug_vector_len()`（§5.10，`[EXT]`） | 本表为摘要（权威＝`docs/port/upstream-behavior-contract.md` §1.3.1 的 `langsize = len(list_files)`；口径逐字：`langsize, index = len(list_files), 0`） |
 
 > 两者不得互相替代：向量长度不得被用作「可用语言数」的判据（PRD §5.3 交互矩阵末行）。V-53 说明该值在公开面**不可直接观察**，故 §5.10 提供诊断入口（`[EXT]`，G-33）。
+> **已声明差异（差异清单 D11，2026-10-26 登记）**：PRD FR-20 的验收构造（「档案目录内含 1 个点文件、1 个子目录、2 个有效档案 → 向量长 4」）在本移植上**不可构造**——`DetectorFactory::load_profile(self)` 无目录入参（`src/core/factory.mbt:129-131`，档案来自内嵌 flat），V-48 的 `langsize = len(list_files)` 形态没有输入通道。本移植的可观察等价物是：`debug_vector_len()` 返回**内嵌档案数**（55），`get_lang_list()` 返回**有效语言数**（55），两者在纯内嵌数据下必然相等（`src/core/api.mbt:121-127` 已记录该判断）。因此 FR-20 的「两者可不等」在该数据源下**不可观察**，`debug_vector_len()` 仅保留为诊断入口（§5.10）。上游该行为未丢失，只是本移植不提供构造它的入口。
+
 
 ---
 
@@ -455,18 +457,17 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | `tools/gen_core_tables.py` | ngram 表生成器（从上游 `ngram.py` 转写） | 实现期 | 产品 | — | `python tools/gen_core_tables.py --verify`（12/11/126/6667） |
 | `src/core/ngram_tables.mbt` | **ngram 表产物**（12 块 / 11 臂 / 126 组 / 6667 键；首行「勿手改」） | 构建前 | 产品 | `python tools/gen_core_tables.py` | `--verify` 四元组 + 首行「勿手改」；覆盖行为 = 整文件重建 |
 | `src/core/cmd/main/moon.pkg` | 静默性验证用可执行包的清单（须含 `pkgtype(kind: "executable")`） | 实现期 | 产品 | —（随包一次写入） | `grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg` |
-| `src/core/cmd/main/main.mbt` | 可执行入口。**当前内容为空 `fn main { }`（脚手架占位，仅验证可执行包形态）；「调用一次 `detect` 且不打印」是实现期目标，尚未实现** | 实现期 | 产品 | — | `C:/Users/Administrator/.moon/bin/moon.exe build --target native` 后检查 `_build/native/debug/build/src/core/cmd/main/main.exe` 存在 |
+| `src/core/cmd/main/main.mbt` | 可执行入口：调用一次 `@core.detect` 并静默（成功与失败分支都不打印） | 实现期 | 产品 | — | `moon build --target native` 后 `main.exe` 存在；空目录运行 stdout/stderr 各 0 字节（§8.1） |
 | `src/core/cmd/golden/moon.pkg` | golden 比对诊断可执行包的清单（不属公开 API；NE1 静态门豁免 `cmd/main/` 与 `cmd/golden/` 两段，见 §9.4 NE1） | 实现期 | 产品 | — | 命令 11b（`grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`）对库与 `cmd/main` 零命中 / rc=1（`cmd/golden` 为诊断输出例外，2026-10-22 用户裁决）+ `compare_golden --mode prob_bits` |
 | `src/core/cmd/golden/main.mbt` | golden 比对诊断入口（读一行 JSON、写一行 JSON；`main` 仍静默） | 实现期 | 产品 | — | 命令 11b（`grep -vE '[\\/]cmd[\\/](main|golden)[\\/]'`）对库与 `cmd/main` 零命中 / rc=1（`cmd/golden` 为诊断输出例外，2026-10-22 用户裁决）+ `compare_golden --mode prob_bits` |
 | `_build/native/debug/build/src/core/cmd/main/main.exe` | 静默性验证用可执行产物 | 构建期 | 产品 | `C:/Users/Administrator/.moon/bin/moon.exe build --target native` | `./_build/native/debug/build/src/core/cmd/main/main.exe > /tmp/o.txt 2> /tmp/e.txt; wc -c /tmp/o.txt /tmp/e.txt` 两者均 0（NE1 运行时半句的载体） |
-| `tools/compare_golden.py` | `约定 C` 的位级比对器（消费 `expected.json` 的 `prob_bits`） | **实现期（当前不存在，属实现期产物）** | 产品 | `—（实现期由产品实现者创建；本表登记其必须提供的调用形态）` | `约定 C：golden 基准消费契约` §3 全部命令 + §8.2 / §8.4 验收行。**状态：未验证（实现期产物；回补触发 = 脚本落地）** —— 按 §14 定义，`[LOCAL_DEAD_LINK]` 仅用于本机环境不可达项，不用于「实现期还没写的脚本」 |
-| `tools/compare_lowconf.py` | 低置信入口分组比对器 | **实现期（当前不存在，属实现期产物）** | 产品 | `—（同上）` | §8.2 低置信入口行。**状态：未验证（实现期产物；回补触发 = 脚本落地）** |
+| `tools/compare_golden.py` | `约定 C` 的位级比对器（消费 `expected.json` 的 `prob_bits`） | 已落地（2026-10-23） | 产品 | 已随仓库提交（`1395186`） | `约定 C：golden 基准消费契约` §3 全部命令 + §8.2 / §8.4 验收行；`--self-check` rc=0（268=250+18），产品模式全绿见 §8.2 |
+| `tools/compare_lowconf.py` | 低置信入口分组比对器 | 已落地（2026-10-23） | 产品 | 已随仓库提交（`1395186`） | §8.2 低置信入口行；`--short 55 --long 55 --baseline 268` rc=0 |
 | `tools/c6_zero_network.sh` | PID 级零网络运行时断言脚本（C6 / FR-24） | 实现期 | 产品 | — | `sh tools/c6_zero_network.sh <exe> <cases.jsonl>` 四态：无 socket → 0 / 持 socket → 1 / 缺失 → 2 / 瞬时退出 → 0 |
 
 > **GP1 说明**：上表每个路径都能反查到「生成时点 / 责任单元 / 生成命令 / 校验命令」四要素；两个产物文件是**生成物**，其覆盖行为与不手改清单分别登记在 `约定 A` §4 与 `约定 B` §5。全文后续出现的 `src/` 均指本表定义的路径，无占位符。
 >
-> **脚手架状态（2026-10-21 实跑 `find src -type f`）**：`src/core/moon.pkg`、`src/data/moon.pkg`、`src/math_seam/moon.pkg`、`src/unicode/moon.pkg`、`src/core/cmd/main/moon.pkg`、`src/core/cmd/main/main.mbt` 共 **6** 个文件。四个基础 `moon.pkg` 为 **0 字节空包**，`src/core/cmd/main/main.mbt` 为空 `fn main { }`——全部属**脚手架**，**0 个产品 `.mbt` 符号**，不构成实现交付物。`moon check` 的 rc=0 只证明「模块存在 + 包图可解」，**不证明实现存在**。产品公开符号数（应为 0）的机检形态见 §10.6 命令 27。
-> **脚手架状态（2026-10-21 实跑 `find src -type f`）**：`src/core/moon.pkg`、`src/data/moon.pkg`、`src/math_seam/moon.pkg`、`src/unicode/moon.pkg`、`src/core/cmd/main/moon.pkg`、`src/core/cmd/main/main.mbt`（+ `src/core/main.mbt` 若 build 需要）。四个空 `moon.pkg` **当前为 0 字节空包、0 个产品 `.mbt` 符号**，属**脚手架**，不构成实现交付物；`moon check` 的 rc=0 只证明「模块存在 + 包图可解」，**不证明实现存在**。`src/core/cmd/main/` 已按本表创建（含可执行包清单），产物路径已实测产出。
+> **实现状态（2026-10-23 实测，取代 2026-10-21 的脚手架记录）**：`src/` 下共 **37** 个文件（21 个产品 `.mbt` + 6 个 `moon.pkg` + 10 个 `*_test.mbt`）；`moon check` rc=0（5 个 `[0033]` 长字符串告警，全部来自 `src/data/profiles.mbt`）；`moon test --target native` **116/116**；三目标 build 均 rc=0。此前「6 个脚手架文件 / 0 个产品符号 / `main.mbt` 为空」的记录已作废，不再代表当前树。
 
 
 ---
@@ -604,7 +605,7 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | 项 | 内容 |
 |---|---|
 | 签名 | `debug_vector_len() -> Int` |
-| 语义 | 返回「每语言概率向量的元素个数」= 档案目录条目数（V-48、V-53）；**不是**可用语言数 |
+| 语义 | 返回「每语言概率向量的元素个数」。上游口径为档案目录条目数（V-48、V-53）；本移植档案来自内嵌 flat，故该值 = 内嵌档案数（55）。**不是**可用语言数（在纯内嵌数据下两者数值相等，见 §4.5 差异清单 D11） |
 | 用途 | 使 FR-20 在公开面可观察（V-53 证明上游公开面无此值） |
 | 目标可用性 | native ✅ / js ✅ / wasm-gc ✅（纯整数读取） |
 | 回链 | FR-20；`[EXT]` — 非对齐项，产品决策驱动 |
@@ -662,7 +663,7 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 > **每行三要素**：目标环境标识 + 可重跑命令 + 观测输出（**未验证时填 `—`**；期望值来源单列）。
 >
 > **整体判定（Fail-3）**：本表**任一维度、任一行失败，整体验收即失败**；不允许用其他维度的通过抵扣，也不允许把某维度标「不适用」来规避。
-> **门禁**：任一行「未验证」且无三要素时**不得**判该维度完成。本 spec 冻结时全部为「未验证」是如实状态（产品实现未落地）。
+> **门禁**：任一行「未验证」且无三要素时**不得**判该维度完成。**当前状态（2026-10-23）**：native 维度的行已全部回填三要素；js / wasm-gc 与跨平台位级行按 `[LOCAL_DEAD_LINK]` 登记，不判绿也不计入已完成。
 
 ### 8.1 维度一：运行时链路
 
@@ -671,38 +672,41 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | 首次调用完成档案加载 | native (win32 x64) | `C:/Users/Administrator/.moon/bin/moon.exe test --target native`（cwd = 仓库根） | `analysis/toolchain-probes.md` §C.1 | 首次解析 184129 条档案条目 209 ms；首次工厂加载 347 ms；合计 567 ms（N=3 冷进程中位数，见 `docs/superpowers/plans/artifacts/target-report-2026-10-21.md` §8） | 已验证（U-06 回填，2026-10-23 用户授权） |
 | 首次调用完成档案加载 | js | `C:/Users/Administrator/.moon/bin/moon.exe test --target js`（PATH 前置 `probes/bin`） | `probes/logs/target-js-02-test.log` | — | 未验证（替代运行时，U-02） |
 | 首次调用完成档案加载 | wasm-gc | `C:/Users/Administrator/.moon/bin/moon.exe build --target wasm-gc` | `probes/logs/target-wasm-gc-01-build.log` | — | `[LOCAL_DEAD_LINK]`（test 不可达，U-01） |
-| 空目录下可检测 | native (win32 x64) | `cd <空临时目录> && /f/moonbit比赛/moon_langdetect/_build/native/debug/build/src/core/cmd/main/main.exe`（**当前该入口为空 `fn main { }`，尚未调用 `detect`**；detect 链路待实现） | PRD FR-13 | — | 未验证（实现期产物；回补触发 = `main.mbt` 填入 detect 调用；填入前不计已验证） |
+| 空目录下可检测 | native (win32 x64) | `cd <空临时目录> && /f/moonbit比赛/moon_langdetect/_build/native/debug/build/src/core/cmd/main/main.exe`（cwd = 空目录；`main` 调 `@core.detect` 一次并静默，见 `src/core/cmd/main/main.mbt`） | PRD FR-13 | rc=0；stdout 0 B / stderr 0 B（2026-10-23 实测，`docs/superpowers/plans/artifacts/final-report-2026-10-21.md` P-25） | 已验证 |
 
 ### 8.2 维度二：功能对齐（按 FR 分组）
 
 | 分组 | 覆盖 FR | 目标环境 | 操作证据（命令 / 入口） | 期望值来源 | 观测输出 | 状态 |
 |---|---|---|---|---|---|---|
-| 主检测与概率形态 | FR-01/02/03/04 | native (win32 x64) | `python tools/compare_golden.py --target native --seed 0 --mode prob_bits`（脚本**当前不存在**，GP1 见 §4A） | `docs/port/golden/expected.json` | — | 未验证（实现期产物；回补触发 = `tools/compare_golden.py` 落地；落地前本行不计已验证。**注：§10.6 命令 16–19 只校验基准文件自身，不校验产品行为，不构成等价入口**） |
-| **seed 语义** | **FR-05/FR-06** | native (win32 x64) | `python tools/compare_golden.py --target native --mode seed_semantics`（脚本**当前不存在**，GP1 见 §4A）：① seed=0 同文本 ×5 差异数；② seed=42 与 0 的差异数且自身 ×5 可重复；③ 不设 seed ×10 的多结果计数与异常计数 | `docs/port/golden/expected.json` 的 `repeatability`（14 组）与 `unseeded_runs` | — | 未验证（实现期产物；回补触发 = 脚本落地；落地前不计已验证） |
-| 参数与失败路径 | FR-07/08/09/10/11/12 | native (win32 x64) | `python tools/compare_golden.py --target native --mode failures`（脚本**当前不存在**，GP1 见 §4A） | `docs/port/upstream-behavior-contract.md` §9 | — | 未验证（实现期产物；同上） |
-| **失败取证通道** | FR-08/09/11/12（PRD §5.2） | native (win32 x64) | `python tools/compare_golden.py --target native --mode forensics`（脚本**当前不存在**，GP1 见 §4A） | 本文 §5.8 | — | 未验证（实现期产物；回补触发 = 脚本落地） |
-| 清洗契约 | FR-15/16/17 | native (win32 x64) | `python tools/compare_golden.py --target native --mode cleaning`（脚本**当前不存在**，GP1 见 §4A） | `tools/probe_facts.py append_cleanup` 同口径 | — | 未验证（实现期产物；回补触发 = 脚本落地） |
-| 大写词与缓存 | FR-18/19/20 | native (win32 x64) | `python tools/compare_golden.py --target native --mode features_cache`（脚本**当前不存在**，GP1 见 §4A） | `docs/port/upstream-behavior-contract.md` §10 | — | 未验证（实现期产物；回补触发 = 脚本落地） |
-| 低置信入口 | FR-21/22/23 | native (win32 x64) | `python tools/compare_lowconf.py --short 55 --long 55 --baseline 268`（脚本**当前不存在**，GP1 见 §4A） | PRD FR-21/22/23 | — | 未验证（实现期产物；回补触发 = `tools/compare_lowconf.py` 落地；落地前不计已验证） |
-| 内嵌档案与零外部读取 | FR-13/14/24/25/26 | native (win32 x64) | §10.6 命令 21–25（约定 A/B/C 的产物侧，**已实跑**）+ `python tools/compare_golden.py --target native --mode profile_counts`（脚本**当前不存在**） | 约定 A/B/C + V-14 | — | 部分可跑：产物侧命令已跑（§10.6 rc 实录）；`profile_counts` 模式 未验证（实现期产物；同上） |
+| 主检测与概率形态 | FR-01/02/03/04 | native (win32 x64) | `python tools/compare_golden.py --target native --seed 0 --mode prob_bits` | `docs/port/golden/expected.json` | `ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical`（2026-10-23 实测） | 已验证 |
+| **seed 语义** | **FR-05/FR-06** | native (win32 x64) | `python tools/compare_golden.py --target native --mode seed_semantics`：① seed=0 同文本 ×5 差异数；② seed=42 与 0 的差异数且自身 ×5 可重复；③ 不设 seed ×10 的多结果计数与异常计数 | `docs/port/golden/expected.json` 的 `repeatability`（14 组）与 `unseeded_runs` | `ok seed_semantics target=native repeatability=14/14 groups x5 runs (70 runs), seed_diff=125/125 (0 vs 42 differ as recorded), unseeded=7/7 texts (70 runs; top in baseline distinct_langs, RNG variation required where baseline distinct_count > 1)`（2026-10-23 实测） | 已验证 |
+| 参数与失败路径 | FR-07/08/09/10/11/12 | native (win32 x64) | `python tools/compare_golden.py --target native --mode failures` | `docs/port/upstream-behavior-contract.md` §9 | `ok failures target=native cases=18/18 code/message/input_len/input_prefix matched; failure_set=[]`（2026-10-23 实测） | 已验证 |
+| **失败取证通道** | FR-08/09/11/12（PRD §5.2） | native (win32 x64) | `python tools/compare_golden.py --target native --mode forensics` | 本文 §5.8 | `ok forensics target=native cases=18/18 four_fields=code/message/input_len/input_prefix`（2026-10-23 实测） | 已验证 |
+| 清洗契约 | FR-15/16/17 | native (win32 x64) | `python tools/compare_golden.py --target native --mode cleaning` | `tools/probe_facts.py append_cleanup` 同口径 | `ok cleaning target=native cases=6/6 V-40..V-43`（2026-10-23 实测） | 已验证 |
+| 大写词与缓存 | FR-18/19/20 | native (win32 x64) | `python tools/compare_golden.py --target native --mode features_cache` | `docs/port/upstream-behavior-contract.md` §10 | `ok features_cache target=native checks=2/2 V-46 raw grams exact; V-47 probs1==probs2`（2026-10-23 实测）。FR-20 的可观察口径见 §4.5 差异清单 D11 | 已验证（FR-20 按差异清单 D11 口径） |
+| 低置信入口 | FR-21/22/23 | native (win32 x64) | `python tools/compare_lowconf.py --short 55 --long 55 --baseline 268` | PRD FR-21/22/23 | `ok lowconf seed=0 short=55/55 (<50 LowConfidence), long=55/55 (>=50 Detected, top in golden candidates), baseline=268`（2026-10-23 实测） | 已验证 |
+| 内嵌档案与零外部读取 | FR-13/14/24/25/26 | native (win32 x64) | §10.6 命令 21–25（约定 A/B/C 的产物侧，**已实跑**）+ `python tools/compare_golden.py --target native --mode profile_counts` | 约定 A/B/C + V-14 | `ok profile_counts target=native lang_list_len=55 entry_total=184129 vector_len=55 u06_parse_ms=319 u06_load_ms=432`（2026-10-23 实测） | 已验证 |
 
 ### 8.3 维度三：跨目标产物
 
 | 项目 | 目标环境 | 操作证据（命令 / 入口） | 期望值来源 | 观测输出 | 状态 |
 |---|---|---|---|---|---|
-| 三目标 build 通过 | native / js / wasm-gc | `C:/Users/Administrator/.moon/bin/moon.exe build --target native`；`… --target js`；`… --target wasm-gc` | `analysis/toolchain-probes.md` §C.1 | — | 未验证 |
-| 三目标主语言一致 | native / js / wasm-gc | `python tools/compare_golden.py --target {native,js,wasm-gc} --mode top1` | PRD FR-01 | — | 未验证（wasm-gc 运行时不可达 U-01 + js 替代运行时 U-02 + 比对脚本为实现期产物；回补触发 = 运行器/官方 node 可用且脚本落地） |
-| 三目标可用语言数一致 | native / js / wasm-gc | `python tools/compare_golden.py --target {native,js,wasm-gc} --mode lang_list_len` | PRD FR-13 | — | 未验证（实现期产物；回补触发 = 脚本落地） |
-| 三目标条目合计一致 | native / js / wasm-gc | `python tools/compare_golden.py --target {native,js,wasm-gc} --mode entry_total` | PRD FR-25 | — | 未验证（实现期产物；回补触发 = 脚本落地） |
-| 源侧 23 用例的目标侧对应文件存在且通过 | native (win32 x64) | `C:/Users/Administrator/.moon/bin/moon.exe test --target native`（需 §2A 的 4 个 `*_test.mbt` 就位；当前 `find src -name "*_test.mbt"` → **0** 个） | §2A | — | 未验证（实现期产物；回补触发 = 产品测试文件建立后；建立前不计已验证） |
+| 三目标 build 通过 | native / js / wasm-gc | `C:/Users/Administrator/.moon/bin/moon.exe build --target native`；`… --target js`；`… --target wasm-gc` | `analysis/toolchain-probes.md` §C.1 | 三条均 rc=0（2026-10-23 实测；产物 sha256 见 `docs/superpowers/plans/artifacts/final-report-2026-10-21.md` P-06） | 已验证（仅构建，不含运行时） |
+| 三目标主语言一致（native） | native (win32 x64) | `python tools/compare_golden.py --target native --mode top1` | PRD FR-01 | `ok top1 target=native cases=250/250 top_lang=detect`（2026-10-23 实测） | 已验证（native） |
+| 三目标主语言一致 | js / wasm-gc | `python tools/compare_golden.py --target {js,wasm-gc} --mode top1` | PRD FR-01 | — | `[LOCAL_DEAD_LINK]`（能力未验证，U-01 + U-02；回补触发 = `moonrun` / 官方 node 可用） |
+| 三目标可用语言数一致（native） | native (win32 x64) | `python tools/compare_golden.py --target native --mode lang_list_len` | PRD FR-13 | `ok lang_list_len target=native len=55 order=expected.json/meta.langlist`（2026-10-23 实测） | 已验证（native） |
+| 三目标可用语言数一致 | js / wasm-gc | 同上，目标换 js / wasm-gc | PRD FR-13 | — | `[LOCAL_DEAD_LINK]`（能力未验证，U-01 + U-02） |
+| 三目标条目合计一致（native） | native (win32 x64) | `python tools/compare_golden.py --target native --mode entry_total` | PRD FR-25 | `ok entry_total target=native total=184129`（2026-10-23 实测） | 已验证（native） |
+| 三目标条目合计一致 | js / wasm-gc | 同上，目标换 js / wasm-gc | PRD FR-25 | — | `[LOCAL_DEAD_LINK]`（能力未验证，U-01 + U-02） |
+| 源侧 23 用例的目标侧对应文件存在且通过 | native (win32 x64) | `C:/Users/Administrator/.moon/bin/moon.exe test --target native`（§2A 组级映射：23 源用例 → 10 个 `src/**/*_test.mbt`，116 用例） | §2A | `Total tests: 116, passed: 116, failed: 0.`（2026-10-23 实测） | 已验证（组级映射，逐用例一对一不要求） |
 
 ### 8.4 维度四：位级一致性（按平台分档）
 
 | 项目 | 目标环境 | 操作证据（命令 / 入口） | 期望值来源 | 观测输出 | 状态 |
 |---|---|---|---|---|---|
-| `prob_bits` 逐位一致（seed 0） | **native (win32 x64)** | `python tools/compare_golden.py --target native --seed 0 --mode prob_bits` | `docs/port/golden/expected.json` | — | 未验证 |
-| `prob_bits` 逐位一致（seed 42） | **native (win32 x64)** | `python tools/compare_golden.py --target native --seed 42 --mode prob_bits` | 同上 | — | 未验证 |
-| 同 seed 重复 5 次一致 | **native (win32 x64)** | `python tools/compare_golden.py --target native --mode repeatability`（14 组） | `expected.json` 的 `repeatability` | — | 未验证 |
+| `prob_bits` 逐位一致（seed 0） | **native (win32 x64)** | `python tools/compare_golden.py --target native --seed 0 --mode prob_bits` | `docs/port/golden/expected.json` | `ok prob_bits target=native seed=0 cases=125/125 entries=138 bitwise=identical`（2026-10-23 实测） | 已验证 |
+| `prob_bits` 逐位一致（seed 42） | **native (win32 x64)** | `python tools/compare_golden.py --target native --seed 42 --mode prob_bits` | 同上 | `ok prob_bits target=native seed=42 cases=125/125 entries=136 bitwise=identical`（2026-10-23 实测） | 已验证 |
+| 同 seed 重复 5 次一致 | **native (win32 x64)** | `python tools/compare_golden.py --target native --mode repeatability`（14 组） | `expected.json` 的 `repeatability` | `ok repeatability target=native groups=14/14 runs=70 identical=yes`（2026-10-23 实测） | 已验证 |
 | 容差档（数值待校准） | **native（其他平台）** | `python tools/compare_golden.py --target native-other --mode prob_tolerance` | `约定 C` §4；U-05 | — | `[LOCAL_DEAD_LINK]`（能力未验证，U-05） |
 | 容差档（数值待校准） | **js / wasm-gc** | `python tools/compare_golden.py --target {js,wasm-gc} --mode prob_tolerance` | `约定 C` §4；U-04 | — | `[LOCAL_DEAD_LINK]`（指标未测，U-04） |
 
@@ -738,7 +742,7 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 
 | 分叉点 | 构造输入 | 实测/状态 |
 |---|---|---|
-| `log` 位型档 | 固定 seed 的 55 条长文本（跨 native 与 js/wasm-gc 各跑一遍，比较 `prob_bits`） | 未验证（产品实现未落地）；参照量级见 V-35 |
+| `log` 位型档 | 固定 seed 的 55 条长文本（跨 native 与 js/wasm-gc 各跑一遍，比较 `prob_bits`） | native 侧已验证（§8.4 双 seed 位级一致）；js / wasm-gc 侧 `[LOCAL_DEAD_LINK]`（U-01 / U-02），参照量级见 V-35 |
 | 浮点比较档（阈值边界） | 三组构造：**恰等于** 0.1 / **略大于** 0.1 / **略小于** 0.1。构造方式二选一：① `set_prior_map` 造出可控初始权重（如两语言等权 + 单特征文本，令归一化后最大概率落在边界）；② 接缝注入概率数组。**当前状态**：基准侧无恰等于阈值的样本（V-49：250 条中最小条目 0.1428…，无 ≤0.1），故本档**只能经接缝注入构造** → 登记 `[LOCAL_DEAD_LINK]`（分类：**能力未验证**；回补触发 = 接缝可注入概率数组之后；处置 = 实现期补三组样本并断言「恰等于 → 被过滤；略大 → 保留；略小 → 被过滤」） |
 | 浮点比较档（NaN） | `set_prior_map({'en': NaN})` + 任意合法长文本 | **可构造**（V-51）：上游返回空列表 + `'unknown'` |
 | 排序并列档 | 2 档案等权 + 文本 `q r` | **可构造**（V-50）：两条目概率相等，顺序 = 档案序 |
@@ -837,15 +841,15 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | C-A5（生成清单 mode=flat） | `.venv/Scripts/python.exe -c "import json,sys;sys.exit(0 if json.load(open('probes/gen-manifest.json'))['mode']=='flat' else 1)"`，exit **0** | `mode` 改 `map` → exit **1** | 若合法清单 exit 1 → 检查 JSON 编码 |
 | C-A6（首行含「勿手改」） | `head -1 "$F" \| grep -q '勿手改'`，exit **0** | 首行改 `// no marker` → exit **1** | 若合法产物 exit 1 → 检查首行是否被改写 |
 
-> `$F` = `src/data/profiles.mbt`（产品）或 `probes/embed-probe/lib/data/data.mbt`（参照样本）。**产品产物尚未生成 → 产品侧 T1 未做**（阻塞 U-06 之外的 T16 类项）。
+> `$F` = `src/data/profiles.mbt`（产品）或 `probes/embed-probe/lib/data/data.mbt`（参照样本）。**产品侧 T1 已补做（2026-10-23）**：`C-A4` 计数 0（`Map::from_array` 零命中）、`C-A6` 首行含「勿手改」——两条均对产品产物成立。
 
 ### 10.2 约定 B 门禁（B1-B6；B1/B3/B4 合并为一行）
 
 | 命令 | T1 已试跑（2026-10-21，GNU grep） | T2 已知违规（实录） | T3 证伪路径 |
 |---|---|---|---|
 | C-B1/C-B3/C-B4（版本 + 1951 码点 + 651 区间） | `ok 1951 cps / 651 intervals`，exit **0** | 断言 `len(cps)==1950` → `AssertionError 1951`，exit **1** | 若合法环境 exit 1 → 检查 `.venv` 版本与 `unidata_version` |
-| C-B2（表头版本字段） | **未做 T1**（产物 `src/unicode/upper_table.mbt` 未生成） | 表头缺失 `unidata_version` → 必然 exit 1 | 同上 |
-| C-B5（全码点 0 不一致） | **未做 T1**（同上） | 注入 1 个错判码点 → diff 计数 1，exit 1 | 若合法表 exit 1 → 检查 surrogate 跳过范围 |
+| C-B2（表头版本字段） | **已补做（2026-10-23）**：产物首行含 `unidata_version=15.0.0` 与 `python_version=3.12.10`，exit **0** | 表头缺失 `unidata_version` → 必然 exit 1 | 同上 |
+| C-B5（全码点 0 不一致） | **已补做（2026-10-23）**：`python tools/gen_upper_table.py --verify` → `ok 1951 cps / 651 intervals / 0 diff` + `ok 220 blocks / 0 diff (full codepoint lookup)`，exit **0** | 注入 1 个错判码点 → diff 计数 1，exit 1 | 若合法表 exit 1 → 检查 surrogate 跳过范围 |
 | C-B6（无第三方 Unicode 引用） | `test -d src \|\| exit 2; test "$(grep -rlE 'moonbitlang/x\|unicode-data' src \| wc -l)" = "0"` → exit **0**（路径存在、0 命中） | 在 `src/` 下写含 `"moonbit-community/unicode-data"` 的 `moon.pkg` → exit **1** | 若误报 → 检查检索面是否含 `.mooncakes`；**路径不存在时命令 exit 2**（不再是假绿） |
 
 > v2 修正：C-B6 先断言路径存在（`test -d src || exit 2`），路径缺失时**不再**把 grep 的 exit 2 洗成 0。
@@ -870,7 +874,7 @@ awk -F'|' '/^\| FR-[0-9]+ \|/{gsub(/ /,"",$5); print $5}' docs/superpowers/prds/
 | DR2 `@math.ln(` | 对 `src/` → 0 行；参照清单（探针，不在扫描域）代码 3 处 + 注释 4 处 | 注入 `@math.ln(x)` 且无 `non-native fallback` → 带标记命中行数 = **0** | 检查标记是否在同一函数内 |
 | DR3 `extern "C" fn c_cos/c_sin` | `grep -rnE 'extern "C" fn c_(cos\|sin)' --include=*.mbt src` → 0 行，exit **1** | 注入 `pub extern "C" fn c_cos(...) = "cos"` → 命中 1 行，exit **0** | 同上 |
 | DR4 `is_ascii_uppercase` | `grep -rn 'is_ascii_uppercase' --include=*.mbt src` → 0 行，exit **1**；`grep -rn -e unicode-data -e moonbitlang/x --include=moon.pkg src` → 0 行，exit **1** | 注入 `c.is_ascii_uppercase()` → 命中 1 行，exit **0** | 若合法代码被命中 → 确认是否用于 ASCII 快速路径（也违规） |
-| DR5 `Map::from_array` | 同 C-A4（探针产物 0 命中，exit 0）；产品 `src/data/profiles.mbt` 未生成 → **未做 T1** | 同 C-A4 的 T2（注入 → exit 1） | 同 C-A4 |
+| DR5 `Map::from_array` | 同 C-A4；产品 `src/data/profiles.mbt` 已补做（2026-10-23）：0 命中，exit **1**（零命中即通过） | 同 C-A4 的 T2（注入 → exit 1） | 同 C-A4 |
 | DR6 core `@fs` | `grep -rn '"moonbitlang/core/fs"' --include=moon.pkg src` → 0 行，exit **1**；参照：实际 import 为 `moonbitlang/async/fs` | 写 `"moonbitlang/core/fs"` 到 `src/core/moon.pkg.tmp` → 命中 1 行，exit **0** | 若误报 → 确认上游是否新增 core fs 包 |
 | DR7 `derive(Show)` | `grep -rn 'derive(Show)' --include=*.mbt src` → 0 行，exit **1**；`moonc` 实测告警原文见 §7 DR7 | 注入 `derive(Show)` → 命中 1 行（`src/core/v7.mbt:1`），exit **0** | 若 moonc 升级后不再 deprecated → 追加新行替代（append-only） |
 | **DR8 跨包别名** | 代码块见 §10.6 命令 4；对 `probes/embed-probe` → **0 行**（v1 的裸词边界形态命中 111 行合法 `@data.`，属假红；v5 起该形态已弃用）；对 `src/` → 0 行，exit **1** | 注入 `data.entry_count("af")`（无 `@`）→ 命中 1 行，exit **0** | 若合法 `@data.` 被命中 → 正则的前缀类写错 |
@@ -1137,11 +1141,11 @@ grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg
 
 ## 13. 红线段（R1-R4）
 
-**判断：N/A —— 本任务是新建 MoonBit 库（产品侧 `src/` 当前 0 个公开符号），不修改任何既有 MoonBit 代码。**
+**判断：N/A —— 本任务是新建 MoonBit 库，不修改任何既有 MoonBit 代码。**（原判断写作「产品侧 `src/` 当前 0 个公开符号」，该事实已于实现期失效：`src/` 现有 57 个公开符号；红线结论不变，因为仍无**既有**代码可破坏。）
 
 | 编号 | 检查项 | 结论 | 理由 |
 |---|---|---|---|
-| R1 | 既有违规 | **N/A** | 产品侧无代码（§2 枚举命令对 `src/` 输出 0 行）；`probes/` 下为取证探针，不属产品契约面，且其中确实存在 `Map::from_array`（`probes/gen_mbt.py:80`）与 `@math.ln`（`probes/rand-probe/rand-probe.mbt:203` 等 3 处代码）——这是**探针合法用法**（对照实验需要），不受产品红线约束（§7 总则已把 `probes/` 排除出检索面）。 |
+| R1 | 既有违规 | **N/A** | 产品侧原无代码、现为新建实现（§2 枚举命令对 `src/` 现输出 57 行，全部为本批新增，无 `[pre-existing]` 项）；`probes/` 下为取证探针，不属产品契约面，且其中确实存在 `Map::from_array`（`probes/gen_mbt.py:80`）与 `@math.ln`（`probes/rand-probe/rand-probe.mbt:203` 等 3 处代码）——这是**探针合法用法**（对照实验需要），不受产品红线约束（§7 总则已把 `probes/` 排除出检索面）。 |
 | R2 | 兼容性破坏 | **N/A** | 无既有调用方（新包）。 |
 | R3 | 数据迁移 | **N/A** | 无既有数据；55 个档案是只读输入。 |
 | R4 | 依赖替换 | **N/A** | 无既有依赖；上游 Python 包仅作只读参照。 |
@@ -1163,11 +1167,11 @@ grep -q 'pkgtype(kind: "executable")' src/core/cmd/main/moon.pkg
 | U-03 | mooncakes 服务端体积 / 文件数限制 | `[LOCAL_DEAD_LINK]` | 能力未验证 | 首次真实发布或小包试探 | 发布前用小包试探；保留按语言子集裁剪方案 |
 | U-04 | js / wasm-gc 的概率容差数值 | `[LOCAL_DEAD_LINK]` | 指标未测 | 在两目标上实测概率差分布后登记 | `约定 C` §4 容差栏保持「待校准」；校准前只判 §8.1/§8.3 的结构项与准确率项 |
 | U-05 | 跨平台 libm 位级一致性 | `[LOCAL_DEAD_LINK]` | 能力未验证 | 在目标平台跑全量对照 | 位级档限定 `native (win32 x64)`；其他平台按容差档（§8.4） |
-| U-06 | 首次加载解析 184129 条的耗时 | `[LOCAL_DEAD_LINK]` | 指标未测 | 产品实现后实测 | §8.1 该行保持「未验证」 |
+| U-06 | 首次加载解析 184129 条的耗时 | 已关闭（2026-10-23 回填） | 指标未测 → 已实测 | 已在 native 实测：解析 209 ms / 加载 347 ms（N=3 冷进程中位） | §8.1 native 行已回填三要素并判「已验证」；`profile_counts` 交叉采样 319 ms / 432 ms 见 §8.2 |
 | U-07 | `str.isupper` 与 `Uppercase` 属性集合是否完全相等 | `[LOCAL_DEAD_LINK]` | 能力未验证 | 生成 U3 表时用 `str.isupper` 全码点实测口径核对 | `约定 B` 复开条件③ |
 | U-08 | wasm-gc 首次调用完成档案加载 | `[LOCAL_DEAD_LINK]` | 能力未验证 | 同 U-01 | §8.1 wasm-gc 行：只接受 build |
-| U-09 | 三目标可用语言数 / 条目合计一致性 | `[LOCAL_DEAD_LINK]` | 环境未验证 | 运行器与官方运行时可用 + 比对脚本落地 | §8.3 两行；wasm-gc 行按 U-01 处置 |
-| U-10 | 三目标主语言一致性 | `[LOCAL_DEAD_LINK]` | 环境未验证 | 同 U-09 | §8.3 对应行 |
+| U-09 | 三目标可用语言数 / 条目合计一致性 | `[LOCAL_DEAD_LINK]`（仅 js / wasm-gc 侧） | 环境未验证 | 运行器与官方运行时可用 | §8.3 已拆行：native 侧 `len=55` / `total=184129` 实测判绿，js / wasm-gc 行按 U-01 / U-02 处置 |
+| U-10 | 三目标主语言一致性 | `[LOCAL_DEAD_LINK]`（仅 js / wasm-gc 侧） | 环境未验证 | 同 U-09 | §8.3 已拆行：native 侧 `cases=250/250` 实测判绿，js / wasm-gc 行按 U-01 / U-02 处置 |
 | U-11 | 其他平台位级一致 | `[LOCAL_DEAD_LINK]` | 能力未验证 | 同 U-05 | §8.4 native（其他平台）行 |
 | U-12 | js / wasm-gc 容差档 | `[LOCAL_DEAD_LINK]` | 指标未测 | 同 U-04 | §8.4 js / wasm-gc 行 |
 
@@ -1205,8 +1209,8 @@ awk '/^\*\*T2 违规样本实录/,/^\*\*N-01 的假红对照/' docs/superpowers/
 **逐行状态指针**（不写合计；每条状态必须读对应表）：
 
 - 逐行 T1/T2/T3 状态见 §10.1 / §10.2 / §10.3 / §10.4 四张表 + §10.6 代码块清单（每行/每条都有独立记录）。
-- **未做 T1 的行**：§10.2 的 C-B2、C-B5（产物 `src/unicode/upper_table.mbt` 未生成）；§10.1 的产品侧 C-A1…C-A6 与 DR5 的产品侧（产物 `src/data/profiles.mbt` 未生成）。
-- **未做 T2 的行**：§10.1 的产品侧 C-A1…C-A6、§10.2 的 C-B2/C-B5、DR5 的产品侧（均依赖未生成的产物）。
+- **未做 T1 的行**：无。产物已就位（`src/data/profiles.mbt` 2 211 632 B / 55 声明 / 184 129 条目；`src/unicode/upper_table.mbt` 20 171 B），产品侧 C-A1…C-A6、C-B2、C-B5 与 DR5 均已在实现期补跑。
+- **未做 T2 的行**：无。原「依赖未生成产物」的前置条件已消失；违规样本已在实现期按 §10.6 的 T2 表逐条构造并清理，`moon check` 复跑 rc=0。
 - **已做 T2 的行（v4 实录）**：§10.1 的探针产物侧 C-A1…C-A6；§10.2 的 C-B1/B3/B4 与 C-B6；§10.3 的 C-C1/C2/C3/C4/C6；§10.4 与 §10.6 的 DR1…DR11。构造物均已清理，`moon check` 复跑 exit 0。
 - **§10.6 的命令**：T1 与 T2 的逐条状态见 §10.6 代码块内的 `# rc=` 注释与紧随其后的 T2 表；条数用派生命令（见下方命令 B）与 T2 表行数（见下方命令 C）读出，**不手写**。
 
