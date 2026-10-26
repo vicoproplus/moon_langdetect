@@ -1,0 +1,72 @@
+name: moon-langdetect
+
+# GitCode native CI (AtomGit Actions) — workflows live in `.gitcode/workflows/`.
+# Structure follows the GitCode execution model: Stages → Jobs → Runner → Steps
+# (docs: https://docs.gitcode.com/docs/help/home/org_project/pipeline/core-concepts/workflow-job-step-action).
+#
+# The bit-level golden assertions embed libm `log` bit patterns recorded on
+# win32 x64, and GitCode's own CI is Linux-only, so this pipeline runs the
+# structural gates (check + three-target build + package). Bit-level and
+# runtime equivalence stay on the GitHub Actions pipeline in
+# `.github/workflows/ci.yml` (windows-latest), which is also where macOS and
+# Windows coverage lives.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+stages:
+  build:
+    name: Build and package
+    fail_fast: true
+    jobs:
+      build:
+        name: check and build
+        runs-on: ubuntu-latest
+        steps:
+          - name: Install MoonBit
+            run: |
+              curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+              # `GITHUB_PATH` is a GitHub Actions convention; write it only
+              # when the runner provides it. Every step below exports PATH
+              # explicitly so the install is self-contained.
+              if [ -n "${GITHUB_PATH:-}" ]; then
+                echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+              fi
+
+          - name: Toolchain versions
+            run: |
+              export PATH="$HOME/.moon/bin:$PATH"
+              moon version --all
+
+          - name: moon check
+            run: |
+              export PATH="$HOME/.moon/bin:$PATH"
+              moon check
+
+          - name: Build native
+            run: |
+              export PATH="$HOME/.moon/bin:$PATH"
+              moon build --target native
+
+          - name: Build js
+            run: |
+              export PATH="$HOME/.moon/bin:$PATH"
+              moon build --target js
+
+          - name: Build wasm-gc
+            run: |
+              export PATH="$HOME/.moon/bin:$PATH"
+              moon build --target wasm-gc
+
+          - name: moon info
+            run: |
+              export PATH="$HOME/.moon/bin:$PATH"
+              moon info
+
+          - name: Package
+            run: |
+              export PATH="$HOME/.moon/bin:$PATH"
+              moon package
